@@ -2,7 +2,7 @@ const kinds=['settings','movement','petty','budget','statement','asset','agreeme
 export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError}){
  const fail=(m,s=400)=>{throw new PublicError(s,m);};
  const who=await authorized(sessionToken(request));const url=new URL(request.url);
- if(api==='panel-asadas')return json({asadas:who.admin?await sb('/rest/v1/asadas?active=eq.true&select=id,name&order=name.asc'):[who.asada],canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role)});
+ if(api==='panel-asadas')return json({isPlatformAdmin:who.admin===true,asadas:who.admin?await sb('/rest/v1/asadas?active=eq.true&select=id,name&order=name.asc'):[who.asada],canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role)});
  const input=request.method==='POST'?await body(request):null;
  const requested=input?.asada||url.searchParams.get('asada');
  let asada=who.asada;
