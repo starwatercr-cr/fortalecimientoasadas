@@ -31,7 +31,7 @@ const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f
 const text=(v,max)=>typeof v==='string'?v.trim().slice(0,max):'';
 async function owner(request){const who=await authorized(sessionToken(request));if(!who.admin)throw new PublicError(403,'Esta acción corresponde a Star Water.');return who;}
 export default async function handler(request){
- const url=new URL(request.url);const api=url.searchParams.get('api');
+ const url=new URL(request.url);const api=url.pathname.startsWith('/api/')?url.pathname.slice(5):url.searchParams.get('api');
  try{
   if(request.method!=='GET'&&request.method!=='POST')return json({error:'Método no permitido.'},405);
   if(request.method==='POST'&&request.headers.get('origin')!==url.origin)throw new PublicError(403,'Origen de la solicitud no autorizado.');
@@ -73,7 +73,7 @@ export default async function handler(request){
    }
    throw new PublicError(404,'Operación no disponible.');
   }
-  const file=url.searchParams.get('file');if(!protectedFiles.has(file))throw new PublicError(404,'Página no disponible.');
+  const file=protectedFiles.has(url.pathname.slice(1))?url.pathname.slice(1):url.searchParams.get('file');if(!protectedFiles.has(file))throw new PublicError(404,'Página no disponible.');
   try{await authorized(sessionToken(request));}catch(e){if(e.status===401&&file.endsWith('.html'))return new Response(null,{status:303,headers:{...headers,Location:'/acceso.html?return='+encodeURIComponent('/'+file)}});throw e;}
   const bytes=await readFile(path.join(root,file));return new Response(bytes,{headers:{...headers,'Content-Type':mime[path.extname(file)]||'application/octet-stream'}});
  }catch(error){return json({error:error instanceof PublicError?error.message:'No fue posible completar la operación. Intente de nuevo.'},error instanceof PublicError?error.status:500);}
