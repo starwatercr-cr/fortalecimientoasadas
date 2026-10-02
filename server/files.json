@@ -1,0 +1,20 @@
+{
+  "herramientas.html": "herramientas.html",
+  "diagnostico.html": "diagnostico.html",
+  "nuestra-agua.html": "nuestra-agua.html",
+  "nuestras-finanzas.html": "nuestras-finanzas.html",
+  "asamblea.html": "asamblea.html",
+  "calidad.html": "calidad.html",
+  "biblioteca.html": "biblioteca.html",
+  "agua.js": "agua.js",
+  "asamblea.js": "asamblea.js",
+  "calidad.js": "calidad.js",
+  "finanzas.js": "finanzas.js",
+  "finance-word.js": "finance-word.js",
+  "biblioteca.js": "biblioteca.js",
+  "normativa-data.js": "normativa-data.js",
+  "assets/normativa/agua-potable.pdf": "normativa/agua-potable.pdf",
+  "assets/normativa/asadas.pdf": "normativa/asadas.pdf",
+  "assets/normativa/calidad.pdf": "normativa/calidad.pdf",
+  "assets/normativa/servicios-historico.pdf": "normativa/servicios-historico.pdf"
+}

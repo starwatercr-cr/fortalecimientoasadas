@@ -1,0 +1,107 @@
+[build]
+  command = "npm run build"
+  publish = "build"
+  functions = "netlify/functions"
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["private/**"]
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/gateway?api=:splat"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/agua.js"
+  to = "/.netlify/functions/gateway?file=agua.js"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/asamblea.html"
+  to = "/.netlify/functions/gateway?file=asamblea.html"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/asamblea.js"
+  to = "/.netlify/functions/gateway?file=asamblea.js"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/assets/docx.js"
+  to = "/.netlify/functions/gateway?file=assets/docx.js"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/assets/normativa/agua-potable.pdf"
+  to = "/.netlify/functions/gateway?file=assets/normativa/agua-potable.pdf"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/assets/normativa/asadas.pdf"
+  to = "/.netlify/functions/gateway?file=assets/normativa/asadas.pdf"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/assets/normativa/calidad.pdf"
+  to = "/.netlify/functions/gateway?file=assets/normativa/calidad.pdf"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/assets/normativa/servicios-historico.pdf"
+  to = "/.netlify/functions/gateway?file=assets/normativa/servicios-historico.pdf"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/biblioteca.html"
+  to = "/.netlify/functions/gateway?file=biblioteca.html"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/biblioteca.js"
+  to = "/.netlify/functions/gateway?file=biblioteca.js"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/calidad.html"
+  to = "/.netlify/functions/gateway?file=calidad.html"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/calidad.js"
+  to = "/.netlify/functions/gateway?file=calidad.js"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/diagnostico.html"
+  to = "/.netlify/functions/gateway?file=diagnostico.html"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/finance-word.js"
+  to = "/.netlify/functions/gateway?file=finance-word.js"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/finanzas.js"
+  to = "/.netlify/functions/gateway?file=finanzas.js"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/herramientas.html"
+  to = "/.netlify/functions/gateway?file=herramientas.html"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/normativa-data.js"
+  to = "/.netlify/functions/gateway?file=normativa-data.js"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/nuestra-agua.html"
+  to = "/.netlify/functions/gateway?file=nuestra-agua.html"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/nuestras-finanzas.html"
+  to = "/.netlify/functions/gateway?file=nuestras-finanzas.html"
+  status = 200
+  force = true
