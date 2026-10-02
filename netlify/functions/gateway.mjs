@@ -1,3 +1,4 @@
+import {panelAPI} from '../lib/panel.mjs';
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
 const root=path.resolve('private');
@@ -36,6 +37,7 @@ export default async function handler(request){
   if(request.method!=='GET'&&request.method!=='POST')return json({error:'Método no permitido.'},405);
   if(request.method==='POST'&&request.headers.get('origin')!==url.origin)throw new PublicError(403,'Origen de la solicitud no autorizado.');
   if(api){
+   if(api.startsWith('panel-'))return await panelAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError});
    if(api==='logout'&&request.method==='POST')return json({ok:true},200,{'Set-Cookie':cookieName+'=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0'});
    if(api==='login'&&request.method==='POST'){
     const input=await body(request);const email=text(input.email,254).toLowerCase(),password=input.password;
