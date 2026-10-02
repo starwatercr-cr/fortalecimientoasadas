@@ -105,3 +105,14 @@
   to = "/.netlify/functions/gateway?file=nuestras-finanzas.html"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/panel-gestion.html"
+  to = "/.netlify/functions/gateway?file=panel-gestion.html"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/panel-gestion.js"
+  to = "/.netlify/functions/gateway?file=panel-gestion.js"
+  status = 200
+  force = true

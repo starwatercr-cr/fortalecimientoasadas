@@ -3,7 +3,7 @@ import path from 'node:path';
 const root=path.resolve('private');
 const cookieName='__Host-asada-session';
 const maxBody=12000;
-const protectedFiles=new Set(['herramientas.html','diagnostico.html','nuestra-agua.html','nuestras-finanzas.html','asamblea.html','calidad.html','biblioteca.html','agua.js','finanzas.js','finance-word.js','asamblea.js','calidad.js','biblioteca.js','normativa-data.js','assets/docx.js','assets/normativa/agua-potable.pdf','assets/normativa/calidad.pdf','assets/normativa/asadas.pdf','assets/normativa/servicios-historico.pdf']);
+const protectedFiles=new Set(['panel-gestion.html','panel-gestion.js','herramientas.html','diagnostico.html','nuestra-agua.html','nuestras-finanzas.html','asamblea.html','calidad.html','biblioteca.html','agua.js','finanzas.js','finance-word.js','asamblea.js','calidad.js','biblioteca.js','normativa-data.js','assets/docx.js','assets/normativa/agua-potable.pdf','assets/normativa/calidad.pdf','assets/normativa/asadas.pdf','assets/normativa/servicios-historico.pdf']);
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.pdf':'application/pdf'};
 class PublicError extends Error{constructor(status,message){super(message);this.status=status;}}
 const headers={'Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin','X-Frame-Options':'DENY'};
