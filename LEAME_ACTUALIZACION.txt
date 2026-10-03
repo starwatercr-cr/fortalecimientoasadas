@@ -39,4 +39,39 @@ PRIMER USO
 5. Guarde, actualice y compruebe que el registro permanece.
 
 VERIFICACIÓN REALIZADA
-29 pruebas automatizadas de autorización, separación de ASADAS, guardado, versiones y documentos pasaron. Se verificó la escritura y el historial en la base de datos con una transacción revertida, sin conservar registros de prueba. También se comprobó la navegación y creación de formularios en un entorno DOM. Queda pendiente verificar el primer adjunto y la presentación visual en el sitio publicado.
+32 pruebas automatizadas de autorización, separación de ASADAS, guardado, versiones y documentos pasaron. Se verificó la escritura y el historial en la base de datos con una transacción revertida, sin conservar registros de prueba. También se comprobó la navegación y creación de formularios en un entorno DOM. Queda pendiente verificar el primer adjunto y la presentación visual en el sitio publicado.
+
+
+ACTUALIZACIÓN PROFESIONAL: EVALUACIÓN SOBRE 100
+Las NUEVAS evaluaciones utilizan 15 criterios organizados en cinco áreas:
+- Responsabilidad y cumplimiento: 20%.
+- Calidad del trabajo: 25%.
+- Servicio y trabajo en equipo: 20%.
+- Desempeño propio del puesto: 25%.
+- Cuidado de recursos y mejora: 10%.
+Cada área tiene tres criterios; los criterios específicos se ajustan al puesto.
+
+ESCALA POR CRITERIO
+1: necesita apoyo considerable.
+2: requiere acompañamiento frecuente.
+3: cumple parcialmente.
+4: cumple lo esperado.
+5: supera lo esperado.
+No se pudo valorar: requiere explicar el motivo y se excluye del cálculo.
+
+CÁLCULO
+Con todos los criterios valorados, se calcula el promedio de cada área, se divide entre 5 y se multiplica por el peso de esa área. Se suman los resultados. Cumplir lo esperado en todos los criterios produce 80 puntos; superar lo esperado en todos produce 100.
+Si hay criterios pendientes, se considera únicamente su peso valorado: cada criterio tiene un tercio del peso de su área. La suma de aportes se divide entre el peso valorado total y se multiplica por 100. La plataforma muestra el resultado provisional y la cobertura. Si no se valoró ningún criterio, no se genera nota.
+
+LECTURA ORIENTATIVA
+Menos de 60: necesita apoyo prioritario.
+Desde 60 hasta menos de 80: en desarrollo.
+Desde 80 hasta menos de 90: cumple lo esperado.
+Desde 90: supera lo esperado.
+Los rangos son del modelo de acompañamiento; no certifican cumplimiento ni deciden medidas laborales automáticamente. La valoración mínima 1 por criterio equivale a 20 sobre 100.
+
+PLAN DE MEJORA
+Incluye fortalezas, dificultades y condiciones de trabajo, apoyo de la ASADA, comentario del trabajador, compromiso, cómo comprobar el cumplimiento, responsable y fecha de revisión.
+La vista previa cambia al seleccionar las valoraciones. El servidor verifica y calcula el resultado al guardar. El informe PDF incluye la nota, comentario, resultados por área y plan de mejora.
+Las evaluaciones anteriores mantienen su nota y criterios originales. Se pueden editar en su propio modelo, pero no se convierten ni se comparan automáticamente con la escala sobre 100. Cree una nueva evaluación para utilizar el modelo nuevo.
+No debe realizar cambios adicionales en Supabase. Publique todos los archivos de este ZIP siguiendo las instrucciones de arriba.

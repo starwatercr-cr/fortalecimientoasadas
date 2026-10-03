@@ -1,3 +1,4 @@
+import {evaluationAreas,evaluationResult} from '../../private/evaluation-model.js';
 import {randomUUID} from 'node:crypto';
 export const evaluationCriteria={
  'Administración':['Organización de documentos','Seguimiento de acuerdos e informes','Control de tareas y recursos'],
@@ -44,6 +45,8 @@ export async function teamAPI(api,request,{sb,authorized,sessionToken,body,uuid,
  if(['evaluation','event','document'].includes(input.kind)&&!input.archive)await find(related,'employee');
  if(['employee','profile'].includes(input.kind)&&related)fail('Este registro no se vincula a un trabajador.');
  const payload=input.archive?old.payload:validateTeam(input.kind,input.payload,fail);
+ if(old&&input.kind==='evaluation'&&!input.archive&&(old.payload.evaluationVersion||1)!==(payload.evaluationVersion||1))fail('Conserve el modelo de esta evaluación. Cree una nueva evaluación para utilizar la escala sobre 100.');
+ if(Buffer.byteLength(JSON.stringify(payload),'utf8')>9200)fail('El registro contiene demasiado texto. Resuma los ejemplos y observaciones antes de guardar.',413);
  if(input.kind==='employee'&&payload.profile_id&&!input.archive)await find(payload.profile_id,'profile');
  const row={payload,updated_by:who.user.id,updated_at:new Date().toISOString()};let rows;
  if(old){rows=await sb('/rest/v1/team_records?'+scope+'&id=eq.'+old.id+'&version=eq.'+old.version+'&deleted=eq.false',{method:'PATCH',body:{...row,version:old.version+1,deleted:input.archive===true},prefer:'return=representation'});if(!rows.length)fail('Otra persona cambió este registro. Actualice antes de editar.',409);}
@@ -65,8 +68,13 @@ export function validateTeam(kind,p,fail){
  if(kind==='evaluation'){
   const r={type:str('type','el tipo de puesto',80),start:dt('start','el inicio del período'),end:dt('end','el cierre del período'),date:dt('date','la fecha de evaluación'),evaluator:str('evaluator','quién evalúa',160),strengths:str('strengths','las fortalezas',1000,false),difficulties:str('difficulties','las dificultades',1000,false),support:str('support','el apoyo necesario',1000),workerComment:str('workerComment','el comentario del trabajador',1000,false),commitment:str('commitment','el compromiso de mejora',1000),responsible:str('responsible','el responsable del seguimiento',160),review:dt('review','la fecha de revisión')};
   if(r.end<r.start||r.date<r.end||r.review<r.date)fail('Revise las fechas del período, la evaluación y la revisión.');if(!evaluationCriteria[r.type])fail('Seleccione un tipo de puesto.');
-  const expected=[...commonCriteria,...evaluationCriteria[r.type]];if(!Array.isArray(p.ratings)||p.ratings.length!==expected.length)fail('Complete los criterios de la evaluación.');
-  r.ratings=p.ratings.map((v,i)=>{if(!v||!Number.isInteger(v.score)||v.score<0||v.score>4||typeof v.evidence!=='string'||v.evidence.length>400||(v.score>0&&!v.evidence.trim()))fail('Agregue un ejemplo para cada criterio valorado.');return {criterion:expected[i],score:v.score,evidence:v.evidence.trim()};});return r;
+  const modern=p.evaluationVersion===2;
+  if(p.evaluationVersion!==undefined&&p.evaluationVersion!==1&&!modern)fail('El modelo de evaluación no es válido.');
+  const expected=modern?evaluationAreas(r.type).flatMap(a=>a.criteria):[...commonCriteria,...evaluationCriteria[r.type]];
+  if(!Array.isArray(p.ratings)||p.ratings.length!==expected.length)fail('Complete los criterios de la evaluación.');
+  r.ratings=p.ratings.map((v,i)=>{if(!v||!Number.isInteger(v.score)||v.score<0||v.score>(modern?5:4)||typeof v.evidence!=='string'||v.evidence.length>(modern?250:400)||((modern||v.score>0)&&!v.evidence.trim()))fail(modern?'Agregue un ejemplo para cada valoración o explique por qué no se pudo valorar.':'Agregue un ejemplo para cada criterio valorado.');return {criterion:expected[i],score:v.score,evidence:v.evidence.trim()};});
+  if(modern){r.successIndicator=str('successIndicator','cómo se comprobará la mejora',500);r.evaluationVersion=2;const result=evaluationResult(r);r.result={score:result.score,complete:result.complete,count:result.count,coverage:result.coverage,label:result.label};}
+  return r;
  }
  fail('Tipo de registro no válido.');
 }

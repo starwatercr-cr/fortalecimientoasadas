@@ -5,7 +5,7 @@ import path from 'node:path';
 const root=path.resolve('private');
 const cookieName='__Host-asada-session';
 const maxBody=12000;
-const protectedFiles=new Set(['equipo.html','equipo.js','panel-gestion.html','panel-gestion.js','herramientas.html','diagnostico.html','nuestra-agua.html','nuestras-finanzas.html','asamblea.html','calidad.html','biblioteca.html','agua.js','finanzas.js','finance-word.js','asamblea.js','calidad.js','biblioteca.js','normativa-data.js','assets/docx.js','assets/normativa/agua-potable.pdf','assets/normativa/calidad.pdf','assets/normativa/asadas.pdf','assets/normativa/servicios-historico.pdf']);
+const protectedFiles=new Set(['equipo.html','equipo.js','evaluation-model.js','panel-gestion.html','panel-gestion.js','herramientas.html','diagnostico.html','nuestra-agua.html','nuestras-finanzas.html','asamblea.html','calidad.html','biblioteca.html','agua.js','finanzas.js','finance-word.js','asamblea.js','calidad.js','biblioteca.js','normativa-data.js','assets/docx.js','assets/normativa/agua-potable.pdf','assets/normativa/calidad.pdf','assets/normativa/asadas.pdf','assets/normativa/servicios-historico.pdf']);
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.pdf':'application/pdf'};
 class PublicError extends Error{constructor(status,message){super(message);this.status=status;}}
 const headers={'Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin','X-Frame-Options':'DENY'};
@@ -46,7 +46,7 @@ async function authorized(token){if(!token)throw new PublicError(401,'Inicie ses
  if(!membership?.asadas?.active)throw new PublicError(403,'Su acceso no está activo. Consulte a Star Water.');
  return {user,admin:false,asada:membership.asadas,role:membership.role};
 }
-async function body(request){if(Number(request.headers.get('content-length'))>maxBody)throw new PublicError(413,'La solicitud es demasiado extensa.');const text=await request.text();if(text.length>maxBody)throw new PublicError(413,'La solicitud es demasiado extensa.');try{return JSON.parse(text);}catch{throw new PublicError(400,'La información enviada no es válida.');}}
+async function body(request,limit=maxBody){if(Number(request.headers.get('content-length'))>limit)throw new PublicError(413,'La solicitud es demasiado extensa.');const text=await request.text();if(text.length>limit)throw new PublicError(413,'La solicitud es demasiado extensa.');try{return JSON.parse(text);}catch{throw new PublicError(400,'La información enviada no es válida.');}}
 const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 const text=(v,max)=>typeof v==='string'?v.trim().slice(0,max):'';
 async function owner(request){const who=await authorized(sessionToken(request));if(!who.admin)throw new PublicError(403,'Esta acción corresponde a Star Water.');return who;}
@@ -56,7 +56,7 @@ export default async function handler(request){
   if(request.method!=='GET'&&request.method!=='POST')return json({error:'Método no permitido.'},405);
   if(request.method==='POST'&&request.headers.get('origin')!==url.origin)throw new PublicError(403,'Origen de la solicitud no autorizado.');
   if(api){
-   if(api.startsWith('team-'))return await teamAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError,teamStorage});
+   if(api.startsWith('team-'))return await teamAPI(api,request,{sb,authorized,sessionToken,body:r=>body(r,24000),uuid,json,PublicError,teamStorage});
    if(api.startsWith('panel-'))return await panelAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError});
    if(api==='logout'&&request.method==='POST')return json({ok:true},200,{'Set-Cookie':cookieName+'=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0'});
    if(api==='login'&&request.method==='POST'){
@@ -96,7 +96,7 @@ export default async function handler(request){
    throw new PublicError(404,'Operación no disponible.');
   }
   const file=protectedFiles.has(url.pathname.slice(1))?url.pathname.slice(1):url.searchParams.get('file');if(!protectedFiles.has(file))throw new PublicError(404,'Página no disponible.');
-  try{const who=await authorized(sessionToken(request));if(['equipo.html','equipo.js'].includes(file)&&!canManageTeam(who))throw new PublicError(403,'Nuestro equipo está disponible para la administración de la ASADA.');}catch(e){if(e.status===401&&file.endsWith('.html'))return new Response(null,{status:303,headers:{...headers,Location:'/acceso.html?return='+encodeURIComponent('/'+file)}});throw e;}
+  try{const who=await authorized(sessionToken(request));if(['equipo.html','equipo.js','evaluation-model.js'].includes(file)&&!canManageTeam(who))throw new PublicError(403,'Nuestro equipo está disponible para la administración de la ASADA.');}catch(e){if(e.status===401&&file.endsWith('.html'))return new Response(null,{status:303,headers:{...headers,Location:'/acceso.html?return='+encodeURIComponent('/'+file)}});throw e;}
   const bytes=await readFile(path.join(root,file));return new Response(bytes,{headers:{...headers,'Content-Type':mime[path.extname(file)]||'application/octet-stream'}});
  }catch(error){return json({error:error instanceof PublicError?error.message:'No fue posible completar la operación. Intente de nuevo.'},error instanceof PublicError?error.status:500);}
 }

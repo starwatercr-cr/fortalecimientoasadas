@@ -128,3 +128,9 @@
   to = "/.netlify/functions/gateway?file=equipo.js"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/evaluation-model.js"
+  to = "/.netlify/functions/gateway?file=evaluation-model.js"
+  status = 200
+  force = true
