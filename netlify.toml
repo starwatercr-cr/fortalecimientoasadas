@@ -116,3 +116,15 @@
   to = "/.netlify/functions/gateway?file=panel-gestion.js"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/equipo.html"
+  to = "/.netlify/functions/gateway?file=equipo.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/equipo.js"
+  to = "/.netlify/functions/gateway?file=equipo.js"
+  status = 200
+  force = true

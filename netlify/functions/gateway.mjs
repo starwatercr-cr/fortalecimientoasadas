@@ -1,10 +1,11 @@
+import {teamAPI,canManageTeam} from '../lib/team.mjs';
 import {panelAPI} from '../lib/panel.mjs';
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
 const root=path.resolve('private');
 const cookieName='__Host-asada-session';
 const maxBody=12000;
-const protectedFiles=new Set(['panel-gestion.html','panel-gestion.js','herramientas.html','diagnostico.html','nuestra-agua.html','nuestras-finanzas.html','asamblea.html','calidad.html','biblioteca.html','agua.js','finanzas.js','finance-word.js','asamblea.js','calidad.js','biblioteca.js','normativa-data.js','assets/docx.js','assets/normativa/agua-potable.pdf','assets/normativa/calidad.pdf','assets/normativa/asadas.pdf','assets/normativa/servicios-historico.pdf']);
+const protectedFiles=new Set(['equipo.html','equipo.js','panel-gestion.html','panel-gestion.js','herramientas.html','diagnostico.html','nuestra-agua.html','nuestras-finanzas.html','asamblea.html','calidad.html','biblioteca.html','agua.js','finanzas.js','finance-word.js','asamblea.js','calidad.js','biblioteca.js','normativa-data.js','assets/docx.js','assets/normativa/agua-potable.pdf','assets/normativa/calidad.pdf','assets/normativa/asadas.pdf','assets/normativa/servicios-historico.pdf']);
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.pdf':'application/pdf'};
 class PublicError extends Error{constructor(status,message){super(message);this.status=status;}}
 const headers={'Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin','X-Frame-Options':'DENY'};
@@ -16,6 +17,24 @@ async function sb(endpoint,{method='GET',body,token,publicKey=false,prefer}={}){
  let res;try{res=await fetch(c.base+endpoint,{method,headers:h,body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(12000)});}catch{throw new PublicError(503,'No pudimos conectar con el servicio de cuentas. Intente de nuevo.');}
  const raw=await res.text();let data;try{data=raw?JSON.parse(raw):null;}catch{data=null;}
  if(!res.ok){if(res.status===429)throw new PublicError(429,'Se hicieron demasiados intentos. Espere unos minutos.');throw new PublicError(res.status===400||res.status===401||res.status===403?401:502,'No fue posible completar la operación. Verifique los datos o consulte a Star Water.');}return data;
+}
+async function teamStorage(method,object,bytes,type){
+ const c=config(),bucket='asada-team-private',h={apikey:c.secret};if(!c.secret.startsWith('sb_secret_'))h.Authorization='Bearer '+c.secret;
+ const call=(endpoint,options={})=>fetch(c.base+'/storage/v1/'+endpoint,{...options,headers:{...h,...options.headers},signal:AbortSignal.timeout(20000)});
+ if(method==='POST'){
+  let b=await call('bucket/'+bucket);
+  if(b.status===404||b.status===400){
+   const created=await call('bucket',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:bucket,name:bucket,public:false,file_size_limit:2097152,allowed_mime_types:['application/pdf','image/jpeg','image/png']})});
+   if(!created.ok&&created.status!==409&&created.status!==400)throw new PublicError(502,'No se pudo preparar el archivo privado.');
+   b=await call('bucket/'+bucket);
+  }
+  if(!b.ok)throw new PublicError(502,'No se pudo acceder a los documentos privados.');
+  const metadata=await b.json();if(metadata.public!==false)throw new PublicError(503,'El archivo privado requiere revisión de su configuración.');
+ }
+ const resource=method==='GET'?'object/authenticated/':'object/';
+ const res=await call(resource+bucket+'/'+object,{method,headers:type?{'Content-Type':type,'x-upsert':'false'}:{},body:bytes});
+ if(!res.ok)throw new PublicError(502,'No fue posible '+(method==='GET'?'descargar':'guardar')+' el documento. Intente de nuevo.');
+ return method==='GET'?await res.arrayBuffer():null;
 }
 function sessionToken(request){const part=(request.headers.get('cookie')||'').split(';').map(x=>x.trim()).find(x=>x.startsWith(cookieName+'='));const token=part?.slice(cookieName.length+1);if(!token||token.length>16384)return null;return token;}
 async function authorized(token){if(!token)throw new PublicError(401,'Inicie sesión para acceder.');let user;try{user=await sb('/auth/v1/user',{token,publicKey:true});}catch(e){if(e.status===401)throw new PublicError(401,'La sesión terminó. Inicie sesión de nuevo.');throw e;}
@@ -37,6 +56,7 @@ export default async function handler(request){
   if(request.method!=='GET'&&request.method!=='POST')return json({error:'Método no permitido.'},405);
   if(request.method==='POST'&&request.headers.get('origin')!==url.origin)throw new PublicError(403,'Origen de la solicitud no autorizado.');
   if(api){
+   if(api.startsWith('team-'))return await teamAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError,teamStorage});
    if(api.startsWith('panel-'))return await panelAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError});
    if(api==='logout'&&request.method==='POST')return json({ok:true},200,{'Set-Cookie':cookieName+'=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0'});
    if(api==='login'&&request.method==='POST'){
@@ -76,7 +96,7 @@ export default async function handler(request){
    throw new PublicError(404,'Operación no disponible.');
   }
   const file=protectedFiles.has(url.pathname.slice(1))?url.pathname.slice(1):url.searchParams.get('file');if(!protectedFiles.has(file))throw new PublicError(404,'Página no disponible.');
-  try{await authorized(sessionToken(request));}catch(e){if(e.status===401&&file.endsWith('.html'))return new Response(null,{status:303,headers:{...headers,Location:'/acceso.html?return='+encodeURIComponent('/'+file)}});throw e;}
+  try{const who=await authorized(sessionToken(request));if(['equipo.html','equipo.js'].includes(file)&&!canManageTeam(who))throw new PublicError(403,'Nuestro equipo está disponible para la administración de la ASADA.');}catch(e){if(e.status===401&&file.endsWith('.html'))return new Response(null,{status:303,headers:{...headers,Location:'/acceso.html?return='+encodeURIComponent('/'+file)}});throw e;}
   const bytes=await readFile(path.join(root,file));return new Response(bytes,{headers:{...headers,'Content-Type':mime[path.extname(file)]||'application/octet-stream'}});
  }catch(error){return json({error:error instanceof PublicError?error.message:'No fue posible completar la operación. Intente de nuevo.'},error instanceof PublicError?error.status:500);}
 }
