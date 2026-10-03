@@ -158,3 +158,33 @@
   to = "/.netlify/functions/gateway?file=assets/operation-template.xlsx"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/bodega.html"
+  to = "/.netlify/functions/gateway?file=bodega.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/bodega.js"
+  to = "/.netlify/functions/gateway?file=bodega.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/warehouse-model.js"
+  to = "/.netlify/functions/gateway?file=warehouse-model.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/warehouse-excel.js"
+  to = "/.netlify/functions/gateway?file=warehouse-excel.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/assets/warehouse-template.xlsx"
+  to = "/.netlify/functions/gateway?file=assets/warehouse-template.xlsx"
+  status = 200
+  force = true
