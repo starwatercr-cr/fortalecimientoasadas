@@ -84,7 +84,7 @@ async function buildAssemblyWord(report,mode,images=[]){
     const rows=[['Concepto','Monto en colones'],...report.numbers.map(([label,n])=>[label,assemblyMoney(n)])];
     content.push(new Table({width:{size:9360,type:WidthType.DXA},columnWidths:[5900,3460],rows:rows.map((row,i)=>new TableRow({tableHeader:i===0,cantSplit:true,children:row.map((v,j)=>new TableCell({width:{size:j?3460:5900,type:WidthType.DXA},verticalAlign:VerticalAlign.CENTER,margins:{top:60,bottom:60,left:120,right:120},borders:{top:border,bottom:border,left:border,right:border},shading:{fill:i===0?'103E55':i%2?'F1F7FA':'FFFFFF'},children:[new Paragraph({children:[new TextRun({text:v,bold:i===0,color:i===0?'FFFFFF':'000000',size:21})],spacing:{after:0,line:260}})]}))}))}));
     content.push(p('Los ingresos y gastos corresponden al período indicado. Los saldos corresponden a la fecha de corte del balance.'));
-    for(const img of images){content.push(p(img.title,HeadingLevel.HEADING_2),new Paragraph({children:[new ImageRun({type:'png',data:img.data,transformation:{width:560,height:img.height*560/img.width},altText:{title:img.title,description:'Comparación de cifras ingresadas'}})]}));}
+    for(const [imageIndex,img] of images.entries()){content.push(p(img.title,HeadingLevel.HEADING_2),new Paragraph({children:[new ImageRun({type:'png',data:img.data,transformation:{width:560,height:img.height*560/img.width},altText:{id:imageIndex+1,name:'Grafico_'+(imageIndex+1),title:img.title,description:'Comparación de cifras ingresadas'}})]}));}
    }
   }
  }
