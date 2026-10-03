@@ -1,3 +1,4 @@
+import {profileAPI} from '../lib/asada-profile.mjs';
 import {warehouseAPI} from '../lib/warehouse.mjs';
 import {assemblyAPI} from '../lib/assembly.mjs';
 import {operationAPI} from '../lib/operation.mjs';
@@ -8,7 +9,7 @@ import path from 'node:path';
 const root=path.resolve('private');
 const cookieName='__Host-asada-session';
 const maxBody=12000;
-const protectedFiles=new Set(['bodega.html','bodega.js','warehouse-model.js','warehouse-excel.js','assets/warehouse-template.xlsx','operacion.html','operacion.js','operation-excel.js','assets/operation-template.xlsx','equipo.html','equipo.js','evaluation-model.js','panel-gestion.html','panel-gestion.js','herramientas.html','diagnostico.html','nuestra-agua.html','nuestras-finanzas.html','asamblea.html','calidad.html','biblioteca.html','agua.js','finanzas.js','finance-word.js','asamblea.js','calidad.js','biblioteca.js','normativa-data.js','assets/docx.js','assets/normativa/agua-potable.pdf','assets/normativa/calidad.pdf','assets/normativa/asadas.pdf','assets/normativa/servicios-historico.pdf']);
+const protectedFiles=new Set(['nuestra-asada.html','nuestra-asada.js','asada-profile-model.js','bodega.html','bodega.js','warehouse-model.js','warehouse-excel.js','assets/warehouse-template.xlsx','operacion.html','operacion.js','operation-excel.js','assets/operation-template.xlsx','equipo.html','equipo.js','evaluation-model.js','panel-gestion.html','panel-gestion.js','herramientas.html','diagnostico.html','nuestra-agua.html','nuestras-finanzas.html','asamblea.html','calidad.html','biblioteca.html','agua.js','finanzas.js','finance-word.js','asamblea.js','calidad.js','biblioteca.js','normativa-data.js','assets/docx.js','assets/normativa/agua-potable.pdf','assets/normativa/calidad.pdf','assets/normativa/asadas.pdf','assets/normativa/servicios-historico.pdf']);
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.pdf':'application/pdf','.xlsx':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'};
 class PublicError extends Error{constructor(status,message){super(message);this.status=status;}}
 const headers={'Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin','X-Frame-Options':'DENY'};
@@ -19,15 +20,15 @@ async function sb(endpoint,{method='GET',body,token,publicKey=false,prefer}={}){
  const h={apikey:key,'Content-Type':'application/json'};if(token)h.Authorization='Bearer '+token;else if(!publicKey&&!c.secret.startsWith('sb_secret_'))h.Authorization='Bearer '+c.secret;if(prefer)h.Prefer=prefer;
  let res;try{res=await fetch(c.base+endpoint,{method,headers:h,body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(12000)});}catch{throw new PublicError(503,'No pudimos conectar con el servicio de cuentas. Intente de nuevo.');}
  const raw=await res.text();let data;try{data=raw?JSON.parse(raw):null;}catch{data=null;}
- if(!res.ok){if(endpoint==='/rest/v1/rpc/warehouse_move'&&['El material cambió. Actualice antes de registrar','La salida supera las existencias disponibles','Material no disponible','Solicitud repetida con datos distintos','Proveedor no disponible','Revise cantidad, fecha, motivo y responsable'].includes(data?.message))throw new PublicError(409,data.message);if(endpoint.startsWith('/rest/v1/warehouse_records')&&data?.code==='23505')throw new PublicError(409,'Ya existe un material activo con ese código. Actualice los registros.');if(res.status===429)throw new PublicError(429,'Se hicieron demasiados intentos. Espere unos minutos.');throw new PublicError(res.status===400||res.status===401||res.status===403?401:502,'No fue posible completar la operación. Verifique los datos o consulte a Star Water.');}return data;
+ if(!res.ok){if(endpoint==='/rest/v1/rpc/warehouse_move'&&['El material cambió. Actualice antes de registrar','La salida supera las existencias disponibles','Material no disponible','Solicitud repetida con datos distintos','Proveedor no disponible','Revise cantidad, fecha, motivo y responsable'].includes(data?.message))throw new PublicError(409,data.message);if(endpoint.startsWith('/rest/v1/asada_profiles')&&data?.code==='23505')throw new PublicError(409,'Otra persona creó la ficha. Recargue antes de guardar.');if(endpoint.startsWith('/rest/v1/warehouse_records')&&data?.code==='23505')throw new PublicError(409,'Ya existe un material activo con ese código. Actualice los registros.');if(res.status===429)throw new PublicError(429,'Se hicieron demasiados intentos. Espere unos minutos.');throw new PublicError(res.status===400||res.status===401||res.status===403?401:502,'No fue posible completar la operación. Verifique los datos o consulte a Star Water.');}return data;
 }
-async function teamStorage(method,object,bytes,type){
- const c=config(),bucket='asada-team-private',h={apikey:c.secret};if(!c.secret.startsWith('sb_secret_'))h.Authorization='Bearer '+c.secret;
+async function teamStorage(method,object,bytes,type,bucket='asada-team-private'){
+ const c=config(),h={apikey:c.secret};if(!c.secret.startsWith('sb_secret_'))h.Authorization='Bearer '+c.secret;
  const call=(endpoint,options={})=>fetch(c.base+'/storage/v1/'+endpoint,{...options,headers:{...h,...options.headers},signal:AbortSignal.timeout(20000)});
  if(method==='POST'){
   let b=await call('bucket/'+bucket);
   if(b.status===404||b.status===400){
-   const created=await call('bucket',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:bucket,name:bucket,public:false,file_size_limit:2097152,allowed_mime_types:['application/pdf','image/jpeg','image/png']})});
+   const created=await call('bucket',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:bucket,name:bucket,public:false,file_size_limit:bucket==='asada-profile-private'?5242880:2097152,allowed_mime_types:['application/pdf','image/jpeg','image/png']})});
    if(!created.ok&&created.status!==409&&created.status!==400)throw new PublicError(502,'No se pudo preparar el archivo privado.');
    b=await call('bucket/'+bucket);
   }
@@ -59,6 +60,7 @@ export default async function handler(request){
   if(request.method!=='GET'&&request.method!=='POST')return json({error:'Método no permitido.'},405);
   if(request.method==='POST'&&request.headers.get('origin')!==url.origin)throw new PublicError(403,'Origen de la solicitud no autorizado.');
   if(api){
+   if(api.startsWith('profile-'))return await profileAPI(api,request,{sb,authorized,sessionToken,body:r=>body(r,35000),uuid,json,PublicError,profileStorage:(method,object,bytes,type)=>teamStorage(method,object,bytes,type,'asada-profile-private')});
    if(api.startsWith('warehouse-'))return await warehouseAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError});
    if(api.startsWith('ops-'))return await operationAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError});
    if(api.startsWith('team-'))return await teamAPI(api,request,{sb,authorized,sessionToken,body:r=>body(r,24000),uuid,json,PublicError,teamStorage});

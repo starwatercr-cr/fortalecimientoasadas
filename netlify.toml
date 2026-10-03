@@ -188,3 +188,21 @@
   to = "/.netlify/functions/gateway?file=assets/warehouse-template.xlsx"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/nuestra-asada.html"
+  to = "/.netlify/functions/gateway?file=nuestra-asada.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/nuestra-asada.js"
+  to = "/.netlify/functions/gateway?file=nuestra-asada.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/asada-profile-model.js"
+  to = "/.netlify/functions/gateway?file=asada-profile-model.js"
+  status = 200
+  force = true
