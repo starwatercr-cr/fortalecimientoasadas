@@ -4,6 +4,7 @@ const root=document.getElementById('sw-asadas-demo'),$=s=>root.querySelector(s),
 const money=n=>'₡'+Number(n||0).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2}),pct=n=>Number.isFinite(n)?n.toLocaleString('es-CR',{maximumFractionDigits:1})+' %':'Sin base';
 const months=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const modules=[['home','Panel financiero'],['cash','Flujo de efectivo'],['petty','Caja chica'],['budget','Presupuesto de la ASADA'],['statements','Estados financieros'],['finance-summary','Nuestras finanzas'],['assets','Auxiliar de activos'],['board','Acuerdos de JD']];
+const assemblyLink=new URLSearchParams(location.search);
 let asada='',year=new Date().getFullYear(),base=year-1,module='home',records=[],canEdit=false,asadas=[],loading=false,busy=false,editing=null,isPlatformAdmin=false,budgetMonth=12;
 if(new URLSearchParams(location.search).get('module')==='finance-summary')module='finance-summary';
 let selectedFinanceMetric='result';
@@ -108,5 +109,6 @@ root.addEventListener('click',async ev=>{const b=ev.target.closest('button');if(
 root.addEventListener('change',ev=>{if(ev.target.id==='sw-budget-month'&&!busy&&!loading){budgetMonth=Number(ev.target.value);close();draw();}});
 $('#sw-year').addEventListener('change',async ev=>{if(busy||loading){ev.target.value=year;return;}const y=Number(ev.target.value);if(!Number.isInteger(y)||y<1900||y>2200){status('Seleccione un año entre 1900 y 2200.');return;}year=y;await load();});
 $('#sw-asada').addEventListener('change',async ev=>{if(busy||loading){ev.target.value=asada;return;}asada=ev.target.value;await load();});
-(async()=>{try{const d=await api('panel-asadas');isPlatformAdmin=d.isPlatformAdmin===true;$('#sw-export').hidden=!isPlatformAdmin;asadas=d.asadas;canEdit=d.canEdit;$('#sw-asada').innerHTML='<option value="">Seleccione una ASADA</option>'+asadas.map(a=>'<option value="'+a.id+'">'+esc(a.name)+'</option>').join('');if(asadas.length===1){asada=asadas[0].id;$('#sw-asada').value=asada;}$('#sw-year').value=year;await load();}catch(e){status(e.message);}})();
+const returnAssembly=$('#sw-return-assembly');if(assemblyLink.get('from')==='asamblea'){returnAssembly.hidden=false;returnAssembly.addEventListener('click',e=>{e.preventDefault();window.close();setTimeout(()=>{location.href='asamblea.html';},200);});}
+(async()=>{try{const d=await api('panel-asadas');isPlatformAdmin=d.isPlatformAdmin===true;$('#sw-export').hidden=!isPlatformAdmin;asadas=d.asadas;canEdit=d.canEdit;$('#sw-asada').innerHTML='<option value="">Seleccione una ASADA</option>'+asadas.map(a=>'<option value="'+a.id+'">'+esc(a.name)+'</option>').join('');const requested=assemblyLink.get('asada'),requestedYear=Number(assemblyLink.get('year'));if(asadas.some(a=>a.id===requested))asada=requested;else if(asadas.length===1)asada=asadas[0].id;$('#sw-asada').value=asada;if(Number.isInteger(requestedYear)&&requestedYear>=1900&&requestedYear<=2200)year=requestedYear;$('#sw-year').value=year;await load();}catch(e){status(e.message);}})();
 })();
