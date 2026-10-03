@@ -1,3 +1,4 @@
+import {assemblyAPI} from '../lib/assembly.mjs';
 import {operationAPI} from '../lib/operation.mjs';
 import {teamAPI,canManageTeam} from '../lib/team.mjs';
 import {panelAPI} from '../lib/panel.mjs';
@@ -59,6 +60,7 @@ export default async function handler(request){
   if(api){
    if(api.startsWith('ops-'))return await operationAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError});
    if(api.startsWith('team-'))return await teamAPI(api,request,{sb,authorized,sessionToken,body:r=>body(r,24000),uuid,json,PublicError,teamStorage});
+   if(api.startsWith('assembly-'))return await assemblyAPI(api,request,{sb,authorized,sessionToken,body:r=>body(r,160000),uuid,json,PublicError});
    if(api.startsWith('panel-'))return await panelAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError});
    if(api==='logout'&&request.method==='POST')return json({ok:true},200,{'Set-Cookie':cookieName+'=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0'});
    if(api==='login'&&request.method==='POST'){
