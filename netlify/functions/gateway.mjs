@@ -1,3 +1,4 @@
+import {operationAPI} from '../lib/operation.mjs';
 import {teamAPI,canManageTeam} from '../lib/team.mjs';
 import {panelAPI} from '../lib/panel.mjs';
 import {readFile} from 'node:fs/promises';
@@ -5,8 +6,8 @@ import path from 'node:path';
 const root=path.resolve('private');
 const cookieName='__Host-asada-session';
 const maxBody=12000;
-const protectedFiles=new Set(['equipo.html','equipo.js','evaluation-model.js','panel-gestion.html','panel-gestion.js','herramientas.html','diagnostico.html','nuestra-agua.html','nuestras-finanzas.html','asamblea.html','calidad.html','biblioteca.html','agua.js','finanzas.js','finance-word.js','asamblea.js','calidad.js','biblioteca.js','normativa-data.js','assets/docx.js','assets/normativa/agua-potable.pdf','assets/normativa/calidad.pdf','assets/normativa/asadas.pdf','assets/normativa/servicios-historico.pdf']);
-const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.pdf':'application/pdf'};
+const protectedFiles=new Set(['operacion.html','operacion.js','operation-excel.js','assets/operation-template.xlsx','equipo.html','equipo.js','evaluation-model.js','panel-gestion.html','panel-gestion.js','herramientas.html','diagnostico.html','nuestra-agua.html','nuestras-finanzas.html','asamblea.html','calidad.html','biblioteca.html','agua.js','finanzas.js','finance-word.js','asamblea.js','calidad.js','biblioteca.js','normativa-data.js','assets/docx.js','assets/normativa/agua-potable.pdf','assets/normativa/calidad.pdf','assets/normativa/asadas.pdf','assets/normativa/servicios-historico.pdf']);
+const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.pdf':'application/pdf','.xlsx':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'};
 class PublicError extends Error{constructor(status,message){super(message);this.status=status;}}
 const headers={'Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin','X-Frame-Options':'DENY'};
 const json=(value,status=200,extra={})=>new Response(JSON.stringify(value),{status,headers:{...headers,'Content-Type':'application/json; charset=utf-8',...extra}});
@@ -56,6 +57,7 @@ export default async function handler(request){
   if(request.method!=='GET'&&request.method!=='POST')return json({error:'Método no permitido.'},405);
   if(request.method==='POST'&&request.headers.get('origin')!==url.origin)throw new PublicError(403,'Origen de la solicitud no autorizado.');
   if(api){
+   if(api.startsWith('ops-'))return await operationAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError});
    if(api.startsWith('team-'))return await teamAPI(api,request,{sb,authorized,sessionToken,body:r=>body(r,24000),uuid,json,PublicError,teamStorage});
    if(api.startsWith('panel-'))return await panelAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError});
    if(api==='logout'&&request.method==='POST')return json({ok:true},200,{'Set-Cookie':cookieName+'=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0'});

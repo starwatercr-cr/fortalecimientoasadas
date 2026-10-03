@@ -1,0 +1,77 @@
+ACTUALIZACIÓN: NUESTRO EQUIPO — PLATAFORMA ASADAS
+
+Este paquete actualiza su repositorio existente. No es un sitio independiente.
+Conserva los cambios de precios en colones, Ejes de desarrollo, enlace del MINAE y comparación mensual del presupuesto.
+
+CÓMO PUBLICAR
+1. Descargue y descomprima este ZIP en su computadora.
+2. Abra https://github.com/starwatercr-cr/fortalecimientoasadas en la rama main.
+3. Desde la página principal del repositorio, utilice Add file > Upload files.
+4. Arrastre las carpetas public, private y netlify, y el archivo netlify.toml, conservando los nombres y rutas. No suba el ZIP como un archivo ni cree una carpeta adicional alrededor de ellas.
+5. Confirme los cambios con Commit changes. Netlify publicará la actualización desde este repositorio.
+6. Espere a que Netlify indique Published para la nueva publicación.
+7. Ingrese a https://fortalecimientoasadas.netlify.app/acceso.html y abra Herramientas > Nuestro equipo.
+
+IMPORTANTE
+La base de datos de Nuestro equipo ya fue preparada en el proyecto Supabase conectado. No debe ejecutar SQL adicional. Se utilizan las variables de entorno que ya tiene configuradas en Netlify.
+Las carpetas del paquete contienen únicamente archivos modificados o nuevos. No borre los demás archivos de su repositorio. No reemplace la carpeta completa eliminando su contenido anterior.
+El módulo aparecerá después de publicar estos archivos. No se ha publicado automáticamente desde esta entrega.
+
+QUÉ INCLUYE
+- Expediente por trabajador: puesto, ingreso, condiciones de trabajo, supervisión, salario registrado, contacto y observaciones.
+- Documentos privados PDF, JPG o PNG de hasta 2 MB por archivo.
+- Registro de vacaciones, permisos, capacitación, entrega de equipo y seguimiento. Las cantidades son registros; no se calculan saldos legales ni planilla.
+- Perfiles de puestos adaptables: administración, asistencia administrativa, atención al usuario, fontanería y operación, y otros puestos.
+- Evaluación con ejemplos, fortalezas, dificultades, apoyos, comentario del trabajador y compromisos de seguimiento.
+- Informes mediante Guardar informe PDF. En la ventana de impresión seleccione Guardar como PDF.
+- Historial de cambios. Archivar conserva el registro y su historial; no equivale a eliminarlo definitivamente.
+
+ACCESO
+Solo las cuentas con rol Administración y su cuenta general pueden abrir este módulo. Cada administración accede a los registros de su propia ASADA. Junta Directiva y Operación no tienen acceso automático a expedientes laborales.
+La cuenta general puede seleccionar la ASADA que va a acompañar.
+Los datos se guardan en la nube. Los adjuntos se almacenan en un archivo privado que se prepara al cargar el primer documento.
+
+PRIMER USO
+1. Cree un perfil de puesto y ajústelo a la realidad de la ASADA.
+2. Registre al trabajador y vincule su perfil.
+3. Abra su expediente para adjuntar documentos y registrar seguimientos.
+4. En Evaluaciones y mejora, seleccione la persona y complete la conversación de desempeño.
+5. Guarde, actualice y compruebe que el registro permanece.
+
+VERIFICACIÓN REALIZADA
+32 pruebas automatizadas de autorización, separación de ASADAS, guardado, versiones y documentos pasaron. Se verificó la escritura y el historial en la base de datos con una transacción revertida, sin conservar registros de prueba. También se comprobó la navegación y creación de formularios en un entorno DOM. Queda pendiente verificar el primer adjunto y la presentación visual en el sitio publicado.
+
+
+ACTUALIZACIÓN PROFESIONAL: EVALUACIÓN SOBRE 100
+Las NUEVAS evaluaciones utilizan 15 criterios organizados en cinco áreas:
+- Responsabilidad y cumplimiento: 20%.
+- Calidad del trabajo: 25%.
+- Servicio y trabajo en equipo: 20%.
+- Desempeño propio del puesto: 25%.
+- Cuidado de recursos y mejora: 10%.
+Cada área tiene tres criterios; los criterios específicos se ajustan al puesto.
+
+ESCALA POR CRITERIO
+1: necesita apoyo considerable.
+2: requiere acompañamiento frecuente.
+3: cumple parcialmente.
+4: cumple lo esperado.
+5: supera lo esperado.
+No se pudo valorar: requiere explicar el motivo y se excluye del cálculo.
+
+CÁLCULO
+Con todos los criterios valorados, se calcula el promedio de cada área, se divide entre 5 y se multiplica por el peso de esa área. Se suman los resultados. Cumplir lo esperado en todos los criterios produce 80 puntos; superar lo esperado en todos produce 100.
+Si hay criterios pendientes, se considera únicamente su peso valorado: cada criterio tiene un tercio del peso de su área. La suma de aportes se divide entre el peso valorado total y se multiplica por 100. La plataforma muestra el resultado provisional y la cobertura. Si no se valoró ningún criterio, no se genera nota.
+
+LECTURA ORIENTATIVA
+Menos de 60: necesita apoyo prioritario.
+Desde 60 hasta menos de 80: en desarrollo.
+Desde 80 hasta menos de 90: cumple lo esperado.
+Desde 90: supera lo esperado.
+Los rangos son del modelo de acompañamiento; no certifican cumplimiento ni deciden medidas laborales automáticamente. La valoración mínima 1 por criterio equivale a 20 sobre 100.
+
+PLAN DE MEJORA
+Incluye fortalezas, dificultades y condiciones de trabajo, apoyo de la ASADA, comentario del trabajador, compromiso, cómo comprobar el cumplimiento, responsable y fecha de revisión.
+La vista previa cambia al seleccionar las valoraciones. El servidor verifica y calcula el resultado al guardar. El informe PDF incluye la nota, comentario, resultados por área y plan de mejora.
+Las evaluaciones anteriores mantienen su nota y criterios originales. Se pueden editar en su propio modelo, pero no se convierten ni se comparan automáticamente con la escala sobre 100. Cree una nueva evaluación para utilizar el modelo nuevo.
+No debe realizar cambios adicionales en Supabase. Publique todos los archivos de este ZIP siguiendo las instrucciones de arriba.

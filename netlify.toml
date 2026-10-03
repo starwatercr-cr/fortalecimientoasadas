@@ -134,3 +134,27 @@
   to = "/.netlify/functions/gateway?file=evaluation-model.js"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/operacion.html"
+  to = "/.netlify/functions/gateway?file=operacion.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/operacion.js"
+  to = "/.netlify/functions/gateway?file=operacion.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/operation-excel.js"
+  to = "/.netlify/functions/gateway?file=operation-excel.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/assets/operation-template.xlsx"
+  to = "/.netlify/functions/gateway?file=assets/operation-template.xlsx"
+  status = 200
+  force = true
