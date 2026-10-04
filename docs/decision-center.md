@@ -1,6 +1,6 @@
 # Centro de decisiones de mi ASADA
 
-Esta actualización agrega la pantalla inicial después del ingreso. Mantiene las herramientas anteriores y consulta únicamente los registros permitidos de la ASADA seleccionada. No requiere tablas, migraciones, claves nuevas ni cambios de configuración en Supabase.
+Esta actualización agrega el Centro de decisiones como una opción dentro de la plataforma. Al ingresar se muestran todas las herramientas, con un botón Centro de decisiones en la parte superior. Mantiene las herramientas anteriores y consulta únicamente los registros permitidos de la ASADA seleccionada. No requiere tablas, migraciones, claves nuevas ni cambios de configuración en Supabase.
 
 ## Qué muestra
 
@@ -18,7 +18,7 @@ Sin registros, el Centro indica Por completar. Una consulta fallida indica No di
 
 1. Descomprima el paquete.
 2. Suba sus archivos y carpetas al repositorio conectado con Netlify, reemplazando las versiones correspondientes. Conserve los archivos y recursos existentes que no aparezcan en el paquete. No suba el ZIP como un archivo suelto.
-3. Espere a que Netlify termine la publicación y abra Ingresar a la plataforma. Después del ingreso aparecerá Centro de decisiones.
+3. Espere a que Netlify termine la publicación y abra Ingresar a la plataforma. Después del ingreso aparecerán todas las herramientas. Use el botón Centro de decisiones en la parte superior para abrir el resumen.
 4. También puede abrir /decision-center.html o el botón Centro de decisiones en Herramientas.
 
 Incluye CSS público y tres archivos privados servidos por el acceso protegido. Las consultas no escriben ni cambian datos. Verificación: 96 pruebas automáticas y revisión en navegador con registros de prueba, filtros, navegación de ida y vuelta, vista móvil, fallos de consulta y cambio de ASADA. No se realizó una prueba de carga ni se publicó desde esta sesión.
