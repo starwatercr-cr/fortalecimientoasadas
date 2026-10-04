@@ -206,3 +206,27 @@
   to = "/.netlify/functions/gateway?file=asada-profile-model.js"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/morosidad.html"
+  to = "/.netlify/functions/gateway?file=morosidad.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/morosidad.js"
+  to = "/.netlify/functions/gateway?file=morosidad.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/morosidad-model.js"
+  to = "/.netlify/functions/gateway?file=morosidad-model.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/morosidad-excel.js"
+  to = "/.netlify/functions/gateway?file=morosidad-excel.js"
+  status = 200
+  force = true

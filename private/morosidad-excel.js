@@ -1,0 +1,51 @@
+import {parseCSV} from './morosidad-model.js';
+// XLSX reader: central directory, bounded decompression, no formula execution.
+const decode=b=>new TextDecoder().decode(b);
+async function entries(buffer){
+ const b=new Uint8Array(buffer),v=new DataView(buffer);let end=-1;
+ for(let i=b.length-22;i>=Math.max(0,b.length-65557);i--)if(v.getUint32(i,true)===0x06054b50){end=i;break;}
+ if(end<0)throw Error('No se pudo leer el Excel. Use .xlsx o CSV.');
+ const count=v.getUint16(end+10,true);if(count>300||v.getUint16(end+4,true)!==0)throw Error('Excel demasiado complejo. Exporte la hoja a CSV.');let at=v.getUint32(end+16,true),total=0;const files=new Map();
+ for(let i=0;i<count;i++){
+  if(at+46>b.length||v.getUint32(at,true)!==0x02014b50)throw Error('Excel incompleto.');
+  const flags=v.getUint16(at+8,true),method=v.getUint16(at+10,true),compressed=v.getUint32(at+20,true),size=v.getUint32(at+24,true),len=v.getUint16(at+28,true),extra=v.getUint16(at+30,true),comment=v.getUint16(at+32,true),local=v.getUint32(at+42,true),name=decode(b.slice(at+46,at+46+len));at+=46+len+extra+comment;
+  if(flags&1)throw Error('No se admiten archivos con contraseña.');
+  if(!['xl/sharedStrings.xml','xl/workbook.xml','xl/_rels/workbook.xml.rels'].includes(name)&&!/^xl\/worksheets\/sheet\d+\.xml$/.test(name))continue;
+  total+=size;if(total>15000000||size>10000000||local+30>b.length||v.getUint32(local,true)!==0x04034b50)throw Error('El archivo supera el tamaño de lectura. Use CSV.');
+  const start=local+30+v.getUint16(local+26,true)+v.getUint16(local+28,true);if(start+compressed>b.length)throw Error('Excel incompleto.');let bytes=b.slice(start,start+compressed);
+  if(method===8){let stream;try{stream=new DecompressionStream('deflate-raw');}catch{throw Error('Este navegador requiere importar CSV. Guarde el Excel como CSV.');}const reader=new Blob([bytes]).stream().pipeThrough(stream).getReader(),parts=[];let actual=0;while(true){const r=await reader.read();if(r.done)break;actual+=r.value.length;if(actual>size||actual>10000000){await reader.cancel();throw Error('Excel descomprimido demasiado grande.');}parts.push(r.value);}bytes=new Uint8Array(actual);let o=0;for(const part of parts){bytes.set(part,o);o+=part.length;}}
+  else if(method!==0)throw Error('Formato comprimido no admitido. Use CSV.');
+  if(bytes.length!==size)throw Error('Excel incompleto.');files.set(name,decode(bytes));
+ }return files;
+}
+export async function readImportFile(file){
+ if(file.size>5000000)throw Error('Use un archivo de hasta 5 MB.');
+ if(/\.csv$/i.test(file.name))return parseCSV(await file.text());
+ if(!/\.xlsx$/i.test(file.name))throw Error('Seleccione un archivo .xlsx o .csv. No se admite .xls.');
+ const files=await entries(await file.arrayBuffer()),parse=s=>{if(!s||/<!DOCTYPE/i.test(s))throw Error('Excel no válido.');const d=new DOMParser().parseFromString(s,'application/xml');if(d.getElementsByTagName('parsererror').length)throw Error('Excel no válido.');return d;},nodes=(d,n)=>[...d.getElementsByTagNameNS('*',n)];
+ const wb=parse(files.get('xl/workbook.xml'));if(nodes(wb,'workbookPr')[0]?.getAttribute('date1904')==='1')throw Error('Este Excel usa fechas antiguas de Mac. Exporte a CSV con fechas AAAA-MM-DD.');
+ const first=nodes(wb,'sheet')[0],id=first?.getAttribute('r:id'),rels=parse(files.get('xl/_rels/workbook.xml.rels')),rel=nodes(rels,'Relationship').find(r=>r.getAttribute('Id')===id),target=rel?.getAttribute('Target')||'';
+ const path=target.startsWith('/')?target.slice(1):'xl/'+target.replace(/^\.\//,'');if(!/^xl\/worksheets\/sheet\d+\.xml$/.test(path))throw Error('No se encontró la primera hoja del Excel.');
+ const shared=files.has('xl/sharedStrings.xml')?nodes(parse(files.get('xl/sharedStrings.xml')),'si').map(si=>nodes(si,'t').map(t=>t.textContent).join('')):[];
+ const rows=nodes(parse(files.get(path)),'row');if(rows.length>502)throw Error('Importe hasta 500 facturas por archivo.');
+ return rows.map(r=>{const values=[];for(const c of nodes(r,'c')){if(nodes(c,'f').length)throw Error('Hay fórmulas. Copie y pegue sus resultados como valores antes de importar.');const ref=c.getAttribute('r')||'',letters=ref.match(/^[A-Z]+/)?.[0];if(!letters)throw Error('Excel no válido.');let col=0;for(const ch of letters)col=col*26+ch.charCodeAt(0)-64;if(col>30)throw Error('Use las columnas de la plantilla.');const value=nodes(c,'v')[0]?.textContent??'',type=c.getAttribute('t');values[col-1]=type==='s'?shared[Number(value)]??'':type==='inlineStr'?nodes(c,'t').map(t=>t.textContent).join(''):type==='e'?(()=>{throw Error('Hay errores en una celda.');})():value!==''&&type!=='str'?Number(value):value;}return Array.from({length:Math.max(10,values.length)},(_,i)=>values[i]??'');});
+}
+
+const encoder=new TextEncoder();
+const xml=s=>String(s??'').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+const crcTable=Array.from({length:256},(_,n)=>{for(let k=0;k<8;k++)n=n&1?0xedb88320^(n>>>1):n>>>1;return n>>>0;});
+const crc=bytes=>{let n=0xffffffff;for(const b of bytes)n=crcTable[(n^b)&255]^(n>>>8);return(n^0xffffffff)>>>0;};
+function zip(files){let offset=0;const chunks=[],central=[];for(const [name,data] of files){const n=encoder.encode(name),d=typeof data==='string'?encoder.encode(data):data,checksum=crc(d),h=new Uint8Array(30+n.length),v=new DataView(h.buffer);v.setUint32(0,0x04034b50,true);v.setUint16(4,20,true);v.setUint16(6,0x800,true);v.setUint32(14,checksum,true);v.setUint32(18,d.length,true);v.setUint32(22,d.length,true);v.setUint16(26,n.length,true);h.set(n,30);chunks.push(h,d);const c=new Uint8Array(46+n.length),w=new DataView(c.buffer);w.setUint32(0,0x02014b50,true);w.setUint16(4,20,true);w.setUint16(6,20,true);w.setUint16(8,0x800,true);w.setUint32(16,checksum,true);w.setUint32(20,d.length,true);w.setUint32(24,d.length,true);w.setUint16(28,n.length,true);w.setUint32(42,offset,true);c.set(n,46);central.push(c);offset+=h.length+d.length;}const size=central.reduce((n,c)=>n+c.length,0),e=new Uint8Array(22),v=new DataView(e.buffer);v.setUint32(0,0x06054b50,true);v.setUint16(8,files.length,true);v.setUint16(10,files.length,true);v.setUint32(12,size,true);v.setUint32(16,offset,true);return new Blob([...chunks,...central,e],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});}
+
+export function createArrearsWorkbook(rows,title='Cuentas por cobrar'){
+ const letter=i=>{let s='';for(i++;i;i=Math.floor((i-1)/26))s=String.fromCharCode(65+(i-1)%26)+s;return s;};
+ const body=rows.map((r,i)=>'<row r="'+(i+1)+'">'+r.map((value,j)=>{const ref=letter(j)+(i+1);if(value instanceof Date)return '<c r="'+ref+'" s="3"><v>'+(value.getTime()/86400000+25569)+'</v></c>';if(typeof value==='number')return '<c r="'+ref+'" s="2"><v>'+value+'</v></c>';return '<c r="'+ref+'" s="'+(i===0?1:0)+'" t="inlineStr"><is><t xml:space="preserve">'+xml(value)+'</t></is></c>';}).join('')+'</row>').join(''),columns=rows[0]?.length||1;
+ const files=[
+ ['[Content_Types].xml','<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'],
+ ['_rels/.rels','<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
+ ['xl/workbook.xml','<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="'+xml(title.slice(0,31))+'" sheetId="1" r:id="rId1"/></sheets></workbook>'],
+ ['xl/_rels/workbook.xml.rels','<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'],
+ ['xl/styles.xml','<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="yyyy-mm-dd"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF126C80"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="4"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyAlignment="1"><alignment wrapText="1" vertical="center"/></xf><xf numFmtId="4" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'],
+ ['xl/worksheets/sheet1.xml','<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="22"/><cols><col min="1" max="'+columns+'" width="24" customWidth="1"/></cols><sheetData>'+body+'</sheetData><autoFilter ref="A1:'+letter(columns-1)+Math.max(1,rows.length)+'"/></worksheet>']
+ ];return zip(files);
+}
