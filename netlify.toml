@@ -257,3 +257,9 @@
   to = "/.netlify/functions/gateway?file=assets/diagnostic-fonts.js"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/water-parameters.js"
+  to = "/.netlify/functions/gateway?file=water-parameters.js"
+  status = 200
+  force = true

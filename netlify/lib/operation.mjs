@@ -1,3 +1,4 @@
+import {QUALITY_PARAMS,parameterUnits,parseQualityValue} from '../../private/water-parameters.js';
 export async function operationAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError}){
  const fail=(m,s=400)=>{throw new PublicError(s,m);},who=await authorized(sessionToken(request)),canManage=who.admin||who.role==='Administración',canEdit=canManage||who.role==='Operación';
  if(api==='ops-asadas'&&request.method==='GET')return json({asadas:who.admin?await sb('/rest/v1/asadas?active=eq.true&select=id,name&order=name.asc'):[who.asada],canManage,canEdit,user:who.user.id});
@@ -32,7 +33,20 @@ export function validateOperation(kind,p,fail){
  if(!p||typeof p!=='object'||Array.isArray(p))fail('Revise el formulario.');const str=(k,label,max=500,required=true)=>{if(typeof p[k]!=='string'||p[k].length>max||required&&!p[k].trim())fail('Revise '+label+'.');return p[k].trim();};
  if(kind==='point')return {name:str('name','el nombre del punto',160),location:str('location','la ubicación',300),category:str('category','el tipo de punto',100),note:str('note','las observaciones',600,false)};
  const date=p.date,time=p.time;if(!validDate(date)||typeof time!=='string'||!/^([01]\d|2[0-3]):[0-5]\d$/.test(time))fail('Revise la fecha y la hora.');const responsible=str('responsible','la persona responsable',160),note=str('note','las observaciones',1000,false);
- if(kind==='log'){const state=str('state','el estado',80);if(!['Pendiente','En proceso','Resuelto'].includes(state))fail('Seleccione el estado.');const due=str('due','la fecha de seguimiento',10,false);if(due&&(!validDate(due)||due<date))fail('Revise la fecha de seguimiento.');return {date,time,responsible,note,location:str('location','el lugar',300),activity:str('activity','el trabajo realizado',1200),category:str('category','el tipo de trabajo',100),materials:str('materials','los materiales',600,false),state,followupResponsible:str('followupResponsible','el responsable del pendiente',160,state!=='Resuelto'),due};}
+ if(kind==='log'){const state=str('state','el estado',80);if(!['Pendiente','En proceso','Resuelto'].includes(state))fail('Seleccione el estado.');const due=str('due','la fecha de seguimiento',10,false);if(due&&(!validDate(due)||due<date))fail('Revise la fecha de seguimiento.');const water=validateWater(p,fail);return {date,time,responsible,note,...water,location:str('location','el lugar',300),activity:str('activity','el trabajo realizado',1200),category:str('category','el tipo de trabajo',100),materials:str('materials','los materiales',600,false),state,followupResponsible:str('followupResponsible','el responsable del pendiente',160,state!=='Resuelto'),due};}
  if(kind==='chlorine'){if(!['Libre','Total'].includes(p.type))fail('Seleccione cloro libre o total.');if(typeof p.value!=='number'||!Number.isFinite(p.value)||p.value<0||p.value>100)fail('Ingrese una medición entre 0 y 100 mg/L.');return {date,time,responsible,note,type:p.type,value:p.value,equipment:str('equipment','el equipo o método utilizado',300),action:str('action','la acción realizada',1000,false)};}
  fail('Tipo de registro no válido.');
+}
+
+function validateWater(p,fail){
+ if(p.waterResults===undefined)return {};
+ if(!Array.isArray(p.waterResults)||p.waterResults.length>40)fail('Registre hasta 40 parámetros por labor; continúe en otro registro si necesita más.');
+ const clean=(v,n)=>{if(typeof v!=='string'||v.length>n)fail('Revise los datos del análisis de agua.');return v.trim();};
+ const waterResults=p.waterResults.map(r=>{if(!r||typeof r!=='object')fail('Revise el parámetro.');const param=QUALITY_PARAMS.find(x=>x.id===r.param);if(!param)fail('Seleccione un parámetro válido.');const unit=clean(r.unit,40),value=clean(r.value,80),ld=clean(r.ld,40),customName=clean(r.customName||'',100);if(!unit)fail('Indique la unidad del resultado.');if(param.id!=='other'&&!parameterUnits(param).includes(unit))fail('Revise la unidad del parámetro.');if(['other','pesticide-other','organochlorine'].includes(param.id)&&!customName)fail('Indique el nombre exacto del parámetro o plaguicida.');const parsed=parseQualityValue(value,ld);if(!value||parsed.kind==='invalid'&&param.id!=='other')fail('Revise el resultado del parámetro.');return {param:param.id,value,unit,ld,...(customName?{customName}: {})};});
+ const keys=waterResults.map(r=>r.param+':'+(r.customName||''));if(new Set(keys).size!==keys.length)fail('No repita un parámetro de la misma muestra.');
+ const c=p.waterContext;if(!c||typeof c!=='object')fail('Revise los datos de la muestra.');const waterContext=Object.fromEntries(['stage','origin','disinfection','temperature','lab','report','sample'].map(k=>[k,clean(c[k]||'',k==='temperature'?20:100)]));
+ if(!['treated','raw','unknown'].includes(waterContext.stage)||!['groundwater','surface','unknown'].includes(waterContext.origin)||!['free','combined','unknown'].includes(waterContext.disinfection))fail('Revise el tipo de agua y desinfección.');
+ const serialized=JSON.stringify({...p,waterResults,waterContext}),spacing=(serialized.replace(/"(?:\\.|[^"\\])*"/g,'').match(/[:,]/g)||[]).length;
+ if(Buffer.byteLength(serialized,'utf8')+spacing>8500)fail('El registro es muy extenso. Divida los parámetros en otra labor para conservar la información.');
+ return {waterResults,waterContext};
 }

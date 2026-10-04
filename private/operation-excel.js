@@ -1,3 +1,4 @@
+import {waterResult} from './water-parameters.js';
 const encoder=new TextEncoder(),decoder=new TextDecoder();
 const xml=s=>String(s??'').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 const crcTable=Array.from({length:256},(_,n)=>{for(let k=0;k<8;k++)n=n&1?0xedb88320^(n>>>1):n>>>1;return n>>>0;});
@@ -11,14 +12,23 @@ return [
  [['ASADA',data.name],['Período',data.start+' al '+data.end],['Punto de cloro',data.pointLabel],['Tipo de cloro',data.type],['Labores registradas',logs.length],['Labores con pendiente',logs.filter(r=>r.payload.state!=='Resuelto').length],['Mediciones en el filtro',values.length],['Promedio de cloro mg/L',average],['Mínimo registrado mg/L',values.length?Math.min(...values):null],['Máximo registrado mg/L',values.length?Math.max(...values):null]],
  logs.map(r=>{const p=r.payload;return [date(p.date),time(p.time),p.responsible,p.location,p.category,p.activity,p.materials,p.state,p.followupResponsible,date(p.due),p.note,reviewed(r),r.id];}),
  measure.map(r=>{const p=r.payload;return [date(p.date),time(p.time),p.pointName,p.pointLocation,p.type,p.value,p.responsible,p.equipment,p.action,p.note,r.followup_id?(p.followupReference||'Medición anterior')+' ['+r.followup_id+']':'',reviewed(r),r.id];}),
- points.map(r=>[r.payload.name,r.payload.location,r.payload.category,r.payload.note,r.id])];}
+ points.map(r=>[r.payload.name,r.payload.location,r.payload.category,r.payload.note,r.id]),
+ logs.flatMap(r=>(r.payload.waterResults||[]).map(row=>{const p=r.payload,c=p.waterContext||{},v=waterResult(row,c);return [date(p.date),p.location,c.sample,c.lab,c.report,v.name,row.value,row.unit,row.ld,v.criterion,v.label,v.comment+' '+v.action,r.id];}))];}
 export async function createOperationWorkbook(data,templateBuffer){
- const files=unzipStored(templateBuffer),rows=sheetRows(data),names=['Resumen','Bitácora','Cloro','Puntos'];
- for(let i=0;i<4;i++){const file=files.find(f=>f[0]==='xl/worksheets/sheet'+(i+1)+'.xml');let source=decoder.decode(file[1]);const cells=[...source.matchAll(/<x:c\s+([^>]*?)\/?>/g)];const style=ref=>{const attrs=cells.find(c=>new RegExp('r="'+ref+'"').test(c[1]))?.[1]||'';return attrs.match(/\bs="(\d+)"/)?.[1]||'0';};
+ const files=unzipStored(templateBuffer),rows=sheetRows(data),names=['Resumen','Bitácora','Cloro','Puntos','Calidad'];
+ const original=decoder.decode(files.find(f=>f[0]==='xl/worksheets/sheet3.xml')[1]);
+ const qualityHeaders=['Fecha','Lugar','Muestra','Laboratorio','Informe','Parámetro','Resultado reportado','Unidad','Límite de detección','Criterio','Lectura','Comentario y seguimiento','Registro'];
+ const header='<x:row r="4">'+qualityHeaders.map((v,i)=>'<x:c r="'+letter(i)+'4" s="1" t="inlineStr"><x:is><x:t>'+xml(v)+'</x:t></x:is></x:c>').join('')+'</x:row>';
+ files.push(['xl/worksheets/sheet5.xml',encoder.encode(original.replace(/<x:row r="4"[^>]*>[\s\S]*?<\/x:row>/,header))]);
+ const modify=(name,fn)=>{const file=files.find(f=>f[0]===name);file[1]=encoder.encode(fn(decoder.decode(file[1])));};
+ modify('xl/workbook.xml',s=>s.replace('</x:sheets>','<x:sheet name="Calidad" sheetId="5" r:id="rIdQuality" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" /></x:sheets>'));
+ modify('xl/_rels/workbook.xml.rels',s=>s.replace('</Relationships>','<Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet5.xml" Id="rIdQuality" /></Relationships>'));
+ modify('[Content_Types].xml',s=>s.replace('</Types>','<Override PartName="/xl/worksheets/sheet5.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml" /></Types>'));
+ for(let i=0;i<5;i++){const file=files.find(f=>f[0]==='xl/worksheets/sheet'+(i+1)+'.xml');let source=decoder.decode(file[1]);const cells=[...source.matchAll(/<x:c\s+([^>]*?)\/?>/g)];const style=ref=>{const attrs=cells.find(c=>new RegExp('r="'+ref+'"').test(c[1]))?.[1]||'';return attrs.match(/\bs="(\d+)"/)?.[1]||'0';};
  const headers=source.match(/<x:row r="4"[^>]*>[\s\S]*?<\/x:row>/)?.[0];if(!headers)throw Error('La plantilla Excel está incompleta.');const columns=i===0?2:i===3?5:13;
  const cell=(value,ref,s)=>{if(value===null||value===undefined||value==='')return '<x:c r="'+ref+'" s="'+s+'" />';if(value instanceof Date){const serial=value.getTime()/86400000+25569;return '<x:c r="'+ref+'" s="'+s+'"><x:v>'+serial+'</x:v></x:c>';}if(typeof value==='number')return '<x:c r="'+ref+'" s="'+s+'"><x:v>'+value+'</x:v></x:c>';return '<x:c r="'+ref+'" s="'+s+'" t="inlineStr"><x:is><x:t xml:space="preserve">'+xml(value)+'</x:t></x:is></x:c>';};
  let body='<x:sheetData><x:row r="2">'+cell(names[i]+' · '+data.name,'A2',style('A2'))+'</x:row><x:row r="3">'+cell(data.start+' al '+data.end+(i===2?' · '+data.pointLabel+' · Cloro '+data.type.toLowerCase():''),'A3',style('A3'))+'</x:row>'+headers;
- rows[i].forEach((r,j)=>{const row=j+5;body+='<x:row r="'+row+'" ht="32" customHeight="1">'+r.map((v,k)=>cell(v,letter(k)+row,style(letter(k)+'5'))).join('')+'</x:row>';});body+='</x:sheetData>';
+ rows[i].forEach((r,j)=>{const row=j+5;body+='<x:row r="'+row+'" ht="'+(i===4?140:32)+'" customHeight="1">'+r.map((v,k)=>cell(v,letter(k)+row,style(letter(k)+'5'))).join('')+'</x:row>';});body+='</x:sheetData>';
  source=source.replace(/<x:sheetData>[\s\S]*?<\/x:sheetData>/,body);if(i>0)source=source.replace('</x:sheetData>','</x:sheetData><x:autoFilter ref="A4:'+letter(columns-1)+Math.max(4,rows[i].length+4)+'" />');file[1]=encoder.encode(source);
  }
  return zip(files);
