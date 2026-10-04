@@ -263,3 +263,21 @@
   to = "/.netlify/functions/gateway?file=water-parameters.js"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/decision-center.html"
+  to = "/.netlify/functions/gateway?file=decision-center.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/decision-center.js"
+  to = "/.netlify/functions/gateway?file=decision-center.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/decision-model.js"
+  to = "/.netlify/functions/gateway?file=decision-model.js"
+  status = 200
+  force = true

@@ -6,7 +6,8 @@ const months=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov',
 const modules=[['home','Panel financiero'],['cash','Flujo de efectivo'],['petty','Caja chica'],['budget','Presupuesto de la ASADA'],['statements','Estados financieros'],['finance-summary','Nuestras finanzas'],['assets','Auxiliar de activos'],['board','Acuerdos de JD']];
 const assemblyLink=new URLSearchParams(location.search);
 let asada='',year=new Date().getFullYear(),base=year-1,module='home',records=[],canEdit=false,asadas=[],loading=false,busy=false,editing=null,isPlatformAdmin=false,budgetMonth=12,budgetService='Todos',budgetFilter='all';
-if(new URLSearchParams(location.search).get('module')==='finance-summary')module='finance-summary';
+if(modules.some(([key])=>key===assemblyLink.get('module')))module=assemblyLink.get('module');
+const cutoff=Number(assemblyLink.get('through'));if(Number.isInteger(cutoff)&&cutoff>=1&&cutoff<=12)budgetMonth=cutoff;
 let selectedFinanceMetric='result';
 const status=t=>$('#sw-feedback').textContent=t;
 async function api(route,input){const response=await fetch('/api/'+route,{method:input?'POST':'GET',credentials:'same-origin',headers:input?{'Content-Type':'application/json'}:{},body:input?JSON.stringify(input):undefined});let d;try{d=await response.json();}catch{throw Error('No pudimos conectar con la plataforma.');}if(!response.ok){if(response.status===401){status('Su sesión terminó. Ingrese de nuevo para continuar.');}throw Error(d.error||'No fue posible completar la operación.');}return d;}
