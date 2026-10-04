@@ -281,3 +281,9 @@
   to = "/.netlify/functions/gateway?file=decision-model.js"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/guia-operativa.html"
+  to = "/.netlify/functions/gateway?file=guia-operativa.html"
+  status = 200
+  force = true
