@@ -41,3 +41,18 @@ export function parseCSV(text){
  if(quote)throw Error('Revise las comillas del CSV.');if(v||row.length){row.push(v);rows.push(row);}return rows;
 }
 export function csv(rows){return '\uFEFF'+rows.map(r=>r.map(v=>{let s=String(v??'');if(/^[=+@-]/.test(s))s="'"+s;return '"'+s.replaceAll('"','""')+'"';}).join(';')).join('\r\n');}
+
+export const caseStates=['Pendiente','En seguimiento','Compromiso de pago','Resuelto'];
+export function followupView(records,today,{search='',state=''}={}){
+ const q=search.trim().toLocaleLowerCase();
+ const cases=records.filter(r=>r.kind==='subscriber').map(r=>{
+  const contacts=records.filter(x=>x.kind==='collection'&&x.parent_id===r.id).sort((a,b)=>b.payload.date.localeCompare(a.payload.date)||String(b.created_at||'').localeCompare(String(a.created_at||'')));
+  const commitments=records.filter(x=>x.kind==='promise'&&x.parent_id===r.id);const pending=commitments.filter(x=>x.payload.state==='Pendiente');
+  const next=contacts[0]?.payload.nextDate||r.payload.nextDate||'';
+  const dates=[next,...pending.map(x=>x.payload.due)].filter(Boolean).sort();
+  return {...r,lastContact:contacts[0]||null,contacts,commitments,nextDate:dates[0]||'',overdue:r.payload.state!=='Resuelto'&&!!dates[0]&&dates[0]<today};
+ }).filter(r=>(!q||[r.payload.code,r.payload.name,r.payload.sector,r.payload.responsible].join(' ').toLocaleLowerCase().includes(q))&&(!state||r.payload.state===state));
+ cases.sort((a,b)=>Number(b.overdue)-Number(a.overdue)||(a.nextDate||'9999').localeCompare(b.nextDate||'9999')||a.payload.code.localeCompare(b.payload.code));
+ const ids=new Set(cases.map(r=>r.id)),commitments=records.filter(r=>r.kind==='promise'&&ids.has(r.parent_id));
+ return {cases,pending:cases.filter(r=>r.payload.state!=='Resuelto').length,overdue:cases.filter(r=>r.overdue).length,commitments:commitments.filter(r=>r.payload.state==='Pendiente').length,states:caseStates.map(label=>({label,count:cases.filter(r=>r.payload.state===label).length}))};
+}
