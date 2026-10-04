@@ -230,3 +230,30 @@
   to = "/.netlify/functions/gateway?file=morosidad-excel.js"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/diagnostic-model.js"
+  to = "/.netlify/functions/gateway?file=diagnostic-model.js"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/diagnostic.js"
+  to = "/.netlify/functions/gateway?file=diagnostic.js"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/diagnostic-pdf.js"
+  to = "/.netlify/functions/gateway?file=diagnostic-pdf.js"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/assets/jspdf.umd.min.js"
+  to = "/.netlify/functions/gateway?file=assets/jspdf.umd.min.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/assets/diagnostic-fonts.js"
+  to = "/.netlify/functions/gateway?file=assets/diagnostic-fonts.js"
+  status = 200
+  force = true
