@@ -99,12 +99,12 @@ function assemblyChartHTML(graph){
 function assemblyPanelSnapshot(records,start,end,year){
  const sum=a=>a.reduce((n,x)=>n+Number(x||0),0),values=k=>records.filter(r=>r.kind===k).map(r=>r.payload);
  const statements=records.filter(r=>r.kind==='statement'),settings=values('settings')[0];
- const transactions=[...values('movement'),...values('petty').map(p=>({...p,type:'out',part:'Administración'}))];
+ const transactions=[...values('movement'),...values('petty').map(p=>({...p,type:'out',part:p.part||'Administración'}))];
  const selected=transactions.filter(p=>p.date>=start&&p.date<=end),before=transactions.filter(p=>p.date<start),paid=transactions.filter(p=>p.date<=end&&p.type==='out');
  const income=sum(selected.filter(p=>p.type==='in').map(p=>p.amount)),expense=sum(selected.filter(p=>p.type==='out').map(p=>p.amount));
  const initial=settings?settings.opening+sum(before.filter(p=>p.type==='in').map(p=>p.amount))-sum(before.filter(p=>p.type==='out').map(p=>p.amount)):null;
- const budgets=values('budget'),parts=[...new Set([...budgets.map(p=>p.part),...paid.map(p=>p.part)])];
- const budget=parts.map(part=>({part,approved:sum(budgets.filter(p=>p.part===part).map(p=>p.amount)),paid:sum(paid.filter(p=>p.part===part).map(p=>p.amount))}));
+ const budgets=values('budget').filter(p=>p.budgetType!=='income'),key=p=>JSON.stringify([p.service||'Sin clasificar',p.budgetType||'expense',p.group||'Sin clasificar',p.part]),parts=[...new Map([...budgets,...paid].map(p=>[key(p),p])).entries()];
+ const budget=parts.map(([k,p])=>({part:(p.service||p.group||p.budgetType?[p.service||'Sin clasificar',p.budgetType==='investment'?'Inversiones':p.group||'Sin clasificar',p.part].join(' · '):p.part),approved:sum(budgets.filter(p=>key(p)===k).map(p=>p.amount)),paid:sum(paid.filter(p=>key(p)===k).map(p=>p.amount))}));
  const agreements=values('agreement').filter(p=>p.date>=start&&p.date<=end).map(p=>({code:p.code,title:p.title,state:p.state,responsible:p.responsible,due:p.due,progress:p.progress}));
  const assets=values('asset').filter(p=>p.date<=end);
  const statement=statements.length===1?{id:statements[0].id,version:statements[0].version,...statements[0].payload}:null;

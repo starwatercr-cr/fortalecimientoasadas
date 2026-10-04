@@ -13,3 +13,10 @@ test('editar y archivar conservan versiones y rechazan datos desactualizados',as
 test('una edición simultánea durante el PATCH no sobrescribe el registro',async()=>{const h=harness({race:true});const r=(await (await h.save('movement',samples.movement)).json()).record;await assert.rejects(h.save('movement',samples.movement,{id:r.id,version:1}),e=>e.status===409);});
 test('validación rechaza fechas, montos y estados inconsistentes',async()=>{const h=harness();for(const [kind,payload] of [['movement',{...samples.movement,amount:-1}],['movement',{...samples.movement,date:'2026-02-30'}],['asset',{...samples.asset,depreciation:9999}],['statement',{...samples.statement,payables:999}],['agreement',{...samples.agreement,state:'Cumplido',progress:50}]])await assert.rejects(h.save(kind,payload),e=>e.status===400);assert.equal(h.db.length,0);});
 test('una consulta completa no trunca a mil movimientos',async()=>{const h=harness();for(let i=0;i<1001;i++)h.db.push({id:String(i),asada_id:A,year:2026,kind:'movement',payload:samples.movement});assert.equal((await (await h.call('panel-data?year=2026')).json()).records.length,1001);});
+test('Presupuesto: guarda clasificación, rechaza categorías incompatibles y conserva caja chica',async()=>{
+ const h=harness(),c={service:'Acueducto',budgetType:'expense',group:'Operativos'};
+ for(const kind of ['budget','movement','petty']){const p={...samples[kind],...c,...(kind==='petty'?{part:'Materiales'}:{})};const r=await h.save(kind,p);assert.equal(r.status,201);assert.deepEqual((await r.json()).record.payload,p);}
+ for(const [kind,fields] of [['budget',{service:'Otra ASADA'}],['budget',{budgetType:'income',group:'Operativos'}],['movement',{budgetType:'income',group:'Ingresos'}],['petty',{budgetType:'income',group:'Ingresos'}]])await assert.rejects(h.save(kind,{...samples[kind],...c,...fields}),e=>e.status===400);
+ const income=await h.save('movement',{...samples.movement,type:'in',...c,budgetType:'income',group:'Ingresos'});assert.equal(income.status,201);
+ const investment=await h.save('movement',{...samples.movement,...c,budgetType:'investment',group:'Inversiones'});assert.equal(investment.status,201);
+});

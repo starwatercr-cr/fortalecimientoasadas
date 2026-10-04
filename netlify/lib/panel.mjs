@@ -32,10 +32,20 @@ function validate(kind,p,y,fail){
  const str=(k,max=160,required=true)=>{if(typeof p[k]!=='string'||p[k].length>max||(required&&!p[k].trim()))fail('Revise el campo '+k+'.');return p[k].trim();};
  const num=(k,negative=false)=>{const n=p[k];if(typeof n!=='number'||!Number.isFinite(n)||(!negative&&n<0)||Math.abs(n)>1e12)fail('Revise el monto '+k+'.');return Math.round(n*100)/100;};
  const date=(k,rule='same')=>{const s=str(k,10),d=new Date(s+'T12:00:00Z');if(!/^\d{4}-\d{2}-\d{2}$/.test(s)||Number.isNaN(d.getTime())||d.toISOString().slice(0,10)!==s||rule==='same'&&!s.startsWith(y+'-')||rule==='before'&&Number(s.slice(0,4))>y)fail('Revise la fecha '+k+' y el período del registro.');return s;};
+ const classification=()=>{
+  const result={};
+  const choices={service:['Sin clasificar','Acueducto','Alcantarillado','Hidrantes','Protección del recurso hídrico'],budgetType:['income','expense','investment'],group:['Sin clasificar','Ingresos','Operativos','Administrativos','Financieros','Inversiones']};
+  for(const [key,list] of Object.entries(choices))if(p[key]!==undefined){if(!list.includes(p[key]))fail('Revise la clasificación presupuestaria.');result[key]=p[key];}
+  const type=result.budgetType||(kind==='movement'&&p.type==='in'?'income':'expense');
+  if(kind==='movement'&&((p.type==='in')!==(type==='income')))fail('Las entradas corresponden a ingresos; las salidas a gastos o inversiones.');
+  if(kind==='petty'&&type==='income')fail('Caja chica registra salidas, no ingresos.');
+  if(result.group&&result.group!=='Sin clasificar'&&!(type==='income'?result.group==='Ingresos':type==='investment'?result.group==='Inversiones':['Operativos','Administrativos','Financieros'].includes(result.group)))fail('El grupo no corresponde al tipo de presupuesto.');
+  return result;
+ };
  if(kind==='settings')return {opening:num('opening',true),fund:num('fund'),note:str('note',1000,false)};
- if(kind==='movement'){if(!['in','out'].includes(p.type))fail('Seleccione entrada o salida.');if(num('amount')<=0)fail('El monto debe ser mayor que cero.');return {date:date('date'),type:p.type,amount:num('amount'),part:str('part'),concept:str('concept',500),reference:str('reference',160,false)};}
- if(kind==='petty'){if(num('amount')<=0)fail('El monto debe ser mayor que cero.');if(typeof p.reimbursed!=='boolean')fail('Revise el reintegro.');return {date:date('date'),amount:num('amount'),concept:str('concept',500),reference:str('reference',160),responsible:str('responsible'),reimbursed:p.reimbursed};}
- if(kind==='budget')return {part:str('part'),amount:num('amount'),reference:str('reference',500,false)};
+ if(kind==='movement'){if(!['in','out'].includes(p.type))fail('Seleccione entrada o salida.');if(num('amount')<=0)fail('El monto debe ser mayor que cero.');return {date:date('date'),type:p.type,amount:num('amount'),part:str('part'),concept:str('concept',500),reference:str('reference',160,false),...classification()};}
+ if(kind==='petty'){if(num('amount')<=0)fail('El monto debe ser mayor que cero.');if(typeof p.reimbursed!=='boolean')fail('Revise el reintegro.');return {date:date('date'),amount:num('amount'),concept:str('concept',500),reference:str('reference',160),responsible:str('responsible'),reimbursed:p.reimbursed,...(p.part!==undefined?{part:str('part')}:{}),...classification()};}
+ if(kind==='budget')return {part:str('part'),amount:num('amount'),reference:str('reference',500,false),...classification()};
  if(kind==='statement'){const result={};for(const k of ['cash','receivables','fixed','other','liabilities','payables','equity','income','expenses'])result[k]=num(k,k==='equity');if(result.payables>result.liabilities)fail('Las cuentas por pagar no pueden superar el total de pasivos.');return {...result,date:date('date'),note:str('note',1000,false)};}
  if(kind==='asset'){const cost=num('cost'),depreciation=num('depreciation');if(depreciation>cost)fail('La depreciación acumulada no puede superar el costo.');return {code:str('code',80),name:str('name'),category:str('category'),date:date('date','before'),cost,depreciation,life:num('life'),location:str('location'),responsible:str('responsible'),state:str('state',80)};}
  if(kind==='agreement'){if(!['Pendiente','En proceso','Cumplido'].includes(p.state))fail('Seleccione el estado del acuerdo.');const progress=num('progress');if(progress>100||p.state==='Cumplido'&&progress!==100||p.state!=='Cumplido'&&progress===100)fail('Un avance del 100 % debe corresponder al estado Cumplido.');return {code:str('code',80),title:str('title',500),date:date('date'),due:date('due','any'),responsible:str('responsible'),progress,state:p.state,note:str('note',1500,false)};}
