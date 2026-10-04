@@ -1,0 +1,10 @@
+const sum=xs=>xs.reduce((s,n)=>s+Number(n||0),0);
+export function decisionSummary({panel,warehouse,operations,year,month,today}){
+ const end=new Date(Date.UTC(year,month,0)).toISOString().slice(0,10),rows=panel?.records||[],tx=rows.filter(r=>['movement','petty'].includes(r.kind)).map(r=>({...r.payload,type:r.kind==='petty'?'out':r.payload.type})).filter(p=>p.date>=year+'-01-01'&&p.date<=end),budgets=rows.filter(r=>r.kind==='budget'&&r.payload.budgetType!=='income'),annual=sum(budgets.map(r=>r.payload.amount)),expense=sum(tx.filter(p=>p.type==='out').map(p=>p.amount)),income=sum(tx.filter(p=>p.type==='in').map(p=>p.amount));
+ const monthly=Array.from({length:month},(_,i)=>{const list=tx.filter(p=>Number(p.date.slice(5,7))===i+1);return {month:i+1,hasData:list.length>0,income:sum(list.filter(p=>p.type==='in').map(p=>p.amount)),expense:sum(list.filter(p=>p.type==='out').map(p=>p.amount))};});
+ const agreements=rows.filter(r=>r.kind==='agreement'),overdue=agreements.filter(r=>r.payload.state!=='Cumplido'&&r.payload.due<today),week=new Date(today+'T12:00:00Z');week.setUTCDate(week.getUTCDate()+7);const through=week.toISOString().slice(0,10),upcoming=agreements.filter(r=>r.payload.state!=='Cumplido'&&r.payload.due>=today&&r.payload.due<=through);
+ const items=(warehouse?.records||[]).filter(r=>r.kind==='item'&&!r.archived),low=items.filter(r=>Number(r.stock)<=Number(r.payload.minimum)),empty=low.filter(r=>Number(r.stock)===0);
+ const ops=operations?.records||[],logs=ops.filter(r=>r.kind==='log'),pending=logs.filter(r=>r.payload.state!=='Resuelto'),late=pending.filter(r=>r.payload.due&&r.payload.due<today),reviews=ops.filter(r=>!r.reviewed_at&&(r.kind==='chlorine'||r.kind==='log'&&r.payload.waterResults?.length));
+ const latest=arr=>arr.map(r=>r.updated_at||r.created_at||r.payload?.date).filter(Boolean).sort().at(-1)||null;
+ return {annual:budgets.length?annual:null,expense:tx.length?expense:null,income:tx.length?income:null,percent:annual>0&&tx.length?expense/annual*100:null,monthly,budgets,tx,agreements,overdue,upcoming,items,low,empty,logs,pending,late,reviews,lastPanel:latest(rows),lastOperations:latest(ops),through,end};
+}

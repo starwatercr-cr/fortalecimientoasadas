@@ -27,7 +27,7 @@ function renderWaterVisuals(d,r,days){
   chart.innerHTML=svg+`<p class="small">Oferta: agua disponible de las fuentes. Demanda: ingreso estimado que requiere el sistema, incluyendo la proporción no registrada.</p>`;
  }
  const flow=el('water-flow'),missing=r.supply===null,initial=missing?null:r.supply/(86.4*days),now=missing?null:r.scenarioSupply/(86.4*days),ratio=initial>0?now/initial:0;
- flow.style.setProperty('--flow-width',(ratio>0?12+ratio*70:0)+'px');flow.style.setProperty('--flow-speed',(1.5-ratio*.9)+'s');flow.classList.toggle('flow-active',ratio>0);el('water-flow-empty').hidden=ratio>0;el('water-flow-empty').textContent=missing?'Ingrese los caudales':'Sin caudal disponible';
+ flow.style.setProperty('--flow-width',(ratio>0?8+ratio*142:0)+'px');flow.style.setProperty('--flow-speed',(1.5-ratio*.9)+'s');flow.classList.toggle('flow-active',ratio>0);el('water-flow-empty').hidden=ratio>0;el('water-flow-empty').textContent=missing?'Ingrese los caudales':'Sin caudal disponible';
  const description=missing?'Caudal pendiente de datos':`Caudal del escenario: ${fmt(now)} litros por segundo. Caudal inicial: ${fmt(initial)} litros por segundo. Se conserva ${fmt(ratio*100)} por ciento.`;
  flow.setAttribute('aria-label',description);el('water-flow-caption').innerHTML=missing?'<p>Faltan mediciones de las fuentes.</p>':`<strong>${fmt(now)} <span>L/s</span></strong><p>Inicial: ${fmt(initial)} L/s · Se conserva ${fmt(ratio*100)} %</p>`;
  el('water-flow-slider').value=d.reduction;el('water-flow-slider-value').textContent=d.reduction+' %';
