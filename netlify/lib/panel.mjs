@@ -1,4 +1,4 @@
-const kinds=['settings','movement','petty','budget','statement','asset','agreement'];
+const kinds=['settings','movement','petty','budget','statement','asset','agreement','payment'];
 export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError}){
  const fail=(m,s=400)=>{throw new PublicError(s,m);};
  const who=await authorized(sessionToken(request));const url=new URL(request.url);
@@ -21,6 +21,16 @@ export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid
  let old=null;if(input.id){if(!uuid(input.id)||!Number.isInteger(input.version)||input.version<1)fail('El registro no es válido.');old=(await sb('/rest/v1/panel_records?'+scope+'&id=eq.'+input.id+'&deleted=eq.false&select=id,kind,version,payload'))?.[0];if(!old||old.kind!==input.kind)fail('El registro no está disponible.',404);if(old.version!==input.version)fail('Otra persona actualizó este registro. Recargue los datos antes de editarlo.',409);}
  if(input.archive&&!old)fail('Seleccione el registro que desea archivar.');
  const payload=input.archive?old.payload:validate(input.kind,input.payload,year,fail);
+ if(input.kind==='payment'){
+  if(input.archive&&['Aprobado','Pagado'].includes(old?.payload.state))fail('Los pagos aprobados o pagados se conservan. Registre una devolución para revisión antes de archivar.',409);
+  if(!input.archive){
+   if(old?.payload.state==='Aprobado'&&payload.state==='Pendiente de aprobación')fail('Devuelva el pago a revisión y explique el motivo antes de volver a presentarlo.',409);
+   if(old?.payload.state==='Pagado'&&payload.state!=='Pagado')fail('Un pago realizado no puede volver a pendiente.',409);
+   if(old&&['Aprobado','Pagado'].includes(old.payload.state)&&['Aprobado','Pagado'].includes(payload.state)&&['date','supplier','supplierTax','invoice','concept','amount','session','sessionDate','agreement','approvalDate','approvalBy','paidDate','paymentRef'].some(k=>old.payload[k]!==payload[k]&&!(old.payload.state==='Aprobado'&&['paidDate','paymentRef'].includes(k))))fail('Para modificar un pago aprobado, devuélvalo primero a revisión. Un pago realizado conserva sus datos.',409);
+   if(payload.state==='Pagado'&&(!old||!['Aprobado','Pagado'].includes(old.payload.state)))fail('Registre primero la aprobación de Junta Directiva antes de marcarlo pagado.');
+   if(payload.documentId){if(!uuid(payload.documentId))fail('Adjunto inválido.');const document=(await sb('/rest/v1/asada_documents?asada_id=eq.'+asada.id+'&id=eq.'+payload.documentId+'&select=id'))?.[0];if(!document)fail('El documento no pertenece a esta ASADA.',403);}
+  }
+ }
  const row={payload,updated_by:who.user.id,updated_at:new Date().toISOString()};
  let result;
  if(old){result=await sb('/rest/v1/panel_records?'+scope+'&id=eq.'+old.id+'&version=eq.'+input.version+'&deleted=eq.false',{method:'PATCH',body:{...row,version:input.version+1,deleted:input.archive===true},prefer:'return=representation'});if(!result.length)fail('Otra persona actualizó este registro. Recargue los datos antes de editarlo.',409);}
@@ -48,5 +58,16 @@ function validate(kind,p,y,fail){
  if(kind==='budget')return {part:str('part'),amount:num('amount'),reference:str('reference',500,false),...classification()};
  if(kind==='statement'){const result={};for(const k of ['cash','receivables','fixed','other','liabilities','payables','equity','income','expenses'])result[k]=num(k,k==='equity');if(result.payables>result.liabilities)fail('Las cuentas por pagar no pueden superar el total de pasivos.');return {...result,date:date('date'),note:str('note',1000,false)};}
  if(kind==='asset'){const cost=num('cost'),depreciation=num('depreciation');if(depreciation>cost)fail('La depreciación acumulada no puede superar el costo.');return {code:str('code',80),name:str('name'),category:str('category'),date:date('date','before'),cost,depreciation,life:num('life'),location:str('location'),responsible:str('responsible'),state:str('state',80)};}
+ if(kind==='payment'){
+  if(!['Pendiente de aprobación','Aprobado','Devuelto para revisión','Pagado'].includes(p.state))fail('Seleccione el estado del pago.');
+  const out={date:date('date'),supplier:str('supplier'),supplierTax:str('supplierTax',50,false),invoice:str('invoice',100),concept:str('concept',1000),amount:num('amount'),state:p.state,session:str('session',80,false),sessionDate:p.sessionDate?date('sessionDate','any'):'',agreement:str('agreement',80,false),approvalDate:p.approvalDate?date('approvalDate','any'):'',approvalBy:str('approvalBy',160,false),paidDate:p.paidDate?date('paidDate','any'):'',paymentRef:str('paymentRef',160,false),note:str('note',1500,false),documentId:str('documentId',36,false)};
+  if(out.amount<=0)fail('El monto a pagar debe ser mayor que cero.');
+  if(['Aprobado','Pagado'].includes(out.state)&&(!out.session||!out.sessionDate||!out.agreement||!out.approvalDate||!out.approvalBy||p.confirmApproval!==true))fail('Complete sesión, fecha, acuerdo y responsable; confirme que la aprobación consta en el acta.');
+  if(out.state==='Pagado'&&(!out.paidDate||!out.paymentRef||out.paidDate<out.approvalDate))fail('Complete la fecha y referencia del pago; no puede ser anterior a la aprobación.');
+  if(out.state==='Devuelto para revisión'&&!out.note)fail('Explique por qué se devuelve el pago para revisión.');
+  if(!['Aprobado','Pagado'].includes(out.state)){out.agreement='';out.approvalDate='';out.approvalBy='';out.paidDate='';out.paymentRef='';}
+  if(out.state==='Aprobado'){out.paidDate='';out.paymentRef='';}
+  return out;
+ }
  if(kind==='agreement'){if(!['Pendiente','En proceso','Cumplido'].includes(p.state))fail('Seleccione el estado del acuerdo.');const progress=num('progress');if(progress>100||p.state==='Cumplido'&&progress!==100||p.state!=='Cumplido'&&progress===100)fail('Un avance del 100 % debe corresponder al estado Cumplido.');return {code:str('code',80),title:str('title',500),date:date('date'),due:date('due','any'),responsible:str('responsible'),progress,state:p.state,note:str('note',1500,false)};}
 }
