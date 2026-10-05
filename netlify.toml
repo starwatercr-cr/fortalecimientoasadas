@@ -306,3 +306,27 @@
   to = "/.netlify/functions/gateway?file=contract-ui.js"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/aforos.html"
+  to = "/.netlify/functions/gateway?file=aforos.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/aforos.js"
+  to = "/.netlify/functions/gateway?file=aforos.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/aforos-model.js"
+  to = "/.netlify/functions/gateway?file=aforos-model.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/aforos-export.js"
+  to = "/.netlify/functions/gateway?file=aforos-export.js"
+  status = 200
+  force = true
