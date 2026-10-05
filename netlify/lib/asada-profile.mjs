@@ -1,3 +1,4 @@
+import {validateContract} from '../../private/contract-model.js';
 import {randomUUID} from 'node:crypto';
 export function validateProfile(p,fail){
  if(!p||typeof p!=='object'||Array.isArray(p))fail('Revise la ficha de la ASADA.');
@@ -11,6 +12,7 @@ export function validateProfile(p,fail){
  out.identityStatus=str('identityStatus',30)||'Borrador';if(!['Borrador','Aprobado'].includes(out.identityStatus))fail('Seleccione borrador o aprobado.');
  out.approvedDate=str('approvedDate',10);if(out.approvedDate&&!validDate(out.approvedDate))fail('Revise la fecha de aprobación.');
  if(out.identityStatus==='Aprobado'&&(!out.mission||!out.vision||!out.values||!out.agreement||!out.approvedDate))fail('Para registrar la aprobación complete misión, visión, valores, fecha y acuerdo de Junta Directiva.');
+ if(p.contract!==undefined)out.contract=validateContract(p.contract,fail);
  return out;
 }
 const validDate=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&!isNaN(new Date(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;
@@ -21,12 +23,17 @@ export async function profileAPI(api,request,{sb,authorized,sessionToken,body,uu
  if(who.admin){if(!uuid(requested))fail('Seleccione una ASADA.');asada=(await sb('/rest/v1/asadas?id=eq.'+requested+'&active=eq.true&select=id,name'))[0];if(!asada)fail('ASADA no disponible.',403);}else if(requested&&requested!==asada.id)fail('No tiene acceso a esta ASADA.',403);
  const scope='asada_id=eq.'+asada.id,canEdit=who.admin||['Administración','Junta Directiva'].includes(who.role);
  const get=async()=> (await sb('/rest/v1/asada_profiles?'+scope+'&select=*'))[0]||null;
- if(api==='profile-data'&&request.method==='GET')return json({asada,profile:await get(),canEdit,documents:canEdit?await sb('/rest/v1/asada_documents?'+scope+'&select=id,name,category,filename,type,size,start_date,end_date,created_at&order=created_at.desc&limit=200'):[]});
+ if(api==='profile-data'&&request.method==='GET')return json({asada,profile:await get(),canEdit,isPlatformAdmin:who.admin===true,documents:canEdit?await sb('/rest/v1/asada_documents?'+scope+'&select=id,name,category,filename,type,size,start_date,end_date,created_at&order=created_at.desc&limit=200'):[]});
  if(api==='profile-history'&&request.method==='GET'){if(!canEdit)fail('El historial corresponde a la Junta y la administración.',403);return json({changes:await sb('/rest/v1/asada_profile_changes?'+scope+'&select=actor,changed_at,current_data&order=changed_at.desc&limit=100')});}
  if(api==='profile-save'&&request.method==='POST'){
   if(!canEdit)fail('La Junta Directiva y la administración actualizan esta ficha.',403);
   const old=await get();if(!Number.isInteger(input.version)||input.version!==(old?.version||0))fail('Otra persona actualizó la ficha. Recargue antes de guardar.',409);
-  const payload=validateProfile(input.payload,fail),row={payload,updated_by:who.user.id,updated_at:new Date().toISOString()};
+  const payload=validateProfile(input.payload,fail);
+  if(old?.payload?.contract&&!payload.contract)payload.contract=old.payload.contract;
+  if(!who.admin&&payload.contract){
+   for(const key of ['providerAddress','providerRepresentation'])if(payload.contract[key]!== (old?.payload?.contract?.[key]||''))fail('Star Water completa sus datos de representación y domicilio.',403);
+  }
+  const row={payload,updated_by:who.user.id,updated_at:new Date().toISOString()};
   const rows=old?await sb('/rest/v1/asada_profiles?'+scope+'&version=eq.'+old.version,{method:'PATCH',body:{...row,version:old.version+1},prefer:'return=representation'}):await sb('/rest/v1/asada_profiles',{method:'POST',body:{...row,asada_id:asada.id},prefer:'return=representation'});
   if(!rows.length)fail('La ficha cambió. Recargue antes de guardar.',409);return json({profile:rows[0]});
  }
@@ -38,8 +45,9 @@ export async function profileAPI(api,request,{sb,authorized,sessionToken,body,uu
  if(api==='profile-upload'&&request.method==='POST'){
   if(!canEdit)fail('La Junta y la administración adjuntan documentos.',403);
   const name=u.searchParams.get('name')?.trim(),category=u.searchParams.get('category'),start=u.searchParams.get('start')||null,end=u.searchParams.get('end')||null;
-  if(!name||name.length>160||!['Contrato con Star Water','Personería jurídica','Otro documento'].includes(category)||start&&!validDate(start)||end&&!validDate(end)||start&&end&&end<start)fail('Revise el nombre, categoría y vigencia del documento.');
-  const type=request.headers.get('content-type'),MAX=5*1024*1024;if(!['application/pdf','image/png','image/jpeg'].includes(type))fail('Adjunte un PDF o imagen JPG/PNG.');if(Number(request.headers.get('content-length'))>MAX)fail('El archivo debe pesar como máximo 5 MB.',413);
+  if(!name||name.length>160||!['Contrato con Star Water','Contrato generado','Contrato firmado por ASADA','Contrato final con ambas firmas','Personería jurídica','Otro documento'].includes(category)||start&&!validDate(start)||end&&!validDate(end)||start&&end&&end<start)fail('Revise el nombre, categoría y vigencia del documento.');
+  if(category==='Contrato final con ambas firmas'&&!who.admin)fail('Star Water carga la versión final con ambas firmas.',403);
+  const type=request.headers.get('content-type'),MAX=5*1024*1024;if(category.startsWith('Contrato')&&category!=='Contrato con Star Water'&&type!=='application/pdf')fail('Adjunte el contrato completo en PDF.');if(!['application/pdf','image/png','image/jpeg'].includes(type))fail('Adjunte un PDF o imagen JPG/PNG.');if(Number(request.headers.get('content-length'))>MAX)fail('El archivo debe pesar como máximo 5 MB.',413);
   const reader=request.body?.getReader();if(!reader)fail('Seleccione un archivo.');const chunks=[];let size=0;while(true){const {value,done}=await reader.read();if(done)break;size+=value.length;if(size>MAX){await reader.cancel();fail('El archivo debe pesar como máximo 5 MB.',413);}chunks.push(value);}
   const bytes=Buffer.concat(chunks);if(!size||type==='application/pdf'&&bytes.subarray(0,5).toString()!=='%PDF-'||type==='image/png'&&bytes.subarray(0,8).toString('hex')!=='89504e470d0a1a0a'||type==='image/jpeg'&&bytes.subarray(0,3).toString('hex')!=='ffd8ff')fail('Revise el formato del documento.');
   const ext={'application/pdf':'pdf','image/png':'png','image/jpeg':'jpg'}[type],path=asada.id+'/'+randomUUID()+'.'+ext;
