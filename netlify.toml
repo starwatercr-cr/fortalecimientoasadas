@@ -282,3 +282,27 @@
   status = 200
   force = true
 
+
+[[redirects]]
+  from = "/contract-model.js"
+  to = "/.netlify/functions/gateway?file=contract-model.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/contract-template.js"
+  to = "/.netlify/functions/gateway?file=contract-template.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/contract-pdf.js"
+  to = "/.netlify/functions/gateway?file=contract-pdf.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/contract-ui.js"
+  to = "/.netlify/functions/gateway?file=contract-ui.js"
+  status = 200
+  force = true
