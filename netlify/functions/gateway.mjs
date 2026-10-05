@@ -28,7 +28,7 @@ async function sb(endpoint,{method='GET',body,token,publicKey=false,prefer}={}){
  const h={apikey:key,'Content-Type':'application/json'};if(token)h.Authorization='Bearer '+token;else if(!publicKey&&!c.secret.startsWith('sb_secret_'))h.Authorization='Bearer '+c.secret;if(prefer)h.Prefer=prefer;
  let res;try{res=await fetch(c.base+endpoint,{method,headers:h,body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(12000)});}catch{throw new PublicError(503,'No pudimos conectar con el servicio de cuentas. Intente de nuevo.');}
  const raw=await res.text();let data;try{data=raw?JSON.parse(raw):null;}catch{data=null;}
- if(!res.ok){if(endpoint.startsWith('/rest/v1/panel_records')&&data?.code==='23505')throw new PublicError(409,'Ya existe ese registro para el período. Si es un pago, revise el proveedor y el número de factura antes de guardar.');if(endpoint.startsWith('/rest/v1/arrears_records')&&data?.code==='23505')throw new PublicError(409,'Ya existe un registro con ese número de abonado o factura. Actualice los datos.');if(endpoint==='/rest/v1/rpc/arrears_import'){if(data?.code==='23505')throw new PublicError(409,'Una factura ya fue guardada. Actualice y revise el archivo de nuevo.');if(['Los saldos cambiaron. Actualice y revise el archivo de nuevo','Solicitud repetida con datos distintos','Revise la identidad y fecha de corte'].includes(data?.message))throw new PublicError(409,data.message);}if(endpoint==='/rest/v1/rpc/warehouse_move'&&['El material cambió. Actualice antes de registrar','La salida supera las existencias disponibles','Material no disponible','Solicitud repetida con datos distintos','Proveedor no disponible','Revise cantidad, fecha, motivo y responsable'].includes(data?.message))throw new PublicError(409,data.message);if(endpoint.startsWith('/rest/v1/asada_profiles')&&data?.code==='23505')throw new PublicError(409,'Otra persona creó la ficha. Recargue antes de guardar.');if(endpoint.startsWith('/rest/v1/warehouse_records')&&data?.code==='23505')throw new PublicError(409,'Ya existe un material activo con ese código. Actualice los registros.');if(res.status===429)throw new PublicError(429,'Se hicieron demasiados intentos. Espere unos minutos.');throw new PublicError(res.status===400||res.status===401||res.status===403?401:502,'No fue posible completar la operación. Verifique los datos o consulte a Star Water.');}return data;
+ if(!res.ok){if(endpoint==='/rest/v1/rpc/reserve_asada_trial'&&['Ese correo ya tiene una cuenta. Ingrese con su acceso actual.','La prueba de esta ASADA ya fue utilizada.','Espere un minuto antes de volver a solicitar la prueba.','Ya existe una solicitud para esa cédula jurídica. Consulte a Star Water.','Hay muchas solicitudes. Intente más tarde.'].includes(data?.message))throw new PublicError(data.message.startsWith('Espere')||data.message.startsWith('Hay muchas')?429:409,data.message);if(endpoint.startsWith('/auth/v1/signup'))throw new PublicError(res.status===429?429:400,res.status===429?'Espere unos minutos antes de solicitar otro correo.':'No pudimos enviar la confirmación. Si ya tiene cuenta, ingrese. Si el problema continúa, contacte a Star Water.');if(endpoint.startsWith('/rest/v1/panel_records')&&data?.code==='23505')throw new PublicError(409,'Ya existe ese registro para el período. Si es un pago, revise el proveedor y el número de factura antes de guardar.');if(endpoint.startsWith('/rest/v1/arrears_records')&&data?.code==='23505')throw new PublicError(409,'Ya existe un registro con ese número de abonado o factura. Actualice los datos.');if(endpoint==='/rest/v1/rpc/arrears_import'){if(data?.code==='23505')throw new PublicError(409,'Una factura ya fue guardada. Actualice y revise el archivo de nuevo.');if(['Los saldos cambiaron. Actualice y revise el archivo de nuevo','Solicitud repetida con datos distintos','Revise la identidad y fecha de corte'].includes(data?.message))throw new PublicError(409,data.message);}if(endpoint==='/rest/v1/rpc/warehouse_move'&&['El material cambió. Actualice antes de registrar','La salida supera las existencias disponibles','Material no disponible','Solicitud repetida con datos distintos','Proveedor no disponible','Revise cantidad, fecha, motivo y responsable'].includes(data?.message))throw new PublicError(409,data.message);if(endpoint.startsWith('/rest/v1/asada_profiles')&&data?.code==='23505')throw new PublicError(409,'Otra persona creó la ficha. Recargue antes de guardar.');if(endpoint.startsWith('/rest/v1/warehouse_records')&&data?.code==='23505')throw new PublicError(409,'Ya existe un material activo con ese código. Actualice los registros.');if(res.status===429)throw new PublicError(429,'Se hicieron demasiados intentos. Espere unos minutos.');throw new PublicError(res.status===400||res.status===401||res.status===403?401:502,'No fue posible completar la operación. Verifique los datos o consulte a Star Water.');}return data;
 }
 async function teamStorage(method,object,bytes,type,bucket='asada-team-private'){
  const c=config(),h={apikey:c.secret};if(!c.secret.startsWith('sb_secret_'))h.Authorization='Bearer '+c.secret;
@@ -54,8 +54,16 @@ async function authorizeToken(token){if(!token)throw new PublicError(401,'Inicie
  const uid=encodeURIComponent(user.id);
  const admins=await sb('/rest/v1/platform_admins?user_id=eq.'+uid+'&active=eq.true&select=user_id');
  if(admins?.length)return {user,admin:true,asada:null,role:'Star Water'};
- const rows=await sb('/rest/v1/memberships?user_id=eq.'+uid+'&active=eq.true&select=user_id,role,asada_id,asadas(id,name,active)');const membership=rows?.[0];
+ const membershipQuery='/rest/v1/memberships?user_id=eq.'+uid+'&active=eq.true&select=user_id,role,asada_id,asadas(id,name,active,access_kind,trial_started_at,trial_ends_at)';
+ let rows=await sb(membershipQuery);
+ if(!rows?.length&&user.email_confirmed_at){
+  // Do not recreate an inactive membership or use editable user metadata.
+  const existing=await sb('/rest/v1/memberships?user_id=eq.'+uid+'&select=user_id');
+  if(!existing?.length){const created=await sb('/rest/v1/rpc/start_asada_trial',{method:'POST',body:{p_user:user.id}});if(created)rows=await sb(membershipQuery);}
+ }
+ const membership=rows?.[0];
  if(!membership?.asadas?.active)throw new PublicError(403,'Su acceso no está activo. Consulte a Star Water.');
+ if(membership.asadas.access_kind==='trial'&&(!Number.isFinite(Date.parse(membership.asadas.trial_ends_at))||Date.now()>=Date.parse(membership.asadas.trial_ends_at)))throw new PublicError(402,'Su prueba gratuita de 3 días terminó. Contacte a Star Water para contratar y continuar con la información registrada.');
  return {user,admin:false,asada:membership.asadas,role:membership.role};
 }
 async function body(request,limit=maxBody){if(Number(request.headers.get('content-length'))>limit)throw new PublicError(413,'La solicitud es demasiado extensa.');const text=await request.text();if(text.length>limit)throw new PublicError(413,'La solicitud es demasiado extensa.');try{return JSON.parse(text);}catch{throw new PublicError(400,'La información enviada no es válida.');}}
@@ -76,6 +84,24 @@ async function dispatch(request,authorized=authorizeToken){
    if(api.startsWith('assembly-'))return await assemblyAPI(api,request,{sb,authorized,sessionToken,body:r=>body(r,160000),uuid,json,PublicError});
    if(api.startsWith('panel-'))return await panelAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError});
    if(api==='logout'&&request.method==='POST'){let token=sessionToken(request);try{if(!token&&cookieValue(request,refreshName)){const session=await sb('/auth/v1/token?grant_type=refresh_token',{method:'POST',publicKey:true,body:{refresh_token:cookieValue(request,refreshName)}});token=session?.access_token;}if(token){try{await sb('/auth/v1/logout?scope=local',{method:'POST',publicKey:true,token});}catch(error){if(error.status!==401||!cookieValue(request,refreshName))throw error;const session=await sb('/auth/v1/token?grant_type=refresh_token',{method:'POST',publicKey:true,body:{refresh_token:cookieValue(request,refreshName)}});await sb('/auth/v1/logout?scope=local',{method:'POST',publicKey:true,token:session.access_token});}}}catch{/* Browser credentials are cleared even if the account service is unavailable. */}return withCookies(json({ok:true}),clearCookies());}
+   if(api==='trial-register'&&request.method==='POST'){
+    const input=await body(request),email=text(input.email,254).toLowerCase(),name=text(input.name,160),contact=text(input.contact,120),phone=text(input.phone,30),legal=text(input.legal,30).replace(/[\s-]/g,''),role=input.role;
+    if(!/^\S+@\S+\.\S+$/.test(email)||name.length<3||contact.length<3||!/^[0-9]{10}$/.test(legal)||phone.replace(/\D/g,'').length<8||!['Administración','Junta Directiva'].includes(role)||typeof input.password!=='string'||input.password.length<12||input.password.length>128||input.accept!==true)throw new PublicError(400,'Complete los datos, la cédula jurídica de 10 dígitos y una contraseña de al menos 12 caracteres. Acepte las condiciones de la prueba.');
+    await sb('/rest/v1/rpc/reserve_asada_trial',{method:'POST',body:{p_email:email,p_legal:legal,p_name:name,p_contact:contact,p_phone:phone,p_role:role}});
+    const session=await sb('/auth/v1/signup?redirect_to='+encodeURIComponent(url.origin+'/acceso.html?prueba=confirmada'),{method:'POST',publicKey:true,body:{email,password:input.password}});
+    if(session?.access_token){await authorized(session.access_token);return withCookies(json({ok:true,ready:true},201),sessionCookies(session,false));}
+    return json({ok:true,ready:false,message:'Revise su correo para confirmar el acceso. Después ingrese con su correo y contraseña. Los 3 días comienzan con su primer ingreso.'},201);
+   }
+   if(api==='trial-confirm'&&request.method==='POST'){
+    const input=await body(request);if(typeof input.token!=='string'||input.token.length>16384||! /^[A-Za-z0-9._~-]+$/.test(input.token))throw new PublicError(400,'El enlace no es válido. Ingrese con su correo y contraseña.');
+    await authorized(input.token);
+    return withCookies(json({ok:true}),[cookie(cookieName,input.token,3600),cookie(refreshName,'',0)]);
+   }
+   if(api==='admin-trial-convert'&&request.method==='POST'){
+    await owner(request,authorized);const input=await body(request);if(!uuid(input.id)||input.confirm!==true)throw new PublicError(400,'Confirme la contratación antes de activar el acceso.');
+    const found=await sb('/rest/v1/asadas?id=eq.'+input.id+'&access_kind=eq.trial&select=id');if(!found?.length)throw new PublicError(409,'Esta ASADA no tiene un acceso de prueba.');
+    await sb('/rest/v1/asadas?id=eq.'+input.id+'&access_kind=eq.trial',{method:'PATCH',body:{access_kind:'standard',active:true}});return json({ok:true});
+   }
    if(api==='login'&&request.method==='POST'){
     const input=await body(request);const email=text(input.email,254).toLowerCase(),password=input.password;
     if(!email||typeof password!=='string'||password.length<1||password.length>256)throw new PublicError(400,'Ingrese su correo y contraseña.');
@@ -88,7 +114,7 @@ async function dispatch(request,authorized=authorizeToken){
     const token=sessionToken(request);await authorized(token);const input=await body(request);if(typeof input.password!=='string'||input.password.length<12||input.password.length>128)throw new PublicError(400,'Use una contraseña de 12 a 128 caracteres.');
     await sb('/auth/v1/user',{method:'PUT',publicKey:true,token,body:{password:input.password}});return json({ok:true});
    }
-   if(api==='admin-list'&&request.method==='GET'){await owner(request,authorized);const [asadas,members]=await Promise.all([sb('/rest/v1/asadas?select=id,name,active&order=name.asc'),sb('/rest/v1/memberships?select=user_id,asada_id,email,role,active&order=email.asc')]);return json({asadas,members});}
+   if(api==='admin-list'&&request.method==='GET'){await owner(request,authorized);const [asadas,members]=await Promise.all([sb('/rest/v1/asadas?select=id,name,active,access_kind,trial_started_at,trial_ends_at&order=name.asc'),sb('/rest/v1/memberships?select=user_id,asada_id,email,role,active&order=email.asc')]);return json({asadas,members});}
    if(api==='admin-asada'&&request.method==='POST'){
     await owner(request,authorized);const input=await body(request);const name=text(input.name,160);if(!name)throw new PublicError(400,'Ingrese el nombre de la ASADA.');
     const created=await sb('/rest/v1/asadas',{method:'POST',body:{name},prefer:'return=representation'});return json({asada:created?.[0]},201);
@@ -113,7 +139,7 @@ async function dispatch(request,authorized=authorizeToken){
    throw new PublicError(404,'Operación no disponible.');
   }
   const file=protectedFiles.has(url.pathname.slice(1))?url.pathname.slice(1):url.searchParams.get('file');if(!protectedFiles.has(file))throw new PublicError(404,'Página no disponible.');
-  try{const who=await authorized(sessionToken(request));if(['equipo.html','equipo.js','evaluation-model.js'].includes(file)&&!canManageTeam(who))throw new PublicError(403,'Nuestro equipo está disponible para la administración de la ASADA.');}catch(e){if(e.status===401&&file.endsWith('.html'))return new Response(null,{status:303,headers:{...headers,Location:'/acceso.html?return='+encodeURIComponent('/'+file)}});throw e;}
+  try{const who=await authorized(sessionToken(request));if(['equipo.html','equipo.js','evaluation-model.js'].includes(file)&&!canManageTeam(who))throw new PublicError(403,'Nuestro equipo está disponible para la administración de la ASADA.');}catch(e){if(e.status===402&&file.endsWith('.html'))return new Response(null,{status:303,headers:{...headers,Location:'/acceso.html?prueba=vencida'}});if(e.status===401&&file.endsWith('.html'))return new Response(null,{status:303,headers:{...headers,Location:'/acceso.html?return='+encodeURIComponent('/'+file)}});throw e;}
   const bytes=await readFile(path.join(root,file));return new Response(bytes,{headers:{...headers,'Content-Type':mime[path.extname(file)]||'application/octet-stream'}});
  }catch(error){return json({error:error instanceof PublicError?error.message:'No fue posible completar la operación. Intente de nuevo.'},error instanceof PublicError?error.status:500);}
 }
@@ -121,12 +147,12 @@ export default async function handler(request){
  const url=new URL(request.url),api=url.pathname.startsWith('/api/')?url.pathname.slice(5):url.searchParams.get('api');
  // Reject cross-origin writes before inspecting or renewing any credentials.
  if(request.method==='POST'&&request.headers.get('origin')!==url.origin)return json({error:'Origen de la solicitud no autorizado.'},403);
- const refresh=cookieValue(request,refreshName);if(!refresh||api==='login'||api==='logout'||!['GET','POST'].includes(request.method))return dispatch(request);
+ const refresh=cookieValue(request,refreshName);if(!refresh||api==='login'||api==='logout'||api==='trial-register'||api==='trial-confirm'||!['GET','POST'].includes(request.method))return dispatch(request);
  let renewed=[];
  try{let token=sessionToken(request),who;
   try{who=await authorizeToken(token);}catch(error){if(error.status!==401)throw error;const session=await sb('/auth/v1/token?grant_type=refresh_token',{method:'POST',publicKey:true,body:{refresh_token:refresh}});renewed=sessionCookies(session,true);token=session.access_token;who=await authorizeToken(token);requestTokens.set(request,token);}
   return withCookies(await dispatch(request,t=>t===token?Promise.resolve(who):authorizeToken(t)),renewed);
- }catch(error){const code=error instanceof PublicError?error.status:500,values=[401,403].includes(code)?clearCookies():[];const file=protectedFiles.has(url.pathname.slice(1))?url.pathname.slice(1):url.searchParams.get('file');if(code===401&&protectedFiles.has(file)&&file.endsWith('.html'))return withCookies(new Response(null,{status:303,headers:{...headers,Location:'/acceso.html?return='+encodeURIComponent('/'+file)}}),values);return withCookies(json({error:error instanceof PublicError?error.message:'No fue posible completar la operación. Intente de nuevo.'},code),values);
+ }catch(error){const code=error instanceof PublicError?error.status:500,values=[401,403].includes(code)?clearCookies():[];const file=protectedFiles.has(url.pathname.slice(1))?url.pathname.slice(1):url.searchParams.get('file');if(code===402&&protectedFiles.has(file)&&file.endsWith('.html'))return new Response(null,{status:303,headers:{...headers,Location:'/acceso.html?prueba=vencida'}});if(code===401&&protectedFiles.has(file)&&file.endsWith('.html'))return withCookies(new Response(null,{status:303,headers:{...headers,Location:'/acceso.html?return='+encodeURIComponent('/'+file)}}),values);return withCookies(json({error:error instanceof PublicError?error.message:'No fue posible completar la operación. Intente de nuevo.'},code),values);
  }finally{requestTokens.delete(request);}
 }
 export {protectedFiles};
