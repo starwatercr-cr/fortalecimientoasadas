@@ -330,3 +330,9 @@
   to = "/.netlify/functions/gateway?file=aforos-export.js"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/water-model.js"
+  to = "/.netlify/functions/gateway?file=water-model.js"
+  status = 200
+  force = true

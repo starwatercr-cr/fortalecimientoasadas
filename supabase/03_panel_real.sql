@@ -2,7 +2,7 @@ create table public.panel_records (
  id uuid primary key default gen_random_uuid(),
  asada_id uuid not null references public.asadas(id),
  year integer not null check(year between 1900 and 2200),
- kind text not null check(kind in ('settings','movement','petty','budget','statement','asset','agreement','payment')),
+ kind text not null check(kind in ('settings','movement','petty','budget','statement','asset','agreement','payment','workplan','water')),
  payload jsonb not null check(jsonb_typeof(payload)='object' and octet_length(payload::text)<=10000),
  version integer not null default 1 check(version>0),
  deleted boolean not null default false,
