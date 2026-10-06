@@ -31,7 +31,7 @@ export async function profileAPI(api,request,{sb,authorized,sessionToken,body,uu
   const payload=validateProfile(input.payload,fail);
   if(old?.payload?.contract&&!payload.contract)payload.contract=old.payload.contract;
   if(!who.admin&&payload.contract){
-   for(const key of ['providerAddress','providerRepresentation'])if(payload.contract[key]!== (old?.payload?.contract?.[key]||''))fail('Star Water completa sus datos de representación y domicilio.',403);
+   for(const key of ['providerAddress','providerRepresentation','providerQuotePrice','providerQuoteReference','providerQuoteScope'])if(payload.contract[key]!== (old?.payload?.contract?.[key]??(key==='providerQuotePrice'?null:'')))fail('Star Water completa sus datos y las condiciones de la cotización.',403);
   }
   const row={payload,updated_by:who.user.id,updated_at:new Date().toISOString()};
   const rows=old?await sb('/rest/v1/asada_profiles?'+scope+'&version=eq.'+old.version,{method:'PATCH',body:{...row,version:old.version+1},prefer:'return=representation'}):await sb('/rest/v1/asada_profiles',{method:'POST',body:{...row,asada_id:asada.id},prefer:'return=representation'});

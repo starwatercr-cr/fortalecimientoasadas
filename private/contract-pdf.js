@@ -1,7 +1,7 @@
 import {contractTemplate} from './contract-template.js';
-import {requireCompleteContract,contractPlans,contractVersion} from './contract-model.js';
+import {requireCompleteContract,findContractPlan,contractPrice,contractTax,contractVersion} from './contract-model.js';
 export function contractParagraphs(input){
- const c=requireCompleteContract(input),plan=contractPlans.find(p=>p.id===c.plan),date=s=>s.split('-').reverse().join('/'),identifier=contractVersion+' · '+c.tax+' · '+c.start;
+ const c=requireCompleteContract(input),plan=findContractPlan(c.plan),date=s=>s.split('-').reverse().join('/'),identifier=c.templateVersion+' · '+c.tax+' · '+c.start;
  
  const result=[];
  for(const item of contractTemplate){let t=item.text;
@@ -19,13 +19,15 @@ export function contractParagraphs(input){
  else if(t.startsWith('Cargo y fundamento de representación:'))t='Cargo: '+c.position+'. Fundamento: '+c.representation;
  else if(t.startsWith('Fundamento de representación:'))t='Fundamento de representación: '+c.providerRepresentation;
  else if(t.startsWith('Autorización de la Junta'))t='Autorización de la Junta Directiva: acuerdo '+c.agreement+', sesión '+c.session+', del '+date(c.agreementDate)+'.';
- if(t.startsWith('LA ASADA pagará la mensualidad'))t='LA ASADA pagará '+plan.price+' dólares mensuales ($'+plan.price+'), IVA incluido, por la modalidad '+plan.name+'. '+t.slice(t.indexOf('En las modalidades'));
+ if(t.startsWith('El alcance del acompañamiento'))t='El alcance del acompañamiento y los servicios adicionales se regirán por la cotización aceptada y la ficha de contratación. Las visitas, capacitaciones y sesiones virtuales se incluyen únicamente cuando se acuerden en la cotización. El soporte de uso de la plataforma está incluido en todas las modalidades.';
+ if(t.startsWith('LA ASADA pagará la mensualidad'))t='LA ASADA pagará US$'+contractPrice(c)+' mensuales, '+contractTax(plan)+', por la modalidad '+plan.name+'. En la modalidad con acompañamiento, la mensualidad cotizada incluye el acceso a la plataforma. Durante los veinticuatro meses, STAR WATER no modificará unilateralmente el precio. Cualquier variación de alcance o precio requerirá acuerdo escrito, sin perjuicio de los ajustes tributarios obligatorios que se identifiquen y comuniquen conforme a la ley.';
  if(/\[[^\]]+\]/.test(t))throw Error('El contrato contiene datos pendientes de completar.');
  result.push({...item,text:t,signature:t.startsWith('Firma ___'),pageBreak:t==='Aceptación y firmas'});
  if(item.text==='Primera Objeto y finalidad')continue;
  if(t.startsWith('La plataforma es una herramienta de apoyo.')){
- result.push({heading:true,text:'Modalidad y condiciones acordadas'},{text:'Modalidad: '+plan.name+'. Mensualidad: $'+plan.price+', IVA incluido. Abonados registrados: '+c.users+'. Tres cuentas individuales autorizadas. Vigencia inicial: '+date(c.start)+' al '+date(c.end)+'. El precio de acompañamiento incluye la plataforma; no se suman los $170.'});
- if(plan.min!==undefined)result.push({heading:true,text:'Acompañamiento incluido'},{text:'Dos visitas presenciales mensuales, previstas para la primera y cuarta semana, y una sesión virtual mensual de seguimiento. La segunda visita incluye capacitación de tres horas a la Junta Directiva, con participación del equipo según el tema. Las fechas concretas se acordarán con LA ASADA y las reprogramaciones quedarán documentadas.'},{text:'La primera visita se orienta al trabajo práctico, revisión de procesos y compromisos. El diagnóstico inicial y el Plan de Fortalecimiento definirán prioridades, responsables, plazos y productos. Se revisarán resultados en los meses 6 y 12; para los meses 13 a 24 se actualizará el plan, manteniendo la frecuencia contratada. STAR WATER acompaña la aplicación; la Junta dirige y aprueba, la administración ejecuta y el personal operativo aporta información.'});
+ result.push({heading:true,text:'Modalidad y condiciones acordadas'},{text:'Modalidad: '+plan.name+'. Mensualidad: $'+contractPrice(c)+', '+contractTax(plan)+'. Abonados registrados: '+c.users+'. Tres cuentas individuales autorizadas. Vigencia inicial: '+date(c.start)+' al '+date(c.end)+'. El precio de acompañamiento incluye el acceso a la plataforma.'});
+ if(plan.legacy&&plan.accompaniment)result.push({heading:true,text:'Acompañamiento incluido'},{text:'Dos visitas presenciales mensuales, previstas para la primera y cuarta semana, y una sesión virtual mensual de seguimiento. La segunda visita incluye capacitación de tres horas a la Junta Directiva, con participación del equipo según el tema. Las fechas concretas se acordarán con LA ASADA y las reprogramaciones quedarán documentadas.'},{text:'La primera visita se orienta al trabajo práctico, revisión de procesos y compromisos. El diagnóstico inicial y el Plan de Fortalecimiento definirán prioridades, responsables, plazos y productos. Se revisarán resultados en los meses 6 y 12; para los meses 13 a 24 se actualizará el plan, manteniendo la frecuencia contratada. STAR WATER acompaña la aplicación; la Junta dirige y aprueba, la administración ejecuta y el personal operativo aporta información.'});
+ if(plan.quote)result.push({heading:true,text:'Acompañamiento según cotización'},{text:'Referencia de la cotización: '+c.providerQuoteReference+'. Alcance y modalidad acordados: '+c.providerQuoteScope+'. La mensualidad indicada incluye el acceso a la plataforma. Las visitas, capacitaciones, seguimiento y productos serán únicamente los definidos en esta cotización.'});
  result.push({text:'Estudios técnicos especializados, análisis de laboratorio, obras, trámites profesionales específicos y equipos requieren presupuesto y aceptación adicionales. Si se contrata solo la plataforma, las visitas y capacitaciones no están incluidas.'});
  }
  }
@@ -50,6 +52,6 @@ export function buildContractPDF(input){
   for(const line of lines){if(y+step>bottom)page();doc.setFont('Contract',row.heading?'bold':'normal');doc.setFontSize(size);doc.text(line,x,y);y+=step;}
   y+=row.heading?4:signatures?2.4:3.3;
  }
- const total=doc.getNumberOfPages();for(let n=1;n<=total;n++){doc.setPage(n);doc.setFont('Contract','normal');doc.setFontSize(8);doc.text('Documento para revisión y firma · '+contractVersion,x,267);doc.text(n+' / '+total,197,267,{align:'right'});}
+ const total=doc.getNumberOfPages();for(let n=1;n<=total;n++){doc.setPage(n);doc.setFont('Contract','normal');doc.setFontSize(8);doc.text('Documento para revisión y firma · '+data.c.templateVersion,x,267);doc.text(n+' / '+total,197,267,{align:'right'});}
  return doc;
 }
