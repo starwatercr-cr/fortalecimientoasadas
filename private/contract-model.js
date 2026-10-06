@@ -1,6 +1,6 @@
 export const contractVersion='SW-ASADAS-2026-10-06';
 export const contractPlans=[
- {id:'plataforma-500',name:'Plataforma · hasta 500 abonados',price:170,min:1,max:500},
+ {id:'plataforma-500',name:'Plataforma · hasta 500 abonados',price:175,min:1,max:500},
  {id:'plataforma-1000',name:'Plataforma · 501–1.000 abonados',price:200,min:501,max:1000},
  {id:'plataforma-2500',name:'Plataforma · 1.001–2.500 abonados',price:250,min:1001,max:2500},
  {id:'plataforma-mas2500',name:'Plataforma · más de 2.500 abonados',price:350,min:2501,max:1e8},
@@ -13,14 +13,14 @@ const legacyPlans=[{id:'plataforma',name:'Acceso a la plataforma · condiciones 
  {id:'acompanamiento-2500',name:'Plataforma y acompañamiento · condiciones anteriores',price:1260,min:1001,max:2500,legacy:true,accompaniment:true}];
 export const findContractPlan=id=>[...contractPlans,...legacyPlans].find(p=>p.id===id);
 export const contractPrice=c=>{const p=findContractPlan(c.plan);return p?.quote?c.providerQuotePrice:p?.price;};
-export const contractTax=p=>p.legacy?'IVA incluido':'más IVA; si existe exoneración, se aplicará previa presentación del documento vigente';
+export const contractTax=p=>p.legacy?'IVA incluido':'IVA incluido; si existe exoneración, se aplicará el beneficio correspondiente previa presentación del documento vigente';
 export const contractFields=[
  ['legalName','Nombre legal completo de la ASADA'],['tax','Cédula jurídica de la ASADA'],['address','Domicilio completo de la ASADA'],
  ['email','Correo oficial','email'],['representative','Representante legal de la ASADA'],['representativeId','Cédula del representante'],
  ['position','Cargo y facultades de representación'],['representation','Referencia de la personería o documento de representación'],
  ['users','Servicios o abonados activos','number'],['agreement','Número del acuerdo de Junta Directiva'],['session','Número de sesión'],
  ['agreementDate','Fecha del acuerdo','date'],['start','Fecha de inicio acordada','date'],['place','Lugar de firma'],['signDate','Fecha prevista de firma','date'],
- ['providerQuotePrice','Mensualidad cotizada por Star Water (US$, sin IVA)','number'],['providerQuoteReference','Referencia de la cotización de Star Water'],['providerQuoteScope','Alcance y modalidad del acompañamiento cotizado'],['providerAddress','Domicilio de Star Water'],['providerRepresentation','Referencia de representación de Star Water']
+ ['providerQuotePrice','Mensualidad cotizada por Star Water (US$, IVA incluido)','number'],['providerQuoteReference','Referencia de la cotización de Star Water'],['providerQuoteScope','Alcance y modalidad del acompañamiento cotizado'],['providerAddress','Domicilio de Star Water'],['providerRepresentation','Referencia de representación de Star Water']
 ];
 export function contractEnd(start){if(!/^\d{4}-\d{2}-\d{2}$/.test(start||''))return '';const d=new Date(start+'T12:00:00Z');if(isNaN(d)||d.toISOString().slice(0,10)!==start)return '';const year=d.getUTCFullYear()+2,month=d.getUTCMonth(),day=Math.min(d.getUTCDate(),new Date(Date.UTC(year,month+1,0)).getUTCDate());return new Date(Date.UTC(year,month,day)).toISOString().slice(0,10);}
 export function validateContract(c,fail){if(!c||typeof c!=='object'||Array.isArray(c))fail('Revise los datos del contrato.');const out={};const plan=findContractPlan(c.plan);if(!plan)fail('Seleccione una modalidad válida.');out.plan=plan.id;out.templateVersion=plan.legacy?(c.templateVersion||'SW-ASADAS-2026-10-05'):contractVersion;
