@@ -1,4 +1,5 @@
-const kinds=['settings','movement','petty','budget','statement','asset','agreement','payment'];
+import {computeWater} from '../../private/water-model.js';
+const kinds=['settings','movement','petty','budget','statement','asset','agreement','payment','workplan','water'];
 export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError}){
  const fail=(m,s=400)=>{throw new PublicError(s,m);};
  const who=await authorized(sessionToken(request));const url=new URL(request.url);
@@ -10,13 +11,13 @@ export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid
  else if(requested&&requested!==asada.id)fail('No tiene acceso a esta ASADA.',403);
  const year=Number(input?.year||url.searchParams.get('year'));if(!Number.isInteger(year)||year<1900||year>2200)fail('Seleccione un año válido.');
  const scope='asada_id=eq.'+asada.id+'&year=eq.'+year;
- if(api==='panel-data'&&request.method==='GET'){
-  let records=[];for(let offset=0;offset<50000;offset+=1000){const rows=await sb('/rest/v1/panel_records?'+scope+'&deleted=eq.false&select=id,year,kind,payload,version,created_at,updated_at&order=created_at.asc,id.asc&limit=1000&offset='+offset);records.push(...rows);if(rows.length<1000)return json({asada,year,records,canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role)});}
+ if(['panel-data','panel-planning'].includes(api)&&request.method==='GET'){
+  let records=[];for(let offset=0;offset<50000;offset+=1000){const rows=await sb('/rest/v1/panel_records?'+scope+(api==='panel-planning'?'&kind=in.(workplan,water)':'')+'&deleted=eq.false&select=id,year,kind,payload,version,created_at,updated_at&order=created_at.asc,id.asc&limit=1000&offset='+offset);records.push(...rows);if(rows.length<1000)return json({asada,year,records,canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role),canSaveWater:who.admin||['Administración','Junta Directiva','Operación'].includes(who.role)});}
   fail('Este período requiere una consulta por bloques. Contacte a Star Water.',413);
  }
  if(api==='panel-history'&&request.method==='GET')return json({changes:await sb('/rest/v1/panel_changes?'+scope+'&select=id,record_id,actor,action,changed_at,current_data&order=changed_at.desc&limit=200')});
  if(api!=='panel-save'||request.method!=='POST')fail('Operación no disponible.',404);
- if(!who.admin&&!['Administración','Junta Directiva'].includes(who.role))fail('Su perfil permite consultar. La administración o la Junta pueden guardar cambios.',403);
+ if(!who.admin&&!['Administración','Junta Directiva'].includes(who.role)&&!(input.kind==='water'&&who.role==='Operación'))fail('Su perfil permite consultar. La administración o la Junta pueden guardar cambios.',403);
  if(!kinds.includes(input.kind))fail('Seleccione un tipo de registro válido.');
  let old=null;if(input.id){if(!uuid(input.id)||!Number.isInteger(input.version)||input.version<1)fail('El registro no es válido.');old=(await sb('/rest/v1/panel_records?'+scope+'&id=eq.'+input.id+'&deleted=eq.false&select=id,kind,version,payload'))?.[0];if(!old||old.kind!==input.kind)fail('El registro no está disponible.',404);if(old.version!==input.version)fail('Otra persona actualizó este registro. Recargue los datos antes de editarlo.',409);}
  if(input.archive&&!old)fail('Seleccione el registro que desea archivar.');
@@ -31,6 +32,7 @@ export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid
    if(payload.documentId){if(!uuid(payload.documentId))fail('Adjunto inválido.');const document=(await sb('/rest/v1/asada_documents?asada_id=eq.'+asada.id+'&id=eq.'+payload.documentId+'&select=id'))?.[0];if(!document)fail('El documento no pertenece a esta ASADA.',403);}
   }
  }
+ if(new TextEncoder().encode(JSON.stringify(payload)).length>10000)fail('El registro es demasiado extenso. Reduzca las observaciones o la cantidad de fuentes.',413);
  const row={payload,updated_by:who.user.id,updated_at:new Date().toISOString()};
  let result;
  if(old){result=await sb('/rest/v1/panel_records?'+scope+'&id=eq.'+old.id+'&version=eq.'+input.version+'&deleted=eq.false',{method:'PATCH',body:{...row,version:input.version+1,deleted:input.archive===true},prefer:'return=representation'});if(!result.length)fail('Otra persona actualizó este registro. Recargue los datos antes de editarlo.',409);}
@@ -52,6 +54,29 @@ function validate(kind,p,y,fail){
   if(result.group&&result.group!=='Sin clasificar'&&!(type==='income'?result.group==='Ingresos':type==='investment'?result.group==='Inversiones':['Operativos','Administrativos','Financieros'].includes(result.group)))fail('El grupo no corresponde al tipo de presupuesto.');
   return result;
  };
+
+ if(kind==='workplan'){
+  if(!['Junta Directiva','Administración','Operación'].includes(p.area))fail('Seleccione el área responsable.');
+  if(!['Pendiente','En proceso','Cumplido','Cancelado'].includes(p.state))fail('Seleccione el estado de la actividad.');
+  if(!['Borrador','Aprobado'].includes(p.approval))fail('Revise la aprobación del plan.');
+  const progress=num('progress');if(progress>100||p.state==='Cumplido'&&progress!==100||p.state!=='Cumplido'&&progress===100)fail('El avance de 100 % corresponde al estado Cumplido.');
+  const start=date('date'),due=date('due');if(due<start)fail('La fecha final no puede ser anterior al inicio.');
+  const approvalDate=p.approvalDate?date('approvalDate','any'):'',agreement=str('agreement',160,false);
+  if(p.approval==='Aprobado'&&(!approvalDate||!agreement))fail('Registre la fecha y referencia del acuerdo que aprueba esta actividad.');
+  return {objective:str('objective',500),title:str('title',500),indicator:str('indicator',300),target:str('target',300),area:p.area,responsible:str('responsible'),date:start,due,budget:num('budget'),part:str('part',160,false),progress,state:p.state,approval:p.approval,approvalDate,agreement,note:str('note',1500,false)};
+ }
+ if(kind==='water'){
+  const numeric=(obj,key,max,integer=false,nullable=true)=>{const n=obj[key];if(nullable&&n===null)return null;if(typeof n!=='number'||!Number.isFinite(n)||n<0||n>max||integer&&!Number.isInteger(n))fail('Revise el dato '+key+' del balance hídrico.');return n;};
+  if(p.example===true)fail('Los ejemplos ficticios no se guardan como datos de la ASADA.');
+  if(!['summer','winter'].includes(p.season))fail('Seleccione la época del escenario.');
+  if(!Array.isArray(p.sources)||!p.sources.length||p.sources.length>20)fail('Ingrese entre 1 y 20 fuentes.');
+  const sources=p.sources.map(source=>{if(!source||typeof source!=='object')fail('Revise las fuentes.');const name=source.name;if(typeof name!=='string'||!name.trim()||name.length>80)fail('Revise el nombre de la fuente.');const out={name:name.trim(),summer:numeric(source,'summer',1e6),winter:numeric(source,'winter',1e6)};for(const key of ['summerDate','winterDate']){const value=source[key];if(typeof value!=='string')fail('Revise la fecha de aforo.');if(value){const d=new Date(value+'T12:00:00Z');if(!/^\d{4}-\d{2}-\d{2}$/.test(value)||!Number.isFinite(d.getTime())||d.toISOString().slice(0,10)!==value)fail('Revise la fecha de aforo.');}out[key]=value;}return out;});
+  const days=numeric(p,'days',366,true,false);if(days<1)fail('El período debe tener al menos un día.');
+  const d={days,flows:sources.map(source=>source[p.season]),connections:numeric(p,'connections',1e6,true),average:numeric(p,'average',1e5),loss:numeric(p,'loss',95),input:numeric(p,'input',1e9),recorded:numeric(p,'recorded',1e9),reduction:numeric(p,'reduction',100,false,false),added:numeric(p,'added',1e6,true,false),improvement:numeric(p,'improvement',50,false,false)};
+  if(d.connections===0||d.average===0)fail('Conexiones y consumo promedio deben ser positivos o quedar pendientes.');
+  const results=computeWater(d);
+  return {name:str('name',120),date:date('date'),note:str('note',1000,false),season:p.season,sources,...Object.fromEntries(Object.entries(d).filter(([key])=>key!=='flows')),results,modelVersion:1};
+ }
  if(kind==='settings')return {opening:num('opening',true),fund:num('fund'),note:str('note',1000,false)};
  if(kind==='movement'){if(!['in','out'].includes(p.type))fail('Seleccione entrada o salida.');if(num('amount')<=0)fail('El monto debe ser mayor que cero.');return {date:date('date'),type:p.type,amount:num('amount'),part:str('part'),concept:str('concept',500),reference:str('reference',160,false),...classification()};}
  if(kind==='petty'){if(num('amount')<=0)fail('El monto debe ser mayor que cero.');if(typeof p.reimbursed!=='boolean')fail('Revise el reintegro.');return {date:date('date'),amount:num('amount'),concept:str('concept',500),reference:str('reference',160),responsible:str('responsible'),reimbursed:p.reimbursed,...(p.part!==undefined?{part:str('part')}:{}),...classification()};}

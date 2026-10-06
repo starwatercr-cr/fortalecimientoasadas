@@ -1,7 +1,8 @@
+import {computeWater} from './water-model.js';
 import {followupView} from './morosidad-model.js';
 import {QUALITY_PARAMS,waterResult} from './water-parameters.js';
 const sum=xs=>xs.reduce((s,n)=>s+Number(n||0),0);
-export function decisionSummary({panel,warehouse,operations,arrears,year,month,today}){
+export function decisionSummary({panel,warehouse,operations,arrears,planning,year,month,today}){
  const end=new Date(Date.UTC(year,month,0)).toISOString().slice(0,10),rows=panel?.records||[],tx=rows.filter(r=>['movement','petty'].includes(r.kind)).map(r=>({...r.payload,type:r.kind==='petty'?'out':r.payload.type})).filter(p=>p.date>=year+'-01-01'&&p.date<=end),budgets=rows.filter(r=>r.kind==='budget'&&r.payload.budgetType!=='income'),annual=sum(budgets.map(r=>r.payload.amount)),expense=sum(tx.filter(p=>p.type==='out').map(p=>p.amount)),income=sum(tx.filter(p=>p.type==='in').map(p=>p.amount));
  const monthly=Array.from({length:month},(_,i)=>{const list=tx.filter(p=>Number(p.date.slice(5,7))===i+1);return {month:i+1,hasData:list.length>0,income:sum(list.filter(p=>p.type==='in').map(p=>p.amount)),expense:sum(list.filter(p=>p.type==='out').map(p=>p.amount))};});
  const agreements=rows.filter(r=>r.kind==='agreement'),overdue=agreements.filter(r=>r.payload.state!=='Cumplido'&&r.payload.due<today),week=new Date(today+'T12:00:00Z');week.setUTCDate(week.getUTCDate()+7);const through=week.toISOString().slice(0,10),upcoming=agreements.filter(r=>r.payload.state!=='Cumplido'&&r.payload.due>=today&&r.payload.due<=through);
@@ -20,6 +21,9 @@ export function decisionSummary({panel,warehouse,operations,arrears,year,month,t
  const quality=[];for(const r of ops){const p=r.payload||{};const results=r.kind==='log'?p.waterResults||[]:r.kind==='chlorine'&&p.type==='Libre'?[{param:'chlorine',value:String(p.value),unit:'mg/L'}]:[];const context=r.kind==='chlorine'?{stage:'treated'}:p.waterContext||{};
  for(const row of results){if(!QUALITY_PARAMS.some(p=>p.id===row.param))continue;const result=waterResult(row,context);quality.push({record:r,result,row});}}
  const qualityAttention=quality.filter(x=>['urgent','outside','alert'].includes(x.result.status)),qualityIncomplete=quality.filter(x=>['pending','context'].includes(x.result.status));
+ const planned=(planning?.records||panel?.records||[]).filter(r=>!r.deleted),plans=planned.filter(r=>r.kind==='workplan'&&r.payload.date<=end),planActive=plans.filter(r=>!['Cumplido','Cancelado'].includes(r.payload.state)),planLate=planActive.filter(r=>r.payload.due<today),planUpcoming=planActive.filter(r=>r.payload.due>=today&&r.payload.due<=through);
+ const waters=planned.filter(r=>r.kind==='water'&&r.payload.date<=end).sort((a,b)=>b.payload.date.localeCompare(a.payload.date)||(b.updated_at||'').localeCompare(a.updated_at||''));
+ const water=waters[0]||null,waterResults=water?computeWater({...water.payload,flows:water.payload.sources.map(source=>source[water.payload.season])}):null;
  const latest=arr=>arr.map(r=>r.updated_at||r.created_at||r.payload?.date).filter(Boolean).sort().at(-1)||null;
- return {annual:budgets.length?annual:null,expense:tx.length?expense:null,income:tx.length?income:null,percent:annual>0&&tx.length?expense/annual*100:null,monthly,budgets,tx,agreements,overdue,upcoming,items,low,empty,logs,pending,late,reviews,opening,cash,payments,toApprove,toPay,returned,pendingAmount,approvedAmount,statement,finance,followup,openCases,promises,latePromises,quality,qualityAttention,qualityIncomplete,lastPanel:latest(rows),lastOperations:latest(ops),through,end};
+ return {plans,planActive,planLate,planUpcoming,waters,water,waterResults,annual:budgets.length?annual:null,expense:tx.length?expense:null,income:tx.length?income:null,percent:annual>0&&tx.length?expense/annual*100:null,monthly,budgets,tx,agreements,overdue,upcoming,items,low,empty,logs,pending,late,reviews,opening,cash,payments,toApprove,toPay,returned,pendingAmount,approvedAmount,statement,finance,followup,openCases,promises,latePromises,quality,qualityAttention,qualityIncomplete,lastPanel:latest(rows),lastOperations:latest(ops),through,end};
 }
