@@ -385,3 +385,30 @@
   to = "/.netlify/functions/gateway?file=water-guidance.js"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/abonados.html"
+  to = "/.netlify/functions/gateway?file=abonados.html"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/abonados.js"
+  to = "/.netlify/functions/gateway?file=abonados.js"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/abonados-model.js"
+  to = "/.netlify/functions/gateway?file=abonados-model.js"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/abonados-files.js"
+  to = "/.netlify/functions/gateway?file=abonados-files.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/abonados-export.js"
+  to = "/.netlify/functions/gateway?file=abonados-export.js"
+  status = 200
+  force = true
