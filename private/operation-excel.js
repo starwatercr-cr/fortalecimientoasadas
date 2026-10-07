@@ -13,7 +13,7 @@ return [
  logs.map(r=>{const p=r.payload;return [date(p.date),time(p.time),p.responsible,p.location,p.category,p.activity,p.materials,p.state,p.followupResponsible,date(p.due),p.note,reviewed(r),r.id];}),
  measure.map(r=>{const p=r.payload;return [date(p.date),time(p.time),p.pointName,p.pointLocation,p.type,p.value,p.responsible,p.equipment,p.action,p.note,r.followup_id?(p.followupReference||'Medición anterior')+' ['+r.followup_id+']':'',reviewed(r),r.id];}),
  points.map(r=>[r.payload.name,r.payload.location,r.payload.category,r.payload.note,r.id]),
- logs.flatMap(r=>(r.payload.waterResults||[]).map(row=>{const p=r.payload,c=p.waterContext||{},v=waterResult(row,c);return [date(p.date),p.location,c.sample,c.lab,c.report,v.name,row.value,row.unit,row.ld,v.criterion,v.label,v.comment+' '+v.action,r.id];}))];}
+ logs.flatMap(r=>(r.payload.waterResults||[]).map(row=>{const p=r.payload,c=p.waterContext||{},v=waterResult(row,c);return [date(p.date),p.location,c.sample,c.lab,c.report,v.name,row.value,row.unit,row.ld,v.criterion,v.label,[v.comment,v.interpretation,'Posibles causas: '+v.possibleCauses,'Revisar: '+v.review,'Alternativas: '+v.options,'Verificar con: '+v.equipment].join(' · '),r.id];}))];}
 export async function createOperationWorkbook(data,templateBuffer){
  const files=unzipStored(templateBuffer),rows=sheetRows(data),names=['Resumen','Bitácora','Cloro','Puntos','Calidad'];
  const original=decoder.decode(files.find(f=>f[0]==='xl/worksheets/sheet3.xml')[1]);

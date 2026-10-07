@@ -1,3 +1,4 @@
+import {cleanLabor} from '../../private/labor-model.js';
 import {evaluationAreas,evaluationResult} from '../../private/evaluation-model.js';
 import {randomUUID} from 'node:crypto';
 export const evaluationCriteria={
@@ -37,12 +38,12 @@ export async function teamAPI(api,request,{sb,authorized,sessionToken,body,uuid,
   try{const rows=await sb('/rest/v1/team_records',{method:'POST',body:{asada_id:asada.id,kind:'document',related_id:worker.id,payload:{name,category,date,path,type:mime,size,filename:name.replace(/[\\/\r\n]/g,'_')+'.'+ext},created_by:who.user.id,updated_by:who.user.id},prefer:'return=representation'});return json({record:rows[0]},201);}catch(e){try{await teamStorage('DELETE',path);}catch{}throw e;}
  }
  if(api!=='team-save'||request.method!=='POST')fail('Operación no disponible.',404);
- if(!['employee','profile','evaluation','event','document'].includes(input.kind))fail('Seleccione un tipo de registro válido.');
+ if(!['employee','profile','evaluation','event','document','labor_contract'].includes(input.kind))fail('Seleccione un tipo de registro válido.');
  let old=null;if(input.id){old=await find(input.id,input.kind);if(!Number.isInteger(input.version)||input.version!==old.version)fail('Otra persona cambió este registro. Actualice antes de editar.',409);}
  if(input.archive&&!old)fail('Seleccione el registro que desea archivar.');
  if(input.kind==='document'&&!input.archive)fail('Use el formulario para adjuntar documentos.');
  const related=old?old.related_id:input.related_id||null;
- if(['evaluation','event','document'].includes(input.kind)&&!input.archive)await find(related,'employee');
+ if(['evaluation','event','document','labor_contract'].includes(input.kind)&&!input.archive)await find(related,'employee');
  if(['employee','profile'].includes(input.kind)&&related)fail('Este registro no se vincula a un trabajador.');
  const payload=input.archive?old.payload:validateTeam(input.kind,input.payload,fail);
  if(old&&input.kind==='evaluation'&&!input.archive&&(old.payload.evaluationVersion||1)!==(payload.evaluationVersion||1))fail('Conserve el modelo de esta evaluación. Cree una nueva evaluación para utilizar la escala sobre 100.');
@@ -55,6 +56,7 @@ export async function teamAPI(api,request,{sb,authorized,sessionToken,body,uuid,
 }
 const validDate=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&!isNaN(new Date(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;
 export function validateTeam(kind,p,fail){
+ if(kind==='labor_contract')return cleanLabor(p,fail);
  if(!p||typeof p!=='object'||Array.isArray(p))fail('Revise los datos del formulario.');
  const str=(k,label,max=500,required=true)=>{if(typeof p[k]!=='string'||p[k].length>max||required&&!p[k].trim())fail('Revise '+label+'.');return p[k].trim();};
  const dt=(k,label,required=true)=>{if(!p[k]&&!required)return '';if(!validDate(p[k]))fail('Revise '+label+'.');return p[k];};
