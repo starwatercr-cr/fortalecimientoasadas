@@ -2,13 +2,13 @@
 
 Actualización del 7 de octubre de 2026. Base normativa: Decreto 38924-S, texto consolidado aportado (versión 7/7), anexo 1, cuadros 1–6, y anexo 6. Se incorporan las reformas del texto, incluida 45019-S de 2025.
 
-## Qué cambia
+## Pantalla simplificada
 
-La interpretación de análisis y la bitácora operativa comparten un catálogo de 132 entradas: parámetros de la norma, categorías de plaguicidas, ejemplos de compuestos y opciones sin criterio automático. El catálogo no obliga a analizar todas las entradas en cada muestra.
+1. **Identifique la muestra:** ASADA, punto, fecha, tipo y origen de agua. Laboratorio, número de informe y condiciones especiales se completan en “Otros datos del informe”.
+2. **Ingrese los resultados:** cada entrada muestra a la derecha el estado, la referencia y qué hacer. Las casillas vacías no se interpretan como cero ni generan seguimiento. Se conservan las alertas y resultados pendientes, sin reducirlos incorrectamente a un sí/no.
+3. **Seguimiento:** al revisar los resultados, aparece únicamente si hay hallazgos o datos por confirmar. Se completa acción acordada, responsable, fecha y verificación. Agua cruda se informa como contexto sin declarar cumplimiento.
 
-Cada lectura distingue el resultado reportado del criterio, explica su significado y presenta posibles causas, comprobaciones, alternativas que puede valorar el responsable técnico y equipos o ensayos apropiados. La guía se consulta por nombre o nivel, incluso sin ingresar resultados. Incluye cloro, pH, turbiedad, metales, plaguicidas como oxamil y bromacil, metabolitos del clorotalonil, sustancias orgánicas, desinfectantes y microorganismos.
-
-El informe Word incorpora estas explicaciones y fuentes. La bitácora conserva su procedimiento de registro; su exportación Excel amplía la columna de interpretación. No cambian datos guardados, cuentas ni permisos: las nuevas dependencias están autorizadas únicamente en los módulos correspondientes.
+La guía extensa se retiró de esta pantalla. El catálogo y los criterios compartidos con la bitácora se conservan. El Word contiene un resumen de resultado, estado, referencia y acción; incorpora seguimiento sólo cuando corresponde. No cambia el almacenamiento: esta lectura debe descargarse antes de salir.
 
 ## Criterios que se deben conservar
 
@@ -20,16 +20,6 @@ El informe Word incorpora estas explicaciones y fuentes. La bitácora conserva s
 - En agua subterránea se evalúa además hierro más manganeso, de la misma muestra, contra 0,3 mg/L.
 - PCB es una sustancia química, no un microorganismo.
 - Agua cruda se interpreta como información de la fuente, sin declarar cumplimiento del agua abastecida.
-
-## Cómo utilizarla
-
-1. Abra Calidad de nuestra agua y consulte la guía con el buscador.
-2. Copie una misma muestra del informe, con nombre de parámetro, unidad, resultado y límite de detección si es necesario. Complete tipo de agua, origen y régimen de desinfección.
-3. Interprete y revise los datos pendientes antes de concluir.
-4. Lea posibles causas y equipos; coordine un plan con responsables técnicos y Salud según el hallazgo.
-5. Registre las acciones realmente acordadas, responsable y plazo; descargue el Word.
-
-Las causas son hipótesis, no atribuciones de origen ni responsabilidad. No se recomiendan dosis automáticas ni compra de un filtro universal. Fotómetros y sondas se indican para parámetros que pueden medir; plaguicidas, microorganismos y contaminantes específicos necesitan ensayos apropiados de laboratorio. Las alternativas requieren caracterización, diseño y validación. Un resultado individual favorable no certifica la potabilidad del acueducto.
 
 ## Publicación
 
