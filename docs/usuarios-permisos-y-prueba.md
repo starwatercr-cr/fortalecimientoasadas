@@ -6,7 +6,7 @@
 - La prueba muestra el aviso de derechos de autor al registrarse y solicita la aceptación de la versión vigente antes de abrir herramientas en el primer ingreso. Las pruebas existentes también deben aceptarlo.
 
 ## Cómo agregar una persona
-1. Indicar nombre completo, correo individual y contraseña inicial de al menos 12 caracteres.
+1. Indicar nombre completo, correo individual y contraseña inicial de al menos 8 caracteres.
 2. Seleccionar Administración, Junta Directiva u Operación según el trabajo que realizará.
 3. Guardar y compartir las credenciales por un canal privado. La creación de cuentas no envía correos automáticamente. Cada persona puede cambiar su contraseña desde su cuenta.
 4. No compartir un mismo correo y clave entre varias personas.

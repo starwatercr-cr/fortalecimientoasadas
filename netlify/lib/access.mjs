@@ -38,7 +38,7 @@ export async function accessAPI(api,request,{sb,authorized,sessionToken,body,uui
  }
  if(members.filter(live).length>=3)fail('La ASADA ya tiene tres cuentas activas. Suspenda una antes de crear otra.',409);
  const email=typeof input.email==='string'?input.email.trim().toLowerCase():'';
- if(!/^\S+@\S+\.\S+$/.test(email)||email.length>254||typeof input.password!=='string'||input.password.length<12||input.password.length>128||!active)fail('Indique correo y contraseña inicial de al menos 12 caracteres.');
+ if(!/^\S+@\S+\.\S+$/.test(email)||email.length>254||typeof input.password!=='string'||input.password.length<8||input.password.length>128||!active)fail('Indique correo y contraseña inicial de al menos 8 caracteres.');
  const user=await sb('/auth/v1/admin/users',{method:'POST',body:{email,password:input.password,email_confirm:true}}),id=user?.id||user?.user?.id;
  if(!uuid(id))fail('No se pudo crear la cuenta.',502);
  try{await sb('/rest/v1/memberships',{method:'POST',body:{...row,user_id:id,asada_id:asada.id,email}});}catch(e){try{await sb('/auth/v1/admin/users/'+id,{method:'DELETE'});}catch{fail('La cuenta quedó pendiente de vincular. Contacte a Star Water.',502);}throw e;}
