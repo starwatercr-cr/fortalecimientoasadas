@@ -3,7 +3,7 @@
 Ubicación: **Herramientas → Panel de gestión → Acuerdos de JD**.
 
 ## Registrar un acuerdo
-- Conservar número de acuerdo/acta, título, fecha, responsable, plazo, estado y avance.
+- Conservar número de acuerdo/acta, título, fecha, responsable, plazo y estado. El avance se calcula automáticamente: Pendiente 0 %, En proceso 50 %, Cumplido 100 %. Se muestra la misma escala al consultar acuerdos anteriores, sin cambiar su historial.
 - Agregar el **texto o resumen del acuerdo**, hasta 4.000 caracteres. Si se resume, indicarlo y conservar fidelidad al acta.
 - Agregar **palabras clave**, hasta 300 caracteres; por ejemplo: tubería de 4 pulgadas, PVC, compras, materiales.
 - Adjuntar el respaldo del libro de actas en PDF, JPG o PNG, de hasta 5 MB. Adjuntar únicamente las páginas pertinentes. El respaldo es opcional y puede completarse después.

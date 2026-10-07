@@ -1,4 +1,4 @@
-import {agreementMatches} from './agreement-search.mjs';
+import {agreementMatches,agreementProgress,agreementWithProgress} from './agreement-search.mjs';
 import {computeWater} from '../../private/water-model.js';
 const kinds=['settings','movement','petty','budget','statement','asset','agreement','payment','workplan','water'];
 export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError,profileStorage}){
@@ -17,7 +17,7 @@ export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid
   for(let start=0;start<50000;start+=1000){
    const rows=await sb('/rest/v1/panel_records?asada_id=eq.'+asada.id+'&kind=eq.agreement&deleted=eq.false'+(y?'&year=eq.'+y:'')+'&select=id,year,kind,payload,version,created_at,updated_at&order=year.desc,created_at.desc,id.asc&offset='+start+'&limit=1000');
    matches.push(...rows.filter(r=>r.kind==='agreement'&&!r.deleted&&agreementMatches(r,q)));
-   if(rows.length<1000)return json({asada,year:y,query:q,records:matches.slice(offset,offset+50),total:matches.length,offset,limit:50,canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role)});
+   if(rows.length<1000)return json({asada,year:y,query:q,records:matches.slice(offset,offset+50).map(agreementWithProgress),total:matches.length,offset,limit:50,canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role)});
   }
   fail('Seleccione un año para reducir la consulta.',413);
  }
@@ -32,7 +32,7 @@ export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid
  const year=Number(input?.year||url.searchParams.get('year'));if(!Number.isInteger(year)||year<1900||year>2200)fail('Seleccione un año válido.');
  const scope='asada_id=eq.'+asada.id+'&year=eq.'+year;
  if(['panel-data','panel-planning'].includes(api)&&request.method==='GET'){
-  let records=[];for(let offset=0;offset<50000;offset+=1000){const rows=await sb('/rest/v1/panel_records?'+scope+(api==='panel-planning'?'&kind=in.(workplan,water)':'')+'&deleted=eq.false&select=id,year,kind,payload,version,created_at,updated_at&order=created_at.asc,id.asc&limit=1000&offset='+offset);records.push(...rows);if(rows.length<1000)return json({asada,year,records,canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role),canSaveWater:who.admin||['Administración','Junta Directiva','Operación'].includes(who.role)});}
+  let records=[];for(let offset=0;offset<50000;offset+=1000){const rows=await sb('/rest/v1/panel_records?'+scope+(api==='panel-planning'?'&kind=in.(workplan,water)':'')+'&deleted=eq.false&select=id,year,kind,payload,version,created_at,updated_at&order=created_at.asc,id.asc&limit=1000&offset='+offset);records.push(...rows);if(rows.length<1000)return json({asada,year,records:records.map(agreementWithProgress),canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role),canSaveWater:who.admin||['Administración','Junta Directiva','Operación'].includes(who.role)});}
   fail('Este período requiere una consulta por bloques. Contacte a Star Water.',413);
  }
  if(api==='panel-history'&&request.method==='GET')return json({changes:await sb('/rest/v1/panel_changes?'+scope+'&select=id,record_id,actor,action,changed_at,current_data&order=changed_at.desc&limit=200')});
@@ -119,6 +119,6 @@ function validate(kind,p,y,fail){
   if(out.state==='Aprobado'){out.paidDate='';out.paymentRef='';}
   return out;
  }
- if(kind==='agreement'){if(!['Pendiente','En proceso','Cumplido'].includes(p.state))fail('Seleccione el estado del acuerdo.');const progress=num('progress');if(progress>100||p.state==='Cumplido'&&progress!==100||p.state!=='Cumplido'&&progress===100)fail('Un avance del 100 % debe corresponder al estado Cumplido.');return {code:str('code',80),title:str('title',500),date:date('date'),due:date('due','any'),responsible:str('responsible'),progress,state:p.state,note:str('note',1500,false),text:p.text===undefined?'':str('text',4000,false),keywords:p.keywords===undefined?'':str('keywords',300,false),documentId:p.documentId===undefined?'':str('documentId',36,false)};}
+ if(kind==='agreement'){if(!['Pendiente','En proceso','Cumplido'].includes(p.state))fail('Seleccione el estado del acuerdo.');const progress=agreementProgress(p.state);return {code:str('code',80),title:str('title',500),date:date('date'),due:date('due','any'),responsible:str('responsible'),progress,state:p.state,note:str('note',1500,false),text:p.text===undefined?'':str('text',4000,false),keywords:p.keywords===undefined?'':str('keywords',300,false),documentId:p.documentId===undefined?'':str('documentId',36,false)};}
 }
 
