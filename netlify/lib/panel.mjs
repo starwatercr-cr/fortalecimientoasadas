@@ -1,6 +1,7 @@
+import {agreementMatches} from './agreement-search.mjs';
 import {computeWater} from '../../private/water-model.js';
 const kinds=['settings','movement','petty','budget','statement','asset','agreement','payment','workplan','water'];
-export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError}){
+export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError,profileStorage}){
  const fail=(m,s=400)=>{throw new PublicError(s,m);};
  const who=await authorized(sessionToken(request));const url=new URL(request.url);
  if(api==='panel-asadas')return json({isPlatformAdmin:who.admin===true,asadas:who.admin?await sb('/rest/v1/asadas?active=eq.true&select=id,name&order=name.asc'):[who.asada],canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role)});
@@ -9,6 +10,25 @@ export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid
  let asada=who.asada;
  if(who.admin){if(!uuid(requested))fail('Seleccione una ASADA.');asada=(await sb('/rest/v1/asadas?id=eq.'+encodeURIComponent(requested)+'&active=eq.true&select=id,name'))?.[0];if(!asada)fail('La ASADA no está activa.',403);}
  else if(requested&&requested!==asada.id)fail('No tiene acceso a esta ASADA.',403);
+ if(api==='panel-agreements'&&request.method==='GET'){
+  const raw=url.searchParams.get('year'),y=raw&&raw!=='all'?Number(raw):null; if(y!==null&&(!Number.isInteger(y)||y<1900||y>2200))fail('Seleccione un año válido.');const q=(url.searchParams.get('q')||'').trim(),offset=Number(url.searchParams.get('offset')||0);
+  if(q.length>200||!Number.isInteger(offset)||offset<0||offset>50000)fail('Revise la búsqueda.');
+  let matches=[];
+  for(let start=0;start<50000;start+=1000){
+   const rows=await sb('/rest/v1/panel_records?asada_id=eq.'+asada.id+'&kind=eq.agreement&deleted=eq.false'+(y?'&year=eq.'+y:'')+'&select=id,year,kind,payload,version,created_at,updated_at&order=year.desc,created_at.desc,id.asc&offset='+start+'&limit=1000');
+   matches.push(...rows.filter(r=>r.kind==='agreement'&&!r.deleted&&agreementMatches(r,q)));
+   if(rows.length<1000)return json({asada,year:y,query:q,records:matches.slice(offset,offset+50),total:matches.length,offset,limit:50,canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role)});
+  }
+  fail('Seleccione un año para reducir la consulta.',413);
+ }
+ if(api==='panel-agreement-file'&&request.method==='GET'){
+  const id=url.searchParams.get('id');if(!uuid(id))fail('Acuerdo inválido.');
+  const record=(await sb('/rest/v1/panel_records?asada_id=eq.'+asada.id+'&id=eq.'+id+'&kind=eq.agreement&deleted=eq.false&select=id,kind,payload'))?.[0];
+  if(!record||record.kind!=='agreement'||!uuid(record.payload?.documentId))fail('Este acuerdo no tiene un respaldo disponible.',404);
+  const doc=(await sb('/rest/v1/asada_documents?asada_id=eq.'+asada.id+'&id=eq.'+record.payload.documentId+'&select=*'))?.[0];
+  if(!doc||doc.category!=='Acuerdo de Junta Directiva'||typeof doc.path!=='string'||!doc.path.startsWith(asada.id+'/'))fail('El respaldo no está disponible para este acuerdo.',404);
+  return new Response(await profileStorage('GET',doc.path),{headers:{'Content-Type':doc.type,'Content-Disposition':"attachment; filename*=UTF-8''"+encodeURIComponent(doc.filename),'Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY'}});
+ }
  const year=Number(input?.year||url.searchParams.get('year'));if(!Number.isInteger(year)||year<1900||year>2200)fail('Seleccione un año válido.');
  const scope='asada_id=eq.'+asada.id+'&year=eq.'+year;
  if(['panel-data','panel-planning'].includes(api)&&request.method==='GET'){
@@ -31,6 +51,11 @@ export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid
    if(payload.state==='Pagado'&&(!old||!['Aprobado','Pagado'].includes(old.payload.state)))fail('Registre primero la aprobación de Junta Directiva antes de marcarlo pagado.');
    if(payload.documentId){if(!uuid(payload.documentId))fail('Adjunto inválido.');const document=(await sb('/rest/v1/asada_documents?asada_id=eq.'+asada.id+'&id=eq.'+payload.documentId+'&select=id'))?.[0];if(!document)fail('El documento no pertenece a esta ASADA.',403);}
   }
+ }
+ if(input.kind==='agreement'&&payload.documentId){
+  if(!uuid(payload.documentId))fail('Adjunto del acuerdo inválido.');
+  const document=(await sb('/rest/v1/asada_documents?asada_id=eq.'+asada.id+'&id=eq.'+payload.documentId+'&select=id,category'))?.[0];
+  if(!document||document.category!=='Acuerdo de Junta Directiva')fail('El respaldo del acuerdo no pertenece a esta ASADA o no corresponde a un acuerdo.',403);
  }
  if(new TextEncoder().encode(JSON.stringify(payload)).length>10000)fail('El registro es demasiado extenso. Reduzca las observaciones o la cantidad de fuentes.',413);
  const row={payload,updated_by:who.user.id,updated_at:new Date().toISOString()};
@@ -85,7 +110,7 @@ function validate(kind,p,y,fail){
  if(kind==='asset'){const cost=num('cost'),depreciation=num('depreciation');if(depreciation>cost)fail('La depreciación acumulada no puede superar el costo.');return {code:str('code',80),name:str('name'),category:str('category'),date:date('date','before'),cost,depreciation,life:num('life'),location:str('location'),responsible:str('responsible'),state:str('state',80)};}
  if(kind==='payment'){
   if(!['Pendiente de aprobación','Aprobado','Devuelto para revisión','Pagado'].includes(p.state))fail('Seleccione el estado del pago.');
-  const out={date:date('date'),supplier:str('supplier'),supplierTax:str('supplierTax',50,false),invoice:str('invoice',100),concept:str('concept',1000),amount:num('amount'),state:p.state,session:str('session',80,false),sessionDate:p.sessionDate?date('sessionDate','any'):'',agreement:str('agreement',80,false),approvalDate:p.approvalDate?date('approvalDate','any'):'',approvalBy:str('approvalBy',160,false),paidDate:p.paidDate?date('paidDate','any'):'',paymentRef:str('paymentRef',160,false),note:str('note',1500,false),documentId:str('documentId',36,false)};
+  const out={date:date('date'),supplier:str('supplier'),supplierTax:str('supplierTax',50,false),invoice:str('invoice',100),concept:str('concept',1000),amount:num('amount'),state:p.state,session:str('session',80,false),sessionDate:p.sessionDate?date('sessionDate','any'):'',agreement:str('agreement',80,false),approvalDate:p.approvalDate?date('approvalDate','any'):'',approvalBy:str('approvalBy',160,false),paidDate:p.paidDate?date('paidDate','any'):'',paymentRef:str('paymentRef',160,false),note:str('note',1500,false),documentId:p.documentId===undefined?'':str('documentId',36,false)};
   if(out.amount<=0)fail('El monto a pagar debe ser mayor que cero.');
   if(['Aprobado','Pagado'].includes(out.state)&&(!out.session||!out.sessionDate||!out.agreement||!out.approvalDate||!out.approvalBy||p.confirmApproval!==true))fail('Complete sesión, fecha, acuerdo y responsable; confirme que la aprobación consta en el acta.');
   if(out.state==='Pagado'&&(!out.paidDate||!out.paymentRef||out.paidDate<out.approvalDate))fail('Complete la fecha y referencia del pago; no puede ser anterior a la aprobación.');
@@ -94,5 +119,6 @@ function validate(kind,p,y,fail){
   if(out.state==='Aprobado'){out.paidDate='';out.paymentRef='';}
   return out;
  }
- if(kind==='agreement'){if(!['Pendiente','En proceso','Cumplido'].includes(p.state))fail('Seleccione el estado del acuerdo.');const progress=num('progress');if(progress>100||p.state==='Cumplido'&&progress!==100||p.state!=='Cumplido'&&progress===100)fail('Un avance del 100 % debe corresponder al estado Cumplido.');return {code:str('code',80),title:str('title',500),date:date('date'),due:date('due','any'),responsible:str('responsible'),progress,state:p.state,note:str('note',1500,false)};}
+ if(kind==='agreement'){if(!['Pendiente','En proceso','Cumplido'].includes(p.state))fail('Seleccione el estado del acuerdo.');const progress=num('progress');if(progress>100||p.state==='Cumplido'&&progress!==100||p.state!=='Cumplido'&&progress===100)fail('Un avance del 100 % debe corresponder al estado Cumplido.');return {code:str('code',80),title:str('title',500),date:date('date'),due:date('due','any'),responsible:str('responsible'),progress,state:p.state,note:str('note',1500,false),text:p.text===undefined?'':str('text',4000,false),keywords:p.keywords===undefined?'':str('keywords',300,false),documentId:p.documentId===undefined?'':str('documentId',36,false)};}
 }
+
