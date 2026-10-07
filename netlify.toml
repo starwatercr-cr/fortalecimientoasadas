@@ -412,3 +412,27 @@
   to = "/.netlify/functions/gateway?file=abonados-export.js"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/anc.html"
+  to = "/.netlify/functions/gateway?file=anc.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/anc.js"
+  to = "/.netlify/functions/gateway?file=anc.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/anc-model.js"
+  to = "/.netlify/functions/gateway?file=anc-model.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/anc-export.js"
+  to = "/.netlify/functions/gateway"
+  status = 200
+  force = true
