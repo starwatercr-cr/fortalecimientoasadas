@@ -45,3 +45,7 @@ El apartado ANC reutiliza la cabecera azul, el logo oficial sobre el fondo de la
 ## Corrección de respuesta al calcular v38
 
 Los avisos de validación y operación se muestran también junto al botón. Los errores desplazan la pantalla y enfocan el aviso; un cálculo válido lleva a su resultado. Se versionaron las referencias a los scripts ANC para evitar cargar dependencias anteriores. No se modificaron las fórmulas ni las validaciones. Construcción aprobada y 81 pruebas aprobadas.
+
+## Guía de llenado v39
+
+Ejemplo visible en Macromedición con tabla de todos los campos, lectura acumulada inicial/final, resta de 10 000 m³ y ejemplo de ANC de 30 %. Explica volumen verificado, unidades, reinicios, estimaciones, almacenamiento y doble conteo. Los datos ficticios no se introducen ni guardan automáticamente.
