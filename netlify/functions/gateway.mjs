@@ -1,3 +1,4 @@
+import {plansAPI} from '../lib/plans.mjs';
 import {ancAPI} from '../lib/anc.mjs';
 import {abonadosAPI} from '../lib/abonados.mjs';
 import {accessAPI,externalAllowed,TRIAL_TERMS_VERSION} from '../lib/access.mjs';
@@ -21,7 +22,7 @@ const clearCookies=()=>[cookie(cookieName,'',0),cookie(refreshName,'',0)];
 function withCookies(response,values){for(const value of values)response.headers.append('Set-Cookie',value);return response;}
 function sessionCookies(session,remember){const access=session?.access_token,refresh=session?.refresh_token;if(typeof access!=='string'||access.length>16384||! /^[A-Za-z0-9._~-]+$/.test(access)||(remember&&(typeof refresh!=='string'||refresh.length>16384||! /^[A-Za-z0-9._~-]+$/.test(refresh))))throw new PublicError(502,'No pudimos preparar la sesión. Intente de nuevo.');return [cookie(cookieName,access,Math.max(1,Math.min(Number(session.expires_in)||3600,3600))),remember?cookie(refreshName,refresh,rememberSeconds):cookie(refreshName,'',0)];}
 const maxBody=12000;
-const protectedFiles=new Set(['anc.html','anc.js','anc-model.js','anc-export.js','abonados.html','abonados.js','abonados-model.js','abonados-files.js','abonados-export.js','accesos.html','accesos.js','condiciones-prueba.html','condiciones-prueba.js','aforos.html','aforos.js','aforos-model.js','aforos-export.js','contract-model.js','contract-template.js','contract-pdf.js','contract-ui.js','decision-center.html','decision-center.js','decision-model.js','morosidad.html','morosidad.js','morosidad-model.js','morosidad-excel.js','nuestra-asada.html','nuestra-asada.js','asada-profile-model.js','bodega.html','bodega.js','warehouse-model.js','warehouse-excel.js','assets/warehouse-template.xlsx','operacion.html','operacion.js','water-parameters.js','water-guidance.js','operation-excel.js','assets/operation-template.xlsx','equipo.html','equipo.js','evaluation-model.js','labor-model.js','labor-ui.js','labor-pdf.js','panel-gestion.html','panel-gestion.js','herramientas.html','diagnostico.html','diagnostic-model.js','diagnostic.js','diagnostic-pdf.js','assets/jspdf.umd.min.js','assets/diagnostic-fonts.js','nuestra-agua.html','nuestras-finanzas.html','asamblea.html','calidad.html','biblioteca.html','agua.js','water-model.js','finanzas.js','finance-word.js','asamblea.js','calidad.js','biblioteca.js','normativa-data.js','assets/docx.js','assets/normativa/agua-potable.pdf','assets/normativa/calidad.pdf','assets/normativa/asadas.pdf','assets/normativa/servicios-historico.pdf']);
+const protectedFiles=new Set(['planes.html','plans.js','plans-model.js','plans-export.js','anc.html','anc.js','anc-model.js','anc-export.js','abonados.html','abonados.js','abonados-model.js','abonados-files.js','abonados-export.js','accesos.html','accesos.js','condiciones-prueba.html','condiciones-prueba.js','aforos.html','aforos.js','aforos-model.js','aforos-export.js','contract-model.js','contract-template.js','contract-pdf.js','contract-ui.js','decision-center.html','decision-center.js','decision-model.js','morosidad.html','morosidad.js','morosidad-model.js','morosidad-excel.js','nuestra-asada.html','nuestra-asada.js','asada-profile-model.js','bodega.html','bodega.js','warehouse-model.js','warehouse-excel.js','assets/warehouse-template.xlsx','operacion.html','operacion.js','water-parameters.js','water-guidance.js','operation-excel.js','assets/operation-template.xlsx','equipo.html','equipo.js','evaluation-model.js','labor-model.js','labor-ui.js','labor-pdf.js','panel-gestion.html','panel-gestion.js','herramientas.html','diagnostico.html','diagnostic-model.js','diagnostic.js','diagnostic-pdf.js','assets/jspdf.umd.min.js','assets/diagnostic-fonts.js','nuestra-agua.html','nuestras-finanzas.html','asamblea.html','calidad.html','biblioteca.html','agua.js','water-model.js','finanzas.js','finance-word.js','asamblea.js','calidad.js','biblioteca.js','normativa-data.js','assets/docx.js','assets/normativa/agua-potable.pdf','assets/normativa/calidad.pdf','assets/normativa/asadas.pdf','assets/normativa/servicios-historico.pdf']);
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.pdf':'application/pdf','.xlsx':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'};
 class PublicError extends Error{constructor(status,message){super(message);this.status=status;}}
 const headers={'Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin','X-Frame-Options':'DENY'};
@@ -40,7 +41,7 @@ async function teamStorage(method,object,bytes,type,bucket='asada-team-private')
  if(method==='POST'){
   let b=await call('bucket/'+bucket);
   if(b.status===404||b.status===400){
-   const created=await call('bucket',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:bucket,name:bucket,public:false,file_size_limit:bucket==='asada-profile-private'?5242880:2097152,allowed_mime_types:['application/pdf','image/jpeg','image/png']})});
+   const created=await call('bucket',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:bucket,name:bucket,public:false,file_size_limit:['asada-profile-private','asada-plans-private'].includes(bucket)?5242880:2097152,allowed_mime_types:['application/pdf','image/jpeg','image/png']})});
    if(!created.ok&&created.status!==409&&created.status!==400)throw new PublicError(502,'No se pudo preparar el archivo privado.');
    b=await call('bucket/'+bucket);
   }
@@ -86,7 +87,7 @@ async function dispatch(request,authorized=authorizeToken){
   if(request.method!=='GET'&&request.method!=='POST')return json({error:'Método no permitido.'},405);
   if(request.method==='POST'&&request.headers.get('origin')!==url.origin)throw new PublicError(403,'Origen de la solicitud no autorizado.');
   if(api){
-   const moduleAPI=/^(anc|abonados|profile|arrears|warehouse|flow|ops|team|assembly|panel|access)-/.test(api);
+   const moduleAPI=/^(plans|anc|abonados|profile|arrears|warehouse|flow|ops|team|assembly|panel|access)-/.test(api);
    if(moduleAPI){const who=await authorized(sessionToken(request));if(who.termsPending)throw new PublicError(428,'Lea y acepte las condiciones de la prueba antes de continuar.');if(!externalAllowed(who,api,true,request.method))throw new PublicError(403,'Esta área o acción no está autorizada para su acceso externo.');}
    if(api.startsWith('access-'))return await accessAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError});
    if(api==='trial-accept'&&request.method==='POST'){
@@ -94,6 +95,7 @@ async function dispatch(request,authorized=authorizeToken){
     if(who.admin||who.asada?.access_kind!=='trial'||input.accept!==true||input.version!==TRIAL_TERMS_VERSION)throw new PublicError(400,'Lea y acepte las condiciones vigentes de la prueba.');
     await sb('/rest/v1/trial_terms_acceptances?on_conflict=user_id,version',{method:'POST',prefer:'resolution=ignore-duplicates',body:{user_id:who.user.id,asada_id:who.asada.id,version:TRIAL_TERMS_VERSION}});return json({ok:true});
    }
+   if(api.startsWith('plans-'))return await plansAPI(api,request,{sb,authorized,sessionToken,body:r=>body(r,700000),uuid,json,PublicError,storage:(method,object,bytes,type)=>teamStorage(method,object,bytes,type,'asada-plans-private')});
    if(api.startsWith('anc-'))return await ancAPI(api,request,{sb,authorized,sessionToken,body:r=>body(r,45000),uuid,json,PublicError});
    if(api.startsWith('abonados-'))return await abonadosAPI(api,request,{sb,authorized,sessionToken,body:r=>body(r,5500000),uuid,json,PublicError});
    if(api.startsWith('profile-'))return await profileAPI(api,request,{sb,authorized,sessionToken,body:r=>body(r,35000),uuid,json,PublicError,profileStorage:(method,object,bytes,type)=>teamStorage(method,object,bytes,type,'asada-profile-private')});
