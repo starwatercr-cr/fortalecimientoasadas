@@ -336,3 +336,27 @@
   to = "/.netlify/functions/gateway?file=water-model.js"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/accesos.html"
+  to = "/.netlify/functions/gateway?file=accesos.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/accesos.js"
+  to = "/.netlify/functions/gateway?file=accesos.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/condiciones-prueba.html"
+  to = "/.netlify/functions/gateway?file=condiciones-prueba.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/condiciones-prueba.js"
+  to = "/.netlify/functions/gateway?file=condiciones-prueba.js"
+  status = 200
+  force = true
