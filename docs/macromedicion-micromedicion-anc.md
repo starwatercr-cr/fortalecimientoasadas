@@ -41,3 +41,7 @@ El ZIP conserva el proyecto completo y sus funciones privadas. Debe publicarse c
 ## Corrección visual v37
 
 El apartado ANC reutiliza la cabecera azul, el logo oficial sobre el fondo de la plataforma, el menú y el pie de página de Nuestra agua/Aforos. Fondo claro y controles con la paleta existente; títulos de sección reducidos y presentación adaptable al móvil. Cálculos, datos y PDF permanecen iguales. Construcción y enlaces locales verificados.
+
+## Corrección de respuesta al calcular v38
+
+Los avisos de validación y operación se muestran también junto al botón. Los errores desplazan la pantalla y enfocan el aviso; un cálculo válido lleva a su resultado. Se versionaron las referencias a los scripts ANC para evitar cargar dependencias anteriores. No se modificaron las fórmulas ni las validaciones. Construcción aprobada y 81 pruebas aprobadas.
