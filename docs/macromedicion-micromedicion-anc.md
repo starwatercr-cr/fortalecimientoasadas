@@ -37,3 +37,7 @@ El ZIP conserva el proyecto completo y sus funciones privadas. Debe publicarse c
 - IWA: https://www.iwa-network.org/our-work/performance-based-contracts-for-non-revenue-water-market-development
 - AWWA: https://www.awwa.org/elearning/controlling-non-revenue-water-certificate-program/
 - EPA, Control and Mitigation of Drinking Water Losses (2010): https://www.epa.gov/sites/default/files/2015-05/documents/epa816r10019.pdf
+
+## Corrección visual v37
+
+El apartado ANC reutiliza la cabecera azul, el logo oficial sobre el fondo de la plataforma, el menú y el pie de página de Nuestra agua/Aforos. Fondo claro y controles con la paleta existente; títulos de sección reducidos y presentación adaptable al móvil. Cálculos, datos y PDF permanecen iguales. Construcción y enlaces locales verificados.
