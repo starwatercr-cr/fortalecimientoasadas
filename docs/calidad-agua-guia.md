@@ -28,3 +28,7 @@ Suba el contenido completo del ZIP actualizado al mismo proyecto. Esta actualiza
 ## Verificación
 
 Pruebas de límites y extremos, dirección de las explicaciones, unidades y conversiones, ND, resultados condicionados, plaguicidas y metabolitos, PCB, catálogo compartido y permisos de dependencias. La compilación comprueba sintaxis. La publicación y prueba de navegación en el sitio de producción deben hacerse después de subir el paquete.
+
+## Prioridad de atención
+
+Los resultados fuera del criterio muestran atención inmediata del equipo y una acción de verificación/comunicación. Los hallazgos sanitarios prioritarios indican comunicación inmediata con Salud y activación del procedimiento de respuesta. Los plaguicidas al alcanzar la alerta muestran comunicación inmediata y valoración del riesgo; se conserva que una alerta no es un máximo. Las detecciones inferiores a la alerta mantienen seguimiento sin afirmar que la alcanzaron. No se crean umbrales de emergencia por multiplicar los límites, ni se consideran bajos los parámetros sin mínimo.
