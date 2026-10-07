@@ -360,3 +360,28 @@
   to = "/.netlify/functions/gateway?file=condiciones-prueba.js"
   status = 200
   force = true
+
+
+[[redirects]]
+  from = "/labor-model.js"
+  to = "/.netlify/functions/gateway?file=labor-model.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/labor-ui.js"
+  to = "/.netlify/functions/gateway?file=labor-ui.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/labor-pdf.js"
+  to = "/.netlify/functions/gateway?file=labor-pdf.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/water-guidance.js"
+  to = "/.netlify/functions/gateway?file=water-guidance.js"
+  status = 200
+  force = true
