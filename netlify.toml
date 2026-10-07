@@ -436,3 +436,27 @@
   to = "/.netlify/functions/gateway"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/planes.html"
+  to = "/.netlify/functions/gateway"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/plans.js"
+  to = "/.netlify/functions/gateway"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/plans-model.js"
+  to = "/.netlify/functions/gateway"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/plans-export.js"
+  to = "/.netlify/functions/gateway"
+  status = 200
+  force = true
