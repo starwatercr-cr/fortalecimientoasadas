@@ -460,3 +460,9 @@
   to = "/.netlify/functions/gateway"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/letterhead.js"
+  to = "/.netlify/functions/gateway?file=letterhead.js"
+  status = 200
+  force = true
