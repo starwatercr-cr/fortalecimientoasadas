@@ -7,6 +7,8 @@ export function externalAllowed(who,resource,isAPI=false,method='GET'){
  if(isAPI&&['me','logout','password'].includes(resource))return true;
  if(method!=='GET')return false;
  if(!isAPI&&['herramientas.html','condiciones-prueba.html','condiciones-prueba.js','assets/docx.js','assets/jspdf.umd.min.js','assets/diagnostic-fonts.js'].includes(resource))return true;
+ if(isAPI&&resource==='letterhead-data'&&method==='GET')return true;
+ if(!isAPI&&resource==='letterhead.js')return true;
  const map=isAPI?API_MODULES:FILE_MODULES;
  return (who.modules||[]).some(m=>map[m]?.includes(resource));
 }

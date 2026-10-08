@@ -1,3 +1,14 @@
+export function validateLetterhead(value,fail){
+ if(value===undefined)return {enabled:true,logo:''};
+ if(!value||typeof value!=='object'||Array.isArray(value)||typeof value.enabled!=='boolean'||typeof value.logo!=='string')fail('Revise el membrete.');
+ const logo=value.logo;
+ if(logo){
+  if(logo.length>220000||!/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(logo))fail('Use el selector para preparar un logo PNG válido.');
+  const b=Buffer.from(logo.split(',')[1],'base64');
+  if(b.length>160000||b.length<33||b.subarray(0,8).toString('hex')!=='89504e470d0a1a0a'||b.subarray(12,16).toString()!=='IHDR'||b.readUInt32BE(16)<1||b.readUInt32BE(20)<1||b.readUInt32BE(16)>1024||b.readUInt32BE(20)>1024)fail('El logo debe ser una imagen PNG de tamaño reducido.');
+ }
+ return {enabled:value.enabled,logo};
+}
 import {validateContract} from '../../private/contract-model.js';
 import {randomUUID} from 'node:crypto';
 export function validateProfile(p,fail){
@@ -12,6 +23,7 @@ export function validateProfile(p,fail){
  out.identityStatus=str('identityStatus',30)||'Borrador';if(!['Borrador','Aprobado'].includes(out.identityStatus))fail('Seleccione borrador o aprobado.');
  out.approvedDate=str('approvedDate',10);if(out.approvedDate&&!validDate(out.approvedDate))fail('Revise la fecha de aprobación.');
  if(out.identityStatus==='Aprobado'&&(!out.mission||!out.vision||!out.values||!out.agreement||!out.approvedDate))fail('Para registrar la aprobación complete misión, visión, valores, fecha y acuerdo de Junta Directiva.');
+ out.letterhead=validateLetterhead(p.letterhead,fail);
  if(p.contract!==undefined)out.contract=validateContract(p.contract,fail);
  return out;
 }
@@ -23,12 +35,14 @@ export async function profileAPI(api,request,{sb,authorized,sessionToken,body,uu
  if(who.admin){if(!uuid(requested))fail('Seleccione una ASADA.');asada=(await sb('/rest/v1/asadas?id=eq.'+requested+'&active=eq.true&select=id,name'))[0];if(!asada)fail('ASADA no disponible.',403);}else if(requested&&requested!==asada.id)fail('No tiene acceso a esta ASADA.',403);
  const scope='asada_id=eq.'+asada.id,canEdit=who.admin||['Administración','Junta Directiva'].includes(who.role);
  const get=async()=> (await sb('/rest/v1/asada_profiles?'+scope+'&select=*'))[0]||null;
+ if(api==='letterhead-data'&&request.method==='GET'){const p=(await get())?.payload||{};return json({asada,letterhead:{name:p.name||asada.name,tax:p.tax||'',phone:p.phone||'',email:p.email||'',address:p.address||'',enabled:p.letterhead?.enabled!==false,logo:p.letterhead?.logo||''}});}
  if(api==='profile-data'&&request.method==='GET')return json({asada,profile:await get(),canEdit,isPlatformAdmin:who.admin===true,documents:canEdit?await sb('/rest/v1/asada_documents?'+scope+'&select=id,name,category,filename,type,size,start_date,end_date,created_at&order=created_at.desc&limit=200'):[]});
  if(api==='profile-history'&&request.method==='GET'){if(!canEdit)fail('El historial corresponde a la Junta y la administración.',403);return json({changes:await sb('/rest/v1/asada_profile_changes?'+scope+'&select=actor,changed_at,current_data&order=changed_at.desc&limit=100')});}
  if(api==='profile-save'&&request.method==='POST'){
   if(!canEdit)fail('La Junta Directiva y la administración actualizan esta ficha.',403);
   const old=await get();if(!Number.isInteger(input.version)||input.version!==(old?.version||0))fail('Otra persona actualizó la ficha. Recargue antes de guardar.',409);
-  const payload=validateProfile(input.payload,fail);
+  const proposed={...input.payload};if(input.payload?.letterhead===undefined&&old?.payload?.letterhead)proposed.letterhead=old.payload.letterhead;
+  const payload=validateProfile(proposed,fail);
   if(old?.payload?.contract&&!payload.contract)payload.contract=old.payload.contract;
   if(!who.admin&&payload.contract){
    for(const key of ['providerAddress','providerRepresentation','providerQuotePrice','providerQuoteReference','providerQuoteScope'])if(payload.contract[key]!== (old?.payload?.contract?.[key]??(key==='providerQuotePrice'?null:'')))fail('Star Water completa sus datos y las condiciones de la cotización.',403);
