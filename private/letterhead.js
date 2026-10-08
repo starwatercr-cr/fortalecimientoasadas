@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const ids=['profile-asada','pl-asada','anc-asada','flow-asada','ab-asada','team-asada','ops-asada','nf-asada','sw-asada','ar-asada','assembly-asada','wh-asada','water-cloud-asada','lh-asada'];
+const ids=['av-asada','profile-asada','pl-asada','anc-asada','flow-asada','ab-asada','team-asada','ops-asada','nf-asada','sw-asada','ar-asada','assembly-asada','wh-asada','water-cloud-asada','lh-asada'];
 let current=null,scope=null,bootPromise=Promise.resolve();
 const active=()=>ids.map(id=>document.getElementById(id)).find(e=>e)?.value||'';
 async function load(asada){
