@@ -13,3 +13,9 @@ La administración, Junta Directiva y el administrador general pueden guardar. L
 Las tablas y el almacenamiento privado necesarios ya se crearon en el proyecto conectado. El SQL se conserva como referencia en availability-schema.sql. La actualización del código requiere publicar esta carpeta completa en el mismo proyecto Netlify, manteniendo sus variables de entorno y la configuración netlify.toml. No basta con subir únicamente index.html.
 
 La estructura se adaptó del ejemplo aportado sin copiar nombres, firmas, sellos o condiciones de esa propiedad. Cada ASADA revisa y ajusta su machote antes de emitirlo.
+
+## Revisión de uso y diseño
+
+El encabezado utiliza el logo oficial sobre el azul de la plataforma. Los botones mantienen el turquesa y los formularios usan fondo claro. En la solicitud se muestra la lista de campos pendientes: cada elemento permite ir al dato que falta. Puede usar «Continuar como borrador» para descargar un documento que aún no está listo para firma. El aviso se muestra junto a la solicitud o al machote.
+
+Use «El solicitante también es propietario» para copiar nombre y cédula cuando corresponde. La provincia, cantón y distrito de la ficha de la ASADA se proponen para la nueva solicitud; confirme o cambie estos datos según la ubicación de la propiedad. Si modifica datos del oficio después de confirmar la revisión, la casilla se desmarca: deberá revisarlo de nuevo antes de preparar para firma.
