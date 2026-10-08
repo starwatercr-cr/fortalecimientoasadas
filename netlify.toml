@@ -466,3 +466,27 @@
   to = "/.netlify/functions/gateway?file=letterhead.js"
   status = 200
   force = true
+
+[[redirects]]
+ from = "/disponibilidades.html"
+ to = "/.netlify/functions/gateway?file=disponibilidades.html"
+ status = 200
+ force = true
+
+[[redirects]]
+ from = "/availability.js"
+ to = "/.netlify/functions/gateway?file=availability.js"
+ status = 200
+ force = true
+
+[[redirects]]
+ from = "/availability-model.js"
+ to = "/.netlify/functions/gateway?file=availability-model.js"
+ status = 200
+ force = true
+
+[[redirects]]
+ from = "/availability-export.js"
+ to = "/.netlify/functions/gateway?file=availability-export.js"
+ status = 200
+ force = true
