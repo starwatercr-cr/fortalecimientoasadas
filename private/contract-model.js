@@ -1,9 +1,9 @@
 export const contractVersion='SW-ASADAS-2026-10-06';
 export const contractPlans=[
- {id:'plataforma-500',name:'Plataforma · hasta 500 abonados',price:130,min:1,max:500},
+ {id:'plataforma-500',name:'Plataforma · hasta 500 abonados',price:150,min:1,max:500},
  {id:'plataforma-1000',name:'Plataforma · 501–1.000 abonados',price:200,min:501,max:1000},
  {id:'plataforma-2500',name:'Plataforma · 1.001–2.500 abonados',price:250,min:1001,max:2500},
- {id:'plataforma-mas2500',name:'Plataforma · más de 2.500 abonados',price:350,min:2501,max:1e8},
+ {id:'plataforma-mas2500',name:'Plataforma · más de 2.500 abonados',price:500,min:2501,max:1e8},
  {id:'acompanamiento-cotizado',name:'Plataforma y acompañamiento · cotización personalizada',quote:true,accompaniment:true}
 ];
 // Retain previous draft terms and signed document references; these plans are no longer offered.
