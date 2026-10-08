@@ -490,3 +490,14 @@
  to = "/.netlify/functions/gateway?file=availability-export.js"
  status = 200
  force = true
+
+[[redirects]]
+  from = "/uso-plataforma.html"
+  to = "/.netlify/functions/gateway?file=uso-plataforma.html"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/usage.js"
+  to = "/.netlify/functions/gateway?file=usage.js"
+  status = 200
+  force = true
