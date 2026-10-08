@@ -147,7 +147,7 @@ async function recordForAction(id){
 }
 
 function draw(){
- $('#sw-title').textContent=modules.find(m=>m[0]===module)[1];$('.sw-nav').innerHTML=modules.filter(m=>m[0]!=='properties').map(m=>'<button type="button" data-module="'+m[0]+'" aria-pressed="'+(m[0]===module)+'">'+m[1]+'</button>').join('')+(canEdit?'<a class="sw-btn" href="abonados.html">Análisis Estratégico de Abonados</a>':'')+(canEdit?'<button type="button" data-followup="true" aria-pressed="false">Seguimiento de morosidad</button>':'')+'<button type="button" data-module="properties" aria-pressed="'+(module==='properties')+'">Consulta de propiedades</button>';
+ $('#sw-title').textContent=modules.find(m=>m[0]===module)[1];$('.sw-nav').innerHTML=modules.filter(m=>m[0]!=='properties').map(m=>'<button type="button" data-module="'+m[0]+'" aria-pressed="'+(m[0]===module)+'">'+m[1]+'</button>').join('')+(canEdit?'<a class="sw-btn" href="abonados.html">Análisis e Información de Abonados</a>':'')+(canEdit?'<button type="button" data-followup="true" aria-pressed="false">Seguimiento de morosidad</button>':'')+'<button type="button" data-module="properties" aria-pressed="'+(module==='properties')+'">Consulta de propiedades</button>';
  $('.sw-sub').textContent=(asadas.find(a=>a.id===asada)?.name||'Información de su ASADA')+(module==='properties'?' · Consulta en el portal oficial':' · Año '+year+' · Montos en colones');
  if(module==='board'&&boardSearch)$('.sw-sub').textContent=(asadas.find(a=>a.id===asada)?.name||'ASADA')+' · '+(boardSearch.year?'Año '+boardSearch.year:'Todos los años registrados')+' · Resultados de la búsqueda';
  $('#sw-pdf').hidden=module==='properties';$('#sw-history').hidden=module==='properties';
