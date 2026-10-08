@@ -4,7 +4,7 @@ Se abre desde Nuestra agua → Analizar Agua No Contabilizada · ANC.
 
 La administración o Junta Directiva registra el mes y las fechas de lectura, las entradas independientes y las salidas a otros sistemas. Las transferencias internas se conservan como referencia y no se suman. Puede ingresar lecturas acumuladas inicial/final o un volumen verificado con explicación de respaldo. Los cambios de medidor o reinicios requieren un volumen verificado. La variación del almacenamiento es opcional y solo corresponde si el límite de medición incluye los tanques.
 
-La micromedición puede consolidarse manualmente o traerse de un reporte guardado en Análisis Estratégico de Abonados. Se seleccionan volúmenes del mismo mes, se evitan duplicados y el servidor vuelve a calcular el consolidado antes de guardarlo. Si faltan datos de facturación, la importación no se acepta como consumo facturado: primero debe clasificarse y registrarse un consolidado verificado. Los montos pagados no intervienen en el volumen de ANC. Un monto de facturación, por sí solo, no permite verificar que las fechas de lectura sean idénticas: la ASADA confirma este alcance.
+La micromedición puede consolidarse manualmente o traerse de un reporte guardado en Análisis e Información de Abonados. Se seleccionan volúmenes del mismo mes, se evitan duplicados y el servidor vuelve a calcular el consolidado antes de guardarlo. Si faltan datos de facturación, la importación no se acepta como consumo facturado: primero debe clasificarse y registrarse un consolidado verificado. Los montos pagados no intervienen en el volumen de ANC. Un monto de facturación, por sí solo, no permite verificar que las fechas de lectura sean idénticas: la ASADA confirma este alcance.
 
 ## Fórmulas y alcance
 

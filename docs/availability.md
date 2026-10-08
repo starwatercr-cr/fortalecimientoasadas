@@ -1,6 +1,6 @@
 # Disponibilidades de agua
 
-Ruta: Plataforma → Análisis Estratégico de Abonados → Disponibilidades de agua.
+Ruta: Plataforma → Análisis e Información de Abonados → Disponibilidades de agua.
 
 1. En «Configurar machote de mi ASADA», ajuste el párrafo inicial, los datos adicionales y la despedida. Los marcadores entre llaves se completan con cada solicitud. La vigencia propuesta se confirma en cada expediente. Los cambios al machote se usan en nuevas solicitudes; los oficios guardados conservan su redacción.
 2. Abra «Nueva solicitud». Complete solicitante, propietario, cédulas, plano, matrícula, referencia registral, ubicación, proyecto y número de servicios. Registre por separado capacidad hídrica, hidráulica y alcantarillado. Ninguna capacidad se considera positiva automáticamente ni se calcula desde el análisis de abonados.

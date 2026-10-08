@@ -1,4 +1,4 @@
-# Análisis Estratégico de Abonados
+# Análisis e Información de Abonados
 
 ## Dónde se encuentra
 En las herramientas de la plataforma y en el menú del Panel de gestión para Administración y Junta Directiva. La nueva herramienta requiere iniciar sesión; no se publica información de abonados.
