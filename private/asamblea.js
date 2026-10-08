@@ -75,7 +75,7 @@ function buildAssemblyBaseReport(type,data){
 async function buildAssemblyWord(report,mode,images=[]){
  const {Document,Paragraph,TextRun,HeadingLevel,Table,TableRow,TableCell,WidthType,BorderStyle,VerticalAlign,ImageRun,Packer}=docx;
  const p=(text,heading,keepNext=false)=>new Paragraph({text,heading,keepNext:heading?true:keepNext,spacing:{after:140,line:280}});
- const content=[p(report.title,HeadingLevel.TITLE),p(report.name),p('Período: '+report.period),p('Asamblea: '+report.meeting),p('Presenta: '+report.author)];
+ const content=[...(await globalThis.SWLetterhead?.word()||[]),p(report.title,HeadingLevel.TITLE),p(report.name),p('Período: '+report.period),p('Asamblea: '+report.meeting),p('Presenta: '+report.author)];
  if(mode==='summary'){content.push(p('Resumen para la asamblea',HeadingLevel.HEADING_1));for(const text of report.summary.split('\n'))if(text.trim())content.push(p(text));}
  else{
   for(const section of report.sections){content.push(p(section.title,HeadingLevel.HEADING_1));const lines=section.text.split('\n').filter(x=>x.trim());lines.forEach((text,i)=>content.push(p(text,undefined,i===0&&lines.length>1)));

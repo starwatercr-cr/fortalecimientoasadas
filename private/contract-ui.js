@@ -20,7 +20,7 @@ export function initContractUI(ctx){
  form.addEventListener('submit',e=>{e.preventDefault();task(async()=>{await save();fill();message('Modalidad y datos del contrato guardados en la nube.');});});
  async function upload(file,category,name){const s=ctx.get(),c=s.profile?.payload?.contract||{},q=new URLSearchParams({asada:s.asada,category,name,start:c.start||'',end:c.end||''});const r=await fetch('/api/profile-upload?'+q,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/pdf'},body:file});const d=await r.json();if(!r.ok)throw Error(d.error||'No se pudo guardar el documento.');ctx.addDocument(d.document);return d;}
  $('contract-pdf').addEventListener('click',()=>task(async()=>{
- const c=await save(),doc=buildContractPDF(c),blob=doc.output('blob'),name='Contrato '+contractVersion+' '+c.legalName.slice(0,70)+' '+new Date().toISOString().replace(/[:.]/g,'-');
+ const c=await save();await window.SWLetterhead.load();const doc=buildContractPDF(c),blob=doc.output('blob'),name='Contrato '+contractVersion+' '+c.legalName.slice(0,70)+' '+new Date().toISOString().replace(/[:.]/g,'-');
  await upload(blob,'Contrato generado',name);
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Contrato_ASADA_'+c.start+'.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
  fill();message('Contrato completo guardado en la nube y descargado en PDF. Revíselo antes de firmar. Generarlo no activa el servicio ni cambia la modalidad vigente.');

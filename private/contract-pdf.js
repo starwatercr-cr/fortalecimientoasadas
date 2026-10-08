@@ -39,8 +39,8 @@ export function buildContractPDF(input){
  const doc=new window.jspdf.jsPDF({unit:'mm',format:'letter',compress:true,putOnlyUsedFonts:true});
  for(const [style,key]of [['normal','regular'],['bold','bold']]){const name='Contract-'+style+'.ttf';doc.addFileToVFS(name,window.AsadaDiagnosticFonts[key]);doc.addFont(name,'Contract',style);}
  doc.setProperties({title:'Contrato - '+data.c.legalName,author:'Star Water',subject:data.identifier});
- const x=19,width=178,bottom=252;let y=29,signatures=false;
- const header=()=>{doc.setFont('Contract','normal');doc.setFontSize(8);doc.setTextColor(0);doc.text('STAR WATER | Contrato de plataforma y acompañamiento para ASADAS',x,14);};
+ const x=19,width=178,bottom=252;let y=Math.max(29,window.SWLetterhead?.pdf(doc)||0),signatures=false;
+ const header=()=>{if(doc.getNumberOfPages()===1&&globalThis.SWLetterhead?.get())return;doc.setFont('Contract','normal');doc.setFontSize(8);doc.setTextColor(0);doc.text('STAR WATER | Contrato de plataforma y acompañamiento para ASADAS',x,14);};
  const page=()=>{doc.addPage();header();y=29;};header();
  for(const [i,row]of data.paragraphs.entries()){
   if(row.pageBreak){signatures=true;if(y>35)page();}
