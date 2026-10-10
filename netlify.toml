@@ -507,3 +507,9 @@
   to = "/.netlify/functions/gateway?file=tools-page.js"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/financial-home-model.js"
+  to = "/.netlify/functions/gateway?file=financial-home-model.js"
+  status = 200
+  force = true

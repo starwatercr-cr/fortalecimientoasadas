@@ -102,7 +102,15 @@ function validate(kind,p,y,fail){
   const results=computeWater(d);
   return {name:str('name',120),date:date('date'),note:str('note',1000,false),season:p.season,sources,...Object.fromEntries(Object.entries(d).filter(([key])=>key!=='flows')),results,modelVersion:1};
  }
- if(kind==='settings')return {opening:num('opening',true),fund:num('fund'),note:str('note',1000,false)};
+ if(kind==='settings'){
+ const out={opening:num('opening',true),fund:num('fund'),note:str('note',1000,false)};
+ for(const k of ['bankCash','hydrants','protection'])out[k]=p[k]===undefined||p[k]===null?null:num(k);
+ const present=['bankCash','hydrants','protection'].some(k=>out[k]!==null);
+ out.bankDate=present?date('bankDate'):'';
+ if(p.bankVerified!==undefined&&typeof p.bankVerified!=='boolean')fail('Revise la verificación de saldos.');out.bankVerified=present&&p.bankVerified===true;
+ if(out.bankCash!==null&&(out.hydrants||0)+(out.protection||0)>out.bankCash+.01)fail('Los saldos de Hidrantes y Protección no pueden superar el total consolidado de caja y bancos.');
+ return out;
+ }
  if(kind==='movement'){if(!['in','out'].includes(p.type))fail('Seleccione entrada o salida.');if(num('amount')<=0)fail('El monto debe ser mayor que cero.');return {date:date('date'),type:p.type,amount:num('amount'),part:str('part'),concept:str('concept',500),reference:str('reference',160,false),...classification()};}
  if(kind==='petty'){if(num('amount')<=0)fail('El monto debe ser mayor que cero.');if(typeof p.reimbursed!=='boolean')fail('Revise el reintegro.');return {date:date('date'),amount:num('amount'),concept:str('concept',500),reference:str('reference',160),responsible:str('responsible'),reimbursed:p.reimbursed,...(p.part!==undefined?{part:str('part')}:{}),...classification()};}
  if(kind==='budget')return {part:str('part'),amount:num('amount'),reference:str('reference',500,false),...classification()};
