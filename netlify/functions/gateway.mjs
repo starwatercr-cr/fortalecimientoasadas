@@ -103,7 +103,7 @@ async function dispatch(request,authorized=authorizeToken){
    if(api.startsWith('anc-'))return await ancAPI(api,request,{sb,authorized,sessionToken,body:r=>body(r,45000),uuid,json,PublicError});
    if(api.startsWith('abonados-'))return await abonadosAPI(api,request,{sb,authorized,sessionToken,body:r=>body(r,5500000),uuid,json,PublicError});
    if(api.startsWith('profile-')||api==='letterhead-data')return await profileAPI(api,request,{sb,authorized,sessionToken,body:r=>body(r,300000),uuid,json,PublicError,profileStorage:(method,object,bytes,type)=>teamStorage(method,object,bytes,type,'asada-profile-private')});
-   if(api.startsWith('arrears-'))return await arrearsAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError});
+   if(api.startsWith('arrears-'))return await arrearsAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError,storage:(method,path,bytes,type)=>teamStorage(method,path,bytes,type,'asada-arrears-private')});
    if(api.startsWith('warehouse-'))return await warehouseAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError});
    if(api.startsWith('flow-'))return await aforosAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError});
    if(api.startsWith('ops-'))return await operationAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError});

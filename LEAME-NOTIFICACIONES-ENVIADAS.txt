@@ -1,0 +1,4 @@
+1. En el proyecto de Supabase conectado al sitio, ejecutá docs/arrears-sent-notices.sql. Conserva los oficios guardados y prepara el almacenamiento privado.
+2. Publicá los archivos de private/ y netlify/ del ZIP con tu flujo habitual de Netlify.
+3. En Seguimiento de morosidad > Ver expediente > Registrar envío y adjuntar PDF, indicá la referencia, fecha de envío y el PDF (máximo 3 MB).
+4. Verificá que figure en el expediente y en la pestaña Notificaciones enviadas. Registrar el respaldo no envía correos.
