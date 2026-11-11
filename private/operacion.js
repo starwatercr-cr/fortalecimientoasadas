@@ -1,5 +1,5 @@
 import {QUALITY_PARAMS,parameterUnits,qualityCriterion,waterResult} from './water-parameters.js';
-import {downloadOperationExcel} from './operation-excel.js';
+import {downloadOperationExcel} from './operation-excel.js?v=2';
 (()=>{'use strict';
 const root=document.getElementById('ops'),$=q=>root.querySelector(q),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),lines=s=>esc(s).replace(/\n/g,'<br>');
 const today=()=>new Date().toLocaleDateString('en-CA',{timeZone:'America/Costa_Rica'}),timeNow=()=>new Date().toLocaleTimeString('en-GB',{timeZone:'America/Costa_Rica',hour:'2-digit',minute:'2-digit'}),decimal=n=>Number(n).toLocaleString('es-CR',{maximumFractionDigits:3});
