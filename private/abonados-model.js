@@ -4,7 +4,7 @@ export function month(v){const s=typeof v==='number'&&v>20000&&v<120000?new Date
 const validMonth=(y,m)=>y>=1900&&y<=2200&&m>=1&&m<=12?`${y}-${String(m).padStart(2,'0')}`:null;
 const aliases={subscriber:['codigo abonado','numero de abonado','abonado','codigo','numero abonado'],name:['nombre','nombre abonado','nombre del abonado','abonado nombre'],meter:['n de medidor','numero de medidor','medidor','medidor numero'],period:['periodo','mes ano','mes y ano'],readingDate:['fecha de lectura actual','fecha lectura'],consumption:['consumo m3','consumo acueducto','consumo','consumo en m3'],billed:['monto total facturado','total','monto facturado','facturacion acueducto total'],paid:['monto pagado','pago recibido','pagado'],status:['estado f','estado factura','estado'],category:['categoria tarifaria','tarifa'],invoice:['codigo factura','numero factura','factura']};
 export function detectColumns(headers){const h=headers.map(norm);return Object.fromEntries(Object.entries(aliases).map(([k,opts])=>[k,opts.map(x=>h.indexOf(x)).find(i=>i>=0)??-1]));}
-export function normalizeTable(table,mapping=null,header=0){if(!Array.isArray(table)||table.length>50001)throw Error('Máximo 50.000 filas por archivo. Divida el reporte por períodos.');const h=table[header]||[],map=mapping||detectColumns(h),grouped=h.some(x=>norm(x)==='consumo m3')&&table.slice(header+1).some(r=>r.some(x=>norm(x)==='abonado'&&String(x).trim().endsWith(':')));
+export function normalizeTable(table,mapping=null,header=0){if(!Array.isArray(table)||table.length>50001)throw Error('Máximo 50.000 filas por archivo. Divida el reporte por períodos.');const h=table[header]||[],headers=h.map(norm);if(['codigo factura','codigo abonado','tipo de nota','motivo','fecha'].every(x=>headers.includes(x))&&adjustmentFields.some(k=>headers.includes(k)))return readAdjustments(table,header,headers);const map=mapping||detectColumns(h),grouped=h.some(x=>norm(x)==='consumo m3')&&table.slice(header+1).some(r=>r.some(x=>norm(x)==='abonado'&&String(x).trim().endsWith(':')));
  let subscriber='',name='',category='',operator='',warnings=[],rows=[],issues=[];
  const get=(r,k)=>map[k]>=0?r[map[k]]:null;
  for(let i=header+1;i<table.length;i++){const r=table[i];if(!r||!r.some(x=>String(x??'').trim()))continue;
@@ -30,7 +30,37 @@ export function analyze(rows,{period='',category='',subscriber='',threshold=30,i
  const rising=current.flatMap(p=>{const old=people.get(p.subscriber+'|'+previous);if(!old||p.consumption<=old.consumption)return [];const delta=p.consumption-old.consumption,pct=old.consumption>0?delta/old.consumption*100:null;return pct===null||pct>=increase?[{...p,previous:old.consumption,delta,pct}]:[];}).sort((a,b)=>b.delta-a.delta);
  const metrics=months.get(cut);return {period:cut,previous,months:[...months.values()].sort((a,b)=>a.period.localeCompare(b.period)).map(m=>({...m,subscribers:m.subscribers.size})),current:current.sort((a,b)=>b.consumption-a.consumption),high:current.filter(p=>p.consumption>threshold),rising,topBilled:current.filter(p=>p.billedCount).sort((a,b)=>b.billed-a.billed),topPaid:current.filter(p=>p.paidCount).sort((a,b)=>b.paid-a.paid),metrics:metrics?{...metrics,subscribers:metrics.subscribers.size}:null};
 }
-export function validateDataset(p){const fail=m=>{throw Error(m);};if(!p||!Array.isArray(p.rows)||!p.rows.length||p.rows.length>20000)fail('Use entre 1 y 20.000 registros por importación guardada.');if(typeof p.filename!=='string'||p.filename.length>200||!/^[a-f0-9]{64}$/.test(p.hash))fail('Identificación del archivo inválida.');
+export function validateDataset(p){const fail=m=>{throw Error(m);};if(p?.adjustments?.length){
+ if(typeof p.filename!=='string'||p.filename.length>200||!/^[a-f0-9]{64}$/.test(p.hash)||typeof p.operator!=='string'||!p.operator.trim()||p.operator.length>180||!Array.isArray(p.adjustments)||p.adjustments.length>20000||!Array.isArray(p.rows)||p.rows.length)fail('Importación de ajustes inválida.');
+ const validNumber=n=>n===null||Number.isFinite(n)&&Math.abs(n)<=1e12;
+ const adjustments=p.adjustments.map(a=>{if(!a||['invoice','subscriber','type','motive','rubric'].some(k=>typeof a[k]!=='string'||a[k].length>240)||!a.invoice||!a.subscriber||!a.type||month(a.period)!==a.period||!a.period||!Array.isArray(a.amounts)||a.amounts.length!==7||!a.amounts.every(validNumber)||!validNumber(a.corrected))fail('Hay un ajuste inválido. Revise los campos del MAC-16.');return {invoice:a.invoice,subscriber:a.subscriber,period:a.period,type:a.type,motive:a.motive,rubric:a.rubric,amounts:a.amounts,corrected:a.corrected};});
+ return {filename:p.filename,hash:p.hash,format:'MAC-16 · Ajustes',operator:p.operator,warnings:['Los ajustes se muestran por separado. No modifican el consumo ni la facturación original.'],rows:[],adjustments};
+ }if(!p||!Array.isArray(p.rows)||!p.rows.length||p.rows.length>20000)fail('Use entre 1 y 20.000 registros por importación guardada.');if(typeof p.filename!=='string'||p.filename.length>200||!/^[a-f0-9]{64}$/.test(p.hash))fail('Identificación del archivo inválida.');
  const rows=p.rows.map((r,i)=>{for(const k of ['subscriber','name','meter','category','invoice','status'])if(typeof r[k]!=='string'||r[k].length>180)fail('Texto inválido en fila '+(i+1));if(!r.subscriber||!/^\d{4}-\d{2}$/.test(r.period)||month(r.period)!==r.period||!Number.isFinite(r.consumption)||r.consumption<0||r.consumption>1e9)fail('Consumo o período inválido en fila '+(i+1));for(const k of ['billed','paid'])if(r[k]!==null&&(!Number.isFinite(r[k])||Math.abs(r[k])>1e12))fail('Monto inválido en fila '+(i+1));return Object.fromEntries(['subscriber','name','meter','period','consumption','billed','paid','status','category','invoice'].map(k=>[k,r[k]]));});
  const merged=mergeRows([{rows}]);if(merged.conflicts.length)fail('Hay facturas o períodos duplicados con cifras diferentes.');return {filename:p.filename,hash:p.hash,format:String(p.format||'Archivo').slice(0,100),operator:String(p.operator||'').slice(0,180),warnings:Array.isArray(p.warnings)?p.warnings.slice(0,30).map(s=>String(s).slice(0,500)):[],rows:merged.rows};
+}
+
+const adjustmentFields=['monto refactura cargo fijo acueducto','monto refactura cargo medido acueducto','monto refactura cargo fijo alcantarillado','monto refactura cargo medido alcantarillado','monto refactura medido hidrantes','monto refactura medido prh','monto facturado iva ajustado'];
+function readAdjustments(table,header,h){
+ const idx=k=>h.indexOf(k),text=(r,k)=>String(r[idx(k)]??'').trim();
+ const adjustments=[],issues=[],operators=new Set();
+ for(let i=header+1;i<table.length;i++){
+  const r=table[i],invoice=text(r,'codigo factura'),subscriber=text(r,'codigo abonado'),rawDate=r[idx('fecha')];
+  if(!invoice&&!subscriber&&!rawDate)continue;
+  const operator=text(r,'operador'),period=month(rawDate),type=text(r,'tipo de nota'),amounts=adjustmentFields.map(k=>number(r[idx(k)])),corrected=number(r[idx('consumo metros corregidos acueducto')]);
+  if(!operator||!invoice||!subscriber||!period||!type||adjustmentFields.some((k,j)=>text(r,k)&&amounts[j]===null)||text(r,'consumo metros corregidos acueducto')&&corrected===null){issues.push({line:i+1,reason:'Revise operador, factura, abonado, fecha y montos del ajuste.'});continue;}
+  operators.add(operator);
+  adjustments.push({invoice,subscriber,period,type,motive:text(r,'motivo'),rubric:text(r,'articulo aplicado'),amounts,corrected});
+ }
+ if(operators.size>1)throw Error('El archivo contiene más de un operador. Separe los reportes por ASADA.');
+ return {rows:[],adjustments,issues,operator:[...operators][0]||'',format:'MAC-16 · Ajustes',warnings:['Los ajustes se muestran por separado. No modifican el consumo ni la facturación original.']};
+}
+const idKey=s=>String(s??'').trim().replace(/^0+(?=\d+$)/,'');
+export function linkAdjustments(datasets){
+ const index=new Set(),out=[];
+ const key=(op,r)=>JSON.stringify([norm(op),idKey(r.invoice),idKey(r.subscriber)]);
+ for(const d of datasets)if(d.operator)for(const r of d.rows)if(r.invoice)index.add(key(d.operator,r));
+ const seen=new Set();
+ for(const d of datasets)if(d.adjustments?.length){const signature=JSON.stringify([norm(d.operator),d.adjustments]);if(seen.has(signature))continue;seen.add(signature);for(const a of d.adjustments)out.push({...a,linked:!!d.operator&&index.has(key(d.operator,a))});}
+ return out.sort((a,b)=>b.period.localeCompare(a.period));
 }

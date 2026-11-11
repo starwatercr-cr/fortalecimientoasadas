@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {normalizeTable,mergeRows,analyze,number,month,validateDataset} from '../private/abonados-model.js';
+import {normalizeTable,mergeRows,analyze,number,month,validateDataset,linkAdjustments} from '../private/abonados-model.js';
 import {csvRows,unzipXlsx,pdfTable} from '../private/abonados-files.js';
 import {abonadosAPI} from '../netlify/lib/abonados.mjs';import {externalAllowed} from '../netlify/lib/access.mjs';
 import fs from 'node:fs/promises';
@@ -25,3 +25,15 @@ test('Los totales del reporte no se importan como abonados ni bloquean el análi
 test('Excel serial de fecha conserva mes de lectura',()=>{assert.equal(month(46040),'2026-01');});
 test('Tabla PDF con encabezado Abonado se interpreta como filas y no como grupos',()=>{const d=normalizeTable([['Abonado','Periodo','Consumo M3','Total'],['001','2026-01','35','10000']]);assert.equal(d.rows[0].subscriber,'001');assert.equal(d.rows[0].consumption,35);});
 test('Guardado usa representación y una huella calculada en el servidor',async()=>{const d=deps({role:'Administración',asada:{id:a},user:{id:b}});d.sb=async(q,o)=>{d.calls.push({q,o});return o?.method==='POST'?[{id:b}]:[];};await abonadosAPI('abonados-save',new Request('https://x/api',{method:'POST',body:JSON.stringify({asada:a,confirm:true,dataset:{filename:'prueba.xlsx',hash:'a'.repeat(64),rows:[row()]}})}),d);const call=d.calls.find(c=>c.o?.method==='POST');assert.equal(call.o.prefer,'return=representation');assert.notEqual(call.o.body.hash,'a'.repeat(64));assert.equal(call.o.body.asada_id,a);});
+
+test('MAC-16 vincula factura y abonado del mismo operador sin sumar ajustes al consumo',()=>{
+ const h=['OPERADOR','CODIGO_FACTURA','CODIGO_ABONADO','TIPO_DE_NOTA','MOTIVO','FECHA','MONTO_REFACTURA_CARGO_MEDIDO_ACUEDUCTO'];
+ const d=normalizeTable([h,['ASADA A','123456789012345678','01',0,'Lectura','2026-01-02',150]]);
+ assert.equal(d.adjustments.length,1);assert.equal(d.issues.length,0);assert.equal(d.rows.length,0);
+ const saved=validateDataset({...d,filename:'MAC-16.xlsx',hash:'a'.repeat(64)});
+ const original={operator:'ASADA A',rows:[row({subscriber:'1',invoice:'00123456789012345678'})]};
+ assert.equal(linkAdjustments([original,saved])[0].linked,true);
+ assert.equal(linkAdjustments([{...original,operator:'ASADA B'},saved])[0].linked,false);
+ assert.equal(linkAdjustments([saved,saved]).length,1);
+ assert.equal(mergeRows([original,saved]).rows.length,1);
+});
