@@ -1,7 +1,4 @@
-1. En Supabase, en el proyecto de la plataforma, abra SQL Editor y ejecute docs/arrears-notices.sql.
-   Esto habilita el nuevo tipo de registro en la tabla existente, sin borrar expedientes ni gestiones.
-2. Reemplace los archivos private/morosidad.html, private/morosidad.js y netlify/lib/arrears.mjs.
-   Publique en Netlify con el proceso habitual.
-3. En Seguimiento de morosidad, abra un expediente, prepare un oficio y elija Guardar en la nube.
-   Vuelva al expediente: el documento se lista en Oficios de cobro guardados.
-   Se guardan los datos editables; el PDF se genera al imprimir. Guardar no registra entrega.
+1. En Supabase, en el proyecto conectado al sitio, abra SQL Editor y ejecute docs/arrears-notices.sql. No borra expedientes ni gestiones.
+2. Ejecute docs/verificar-oficios.sql: las dos definiciones deben incluir notice.
+3. Publique los cuatro archivos de private/ y netlify/ que incluye este paquete.
+4. En el formulario abierto, conserve el texto hasta que el guardado confirme el éxito. Antes de volver a crear el oficio, revise si ya está en el expediente.
