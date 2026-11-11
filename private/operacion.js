@@ -44,9 +44,16 @@ function coForm(r){
  '<p class="team-wide team-muted">Deje en blanco lo que no se midió. Un cero indica una lectura real de cero.</p>'+
  area('action','Acción realizada',p.activity==='Medición de control operativo'?'':p.activity||'',false,1200)+
  area('note','Qué queda pendiente u observaciones',p.note||'',false,1000)+
- select('state','Seguimiento',['Resuelto','Pendiente','En proceso'],p.state||'Resuelto')+input('followupResponsible','Responsable del pendiente',p.followupResponsible||'','text',false,160)+input('due','Fecha de seguimiento',p.due||'','date',false);
+ select('state','Estado',['Resuelto','Pendiente','En proceso'],p.state||'Resuelto')+input('followupResponsible','Responsable del pendiente',p.followupResponsible||'','text',false,160)+input('due','Fecha de seguimiento',p.due||'','date',false);
  const editor=$('#ops-editor');editor.hidden=false;editor.innerHTML='<h2>Registrar medición de control operativo</h2><form id="ops-co-form"><div class="team-grid">'+fields+'</div><p role="alert" id="ops-form-error"></p><div class="team-buttons"><button class="button primary" type="submit">Guardar medición</button>'+button('Cancelar','data-cancel')+'</div></form>';
- const f=$('#ops-co-form');f.addEventListener('submit',async e=>{
+ const f=$('#ops-co-form'),{state,followupResponsible,due}=f.elements;
+ const updateFollowup=()=>{
+  const needsFollowup=state.value!=='Resuelto';
+  for(const field of [followupResponsible,due])field.closest('label').hidden=!needsFollowup;
+  followupResponsible.required=needsFollowup;
+ };
+ state.addEventListener('change',updateFollowup);updateFollowup();
+ f.addEventListener('submit',async e=>{
  e.preventDefault();if(busy)return;
  const {point,stage,action,chlorine,turbidity,odor,...rest}=Object.fromEntries(new FormData(f)),readings={chlorine,turbidity,odor};
  const waterResults=coParams.filter(([k])=>readings[k]!=='').map(([param,,unit])=>({param,unit,value:readings[param],ld:''}));
@@ -56,7 +63,7 @@ function coForm(r){
  const location=point.trim();
  if(!location){error.textContent='Escriba el punto de muestreo.';return;}
  lock(true);try{
- await api('ops-save',{asada,kind:'log',payload:{...rest,category:CO,location:location.slice(0,300),activity:action.trim()||'Medición de control operativo',waterResults,waterContext:{stage,origin:'unknown',disinfection:'unknown'}},...(r?{id:r.id,version:r.version}:{})});
+ await api('ops-save',{asada,kind:'log',payload:{...rest,materials:p.materials??'',followupResponsible:rest.state==='Resuelto'?'':rest.followupResponsible,due:rest.state==='Resuelto'?'':rest.due,category:CO,location:location.slice(0,300),activity:action.trim()||'Medición de control operativo',waterResults,waterContext:{stage,origin:'unknown',disinfection:'unknown'}},...(r?{id:r.id,version:r.version}:{})});
  lock(false);await load();message('La medición quedó guardada en la nube.');
  }catch(e){error.textContent=e.message;}finally{lock(false);}
  });editor.scrollIntoView({behavior:'smooth',block:'start'});f.elements.date.focus({preventScroll:true});
