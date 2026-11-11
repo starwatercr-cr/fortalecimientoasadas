@@ -193,11 +193,16 @@ async function compare(){
  const states=await Promise.all(years.map(async y=>y===year?values('statement')[0]:(await api(endpoint('panel-data',y))).records.find(x=>x.kind==='statement')?.payload));
  if(target!==$('#sw-comparison')||selectedAsada!==asada)return;
  const missing=years.filter((y,i)=>states[i]?.date!==y+'-12-31');if(missing.length){target.textContent='No hay un cierre al 31 de diciembre para '+missing.join(' y ')+'. Registre ese cierre o elija otro año.';return;}
- if(states.some(p=>Math.abs(p.cash+p.receivables+p.fixed+p.other-p.liabilities-p.equity)>.02)){target.textContent='Hay un cierre con diferencias entre activos y pasivos más patrimonio. Revise los montos antes de comparar.';return;}
+ const discrepancies=states.flatMap((p,i)=>{
+  const assets=p.cash+p.receivables+p.fixed+p.other,total=p.liabilities+p.equity;
+  const difference=Math.round((assets-total)*100)/100;
+  return Math.abs(difference)>.02?[{year:years[i],assets,total,difference}]:[];
+ });
+ const warning=discrepancies.length?'<aside class="sw-note" role="status"><p><strong>Comparación preliminar: hay cierres que no cuadran.</strong> Los montos y porcentajes se calculan con las cifras registradas. Úselos para revisar los datos antes de presentar el informe.</p><ul>'+discrepancies.map(d=>'<li><strong>'+d.year+':</strong> activos '+money(d.assets)+'; pasivos más patrimonio '+money(d.total)+'. Los activos son '+money(Math.abs(d.difference))+' '+(d.difference>0?'mayores':'menores')+'.</li>').join('')+'</ul></aside>':'';
  const rows=states.map(statementRows);
  const max=Math.max(1,...states.flatMap(p=>[p.income,p.expenses]));
  const chart='<h3>Ingresos y gastos por año</h3>'+states.map((p,i)=>'<p><strong>'+years[i]+'</strong> · Ingresos '+money(p.income)+'<br><meter aria-label="Ingresos '+years[i]+'" min="0" max="'+max+'" value="'+p.income+'"></meter><br>Gastos '+money(p.expenses)+'<br><meter aria-label="Gastos '+years[i]+'" min="0" max="'+max+'" value="'+p.expenses+'"></meter></p>').join('');
- target.innerHTML='<h2>Comparativo de cierres anuales</h2>'+table(['Cuenta',...years.flatMap((y,i)=>i?[y,'Cambio ₡','Cambio %']:[y])],rows[0].map(([label],i)=>[esc(label),...rows.flatMap((r,j)=>{const v=r[i][1],old=rows[j-1]?.[i][1];return j?[money(v),money(v-old),old?pct((v-old)/Math.abs(old)*100):'No aplica']:[money(v)];})]))+chart+states.map((p,i)=>'<p><strong>'+years[i]+':</strong> '+financialComment(p)+'</p>').join('');
+ target.innerHTML='<h2>Comparativo de cierres anuales</h2>'+warning+table(['Cuenta',...years.flatMap((y,i)=>i?[y,'Cambio ₡','Cambio %']:[y])],rows[0].map(([label],i)=>[esc(label),...rows.flatMap((r,j)=>{const v=r[i][1],old=rows[j-1]?.[i][1];return j?[money(v),money(v-old),old?pct((v-old)/Math.abs(old)*100):'No aplica']:[money(v)];})]))+chart+states.map((p,i)=>'<p><strong>'+years[i]+':</strong> '+financialComment(p)+'</p>').join('');
 }
 
 function lock(on){['#sw-year','#sw-asada','#sw-reload','#sw-export','#sw-pdf','#sw-history'].forEach(q=>$(q).disabled=on);}
