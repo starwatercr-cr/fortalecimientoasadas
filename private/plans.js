@@ -9,10 +9,47 @@ async function action(fn){if(busy)return;lock(true);try{await fn();}catch(e){mes
 const cell=(col,value='',attrs='')=>col.options?'<select '+attrs+'>'+col.options.map(o=>'<option '+(o===value?'selected':'')+'>'+esc(o)+'</option>').join(''):(col.id==='due'||col.id==='reviewDate'?'<input type="date" '+attrs+' value="'+esc(value)+'">':'<textarea rows="2" maxlength="1500" '+attrs+'>'+esc(value)+'</textarea>');
 function table(id,cols,rows=[]){return '<div class="pl-table"><table data-table="'+id+'"><thead><tr>'+cols.map(c=>'<th>'+esc(c.label)+'</th>').join('')+'<th>Opciones</th></tr></thead><tbody>'+rows.map(r=>tableRow(cols,r)).join('')+'</tbody></table></div><button class="button outline" data-add="'+id+'">Agregar fila</button>';}
 function tableRow(cols,r={}){return '<tr>'+cols.map(c=>'<td>'+cell(c,r[c.id]||'', 'data-col="'+c.id+'"')+'</td>').join('')+'<td><button class="button outline" data-remove>Quitar</button></td></tr>';}
-function read(){const p={type:current.type,mode,meta:{},answers:{},tables:{},actions:[]};for(const e of $('fields').querySelectorAll('[data-meta]'))p.meta[e.dataset.meta]=e.value;for(const e of $('fields').querySelectorAll('[data-answer]'))p.answers[e.dataset.answer]=e.value;for(const t of $('fields').querySelectorAll('[data-table]')){const rows=[...t.querySelectorAll('tbody tr')].map(tr=>Object.fromEntries([...tr.querySelectorAll('[data-col]')].map(e=>[e.dataset.col,e.value])));if(t.dataset.table==='actions')p.actions=rows;else p.tables[t.dataset.table]=rows;}return normalizePlan(p);}
-function render(p){const def=PLAN_TYPES[p.type];$('title').textContent=def.title;$('intro').textContent=def.intro;const sections=mode==='existing'?[]:def.sections;const steps=['Datos generales',...sections.map(s=>s.title),'Acciones y seguimiento'];$('steps').innerHTML=steps.map((s,i)=>'<button class="button outline" data-step="'+i+'">'+(i+1)+'. '+esc(s)+'</button>').join('');$('fields').innerHTML='<div class="pl-plan-page" data-plan-page="0"><h3>Datos generales y control documental</h3><p class="pl-info">'+(mode==='existing'?'Registre los datos y adjunte su plan original. Esta modalidad organiza el seguimiento; no lee ni redacta automáticamente el contenido del PDF.':'Los datos disponibles de Nuestra ASADA se proponen como inicio. Confírmelos y complete la información real del plan. Los campos vacíos se señalarán en el borrador.')+'</p><div class="pl-grid">'+META.map(f=>'<label>'+esc(f.label)+cell(f,p.meta[f.id]||'', 'data-meta="'+f.id+'"')+'</label>').join('')+'</div></div>'+sections.map((s,i)=>'<div class="pl-plan-page" data-plan-page="'+(i+1)+'"><h3>'+esc(s.title)+'</h3>'+(PLAN_EXAMPLES[p.type]?.[s.id]?'<details class="pl-example"><summary>Ver ejemplo orientativo</summary><p>'+esc(PLAN_EXAMPLES[p.type][s.id])+'</p></details>':'')+s.fields.map(f=>'<label>'+esc(f.label)+'<textarea rows="4" maxlength="6000" data-answer="'+s.id+'.'+f.id+'" placeholder="'+esc(f.help||'Complete con información de su ASADA; indique si no aplica y por qué.')+'">'+esc(p.answers[s.id+'.'+f.id]||'')+'</textarea></label>'+(f.help?'<p class="small">'+esc(f.help)+'</p>':'')).join('')+(s.table?table(s.id,s.table,p.tables[s.id]||[]):'')+'</div>').join('')+'<div class="pl-plan-page" data-plan-page="'+(steps.length-1)+'"><h3>Acciones y seguimiento</h3><p>Defina actividades concretas con responsable, fecha límite y evidencia. Pendiente = 0 %, En proceso = 50 %, Cumplida = 100 %. El presupuesto se registra con moneda y fuente de recursos; no se supone cero si falta.</p>'+table('actions',ACTION_COLUMNS,p.actions)+'<p class="small">La fecha límite usa AAAA-MM-DD. La eficacia de las medidas se verifica con evidencia, además del estado.</p></div>';$('editor').hidden=false;syncAttachments();$('attachments').open=mode==='existing';step=0;go(0);$('preview-box').hidden=true;$('files').innerHTML='';$('dirty').hidden=!dirty;}
+let draft=null, stepViews=[];
+function captureStep(){
+ if(!draft)return;
+ const host=$('fields');
+ for(const e of host.querySelectorAll('[data-meta]'))draft.meta[e.dataset.meta]=e.value;
+ for(const e of host.querySelectorAll('[data-answer]'))draft.answers[e.dataset.answer]=e.value;
+ for(const t of host.querySelectorAll('[data-table]')){
+  const rows=[...t.querySelectorAll('tbody tr')].map(tr=>Object.fromEntries([...tr.querySelectorAll('[data-col]')].map(e=>[e.dataset.col,e.value])));
+  if(t.dataset.table==='actions')draft.actions=rows;else draft.tables[t.dataset.table]=rows;
+ }
+}
+function read(){captureStep();return normalizePlan(draft);}
+function render(p){
+ const def=PLAN_TYPES[p.type],sections=mode==='existing'?[]:def.sections;
+ draft={type:p.type,mode,meta:{...p.meta},answers:{...p.answers},tables:{...p.tables},actions:[...p.actions]};
+ $('title').textContent=def.title;$('intro').textContent=def.intro;
+ stepViews=[
+  {title:'Datos generales',body:()=>'<p class="pl-info">'+(mode==='existing'?'Registre los datos de seguimiento del plan existente.':'Escriba o confirme los datos de su ASADA para comenzar el plan.')+'</p><div class="pl-grid">'+META.map(f=>'<label>'+esc(f.label)+cell(f,draft.meta[f.id]||'','data-meta="'+f.id+'"')+'</label>').join('')+'</div>'},
+  ...sections.map(s=>({title:s.title,body:()=>{
+   const example=PLAN_EXAMPLES[p.type]?.[s.id];
+   return (example?'<details class="pl-example"><summary>Ver ejemplo orientativo</summary><p>'+esc(example)+'</p></details>':'')+
+    s.fields.map(f=>'<label>'+esc(f.label)+'<textarea rows="4" maxlength="6000" data-answer="'+s.id+'.'+f.id+'" placeholder="'+esc(f.help||'Escriba la información de su ASADA.')+'">'+esc(draft.answers[s.id+'.'+f.id]||'')+'</textarea></label>').join('')+
+    (s.table?table(s.id,s.table,draft.tables[s.id]||[]):'');
+  }})),
+  {title:'Acciones y seguimiento',body:()=>'<p>Indique la actividad, el responsable, la fecha límite y la evidencia esperada.</p>'+table('actions',ACTION_COLUMNS,draft.actions)}
+ ];
+ $('steps').innerHTML=stepViews.map(({title},i)=>'<button type="button" class="button outline" data-step="'+i+'">'+(i+1)+'. '+esc(title)+'</button>').join('');
+ $('editor').hidden=false;syncAttachments();$('attachments').open=mode==='existing';
+ go(0,false,false);$('preview-box').hidden=true;$('files').innerHTML='';$('dirty').hidden=!dirty;
+}
 function syncAttachments(){$('attachments').hidden=mode==='guided'&&!current?.id;}
-function go(i,focus=false){const pages=[...$('fields').querySelectorAll('[data-plan-page]')];if(!pages.length)return;step=Math.max(0,Math.min(i,pages.length-1));pages.forEach((p,j)=>p.hidden=j!==step);$('steps').querySelectorAll('[data-step]').forEach((b,j)=>{if(j===step)b.setAttribute('aria-current','step');else b.removeAttribute('aria-current');});$('step-progress').textContent='Paso '+(step+1)+' de '+pages.length;$('prev').hidden=step===0;$('next').hidden=step===pages.length-1;if(focus){const heading=pages[step].querySelector('h3');heading.tabIndex=-1;heading.focus({preventScroll:true});pages[step].scrollIntoView({block:'start'});}}
+function go(i,focus=false,preserve=true){
+ if(!stepViews.length)return;
+ if(preserve)captureStep();
+ step=Math.max(0,Math.min(i,stepViews.length-1));
+ const view=stepViews[step],host=$('fields');
+ host.innerHTML='<h3 id="pl-field-title" tabindex="-1">'+esc(view.title)+'</h3>'+view.body();
+ $('steps').querySelectorAll('[data-step]').forEach((b,j)=>{if(j===step)b.setAttribute('aria-current','step');else b.removeAttribute('aria-current');});
+ $('step-progress').textContent='Paso '+(step+1)+' de '+stepViews.length;$('prev').hidden=step===0;$('next').hidden=step===stepViews.length-1;
+ if(focus){$('field-title').focus({preventScroll:true});host.scrollIntoView({block:'start'});}
+}
 function report(){const p=read();const r=planDocument(p,files,today());if(p.meta.approval==='Aprobado'&&p.mode==='guided'&&r.review.missing.length)throw Error('Complete la información antes de descargar como aprobado, o seleccione Borrador / En revisión.');if(p.meta.approval==='Aprobado'&&p.mode==='existing'&&!files.some(f=>['Plan existente','Plan firmado'].includes(f.category)&&f.type==='application/pdf'))throw Error('Adjunte el PDF del plan existente antes de registrar aprobación.');$('preview-box').hidden=false;$('report').innerHTML='<p class="pl-info">'+esc(r.status)+' · '+r.review.missing.length+' apartados por completar · '+r.review.late.length+' actividades vencidas.</p>'+r.chapters.map((c,i)=>'<h3>'+(i+1)+'. '+esc(c.title)+'</h3>'+c.paragraphs.map(p=>'<p style="white-space:pre-wrap">'+esc(p)+'</p>').join('')+(c.table?'<div class="pl-table"><table><thead><tr>'+c.table.columns.map(col=>'<th>'+esc(col.label)+'</th>').join('')+'</tr></thead><tbody>'+c.table.rows.map(row=>'<tr>'+c.table.columns.map(col=>'<td>'+esc(row[col.id]||'Por completar')+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>':'')).join('');return r;}
 async function load(){const d=await api('plans-data?asada='+encodeURIComponent($('asada').value));records=d.records;meta=d.meta;canEdit=d.canEdit;activeAsada=d.asada.id;const r=records.map(row=>({row,review:planReview(row.payload,today())})),late=r.reduce((n,x)=>n+x.review.late.length,0),expired=r.filter(x=>x.review.reviewLate).length;$('stats').innerHTML=[['Planes registrados',records.length],['Actividades vencidas',late],['Revisiones vencidas',expired]].map(([s,n])=>'<p>'+s+'<strong>'+n+'</strong></p>').join('');$('list').innerHTML=records.length?r.map(({row,review})=>'<article class="pl-box"><h3>'+esc(PLAN_TYPES[row.type].title)+'</h3><p>'+esc(row.payload.meta.period)+' · '+esc(row.payload.meta.approval)+' · versión '+row.version+'</p><p>'+review.missing.length+' campos por completar · '+review.late.length+' actividades vencidas · avance '+(review.progress===null?'sin actividades':review.progress.toFixed(0)+' %')+'</p><p>Próxima revisión: '+esc(row.payload.meta.reviewDate||'Por definir')+(review.reviewLate?' · Vencida':'')+'</p><button class="button outline" data-open="'+row.id+'">Abrir plan y seguimiento</button></article>').join(''):'<p>Todavía no hay planes guardados en esta ASADA. Elija uno para comenzar.</p>';}
 function confirmChange(){return !dirty||window.confirm('Hay cambios sin guardar. ¿Desea descartarlos y abrir otro plan?');}
