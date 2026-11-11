@@ -46,8 +46,18 @@
   status = 200
   force = true
 [[redirects]]
-  from = "/assets/normativa/servicios-historico.pdf"
-  to = "/.netlify/functions/gateway?file=assets/normativa/servicios-historico.pdf"
+  from = "/assets/normativa/servicios-aya.pdf"
+  to = "/.netlify/functions/gateway?file=assets/normativa/servicios-aya.pdf"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/assets/normativa/pozos.pdf"
+  to = "/.netlify/functions/gateway?file=assets/normativa/pozos.pdf"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/assets/normativa/hidrantes.pdf"
+  to = "/.netlify/functions/gateway?file=assets/normativa/hidrantes.pdf"
   status = 200
   force = true
 [[redirects]]
