@@ -1,0 +1,5 @@
+Morosidad: Abonados y Notificaciones enviadas.
+Desde Abonados > Ver expediente se registra el seguimiento y se adjunta el PDF enviado.
+Si aún no aplicaste la actualización de Notificaciones enviadas, ejecutá docs/arrears-sent-notices.sql en el proyecto Supabase conectado al sitio. Si ya la aplicaste, no hace falta repetirla.
+Publicá los archivos de private/ y netlify/ respetando sus rutas.
+Verificá con un expediente de prueba que el PDF guardado se pueda descargar desde ambas vistas.
