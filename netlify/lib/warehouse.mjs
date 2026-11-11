@@ -6,12 +6,40 @@ export function validateWarehouse(kind,p,fail,uuid){
  if(kind==='item'){const supplier=str('supplier',36);if(supplier&&!uuid(supplier))fail('Proveedor inválido.');const minimum=num('minimum'),target=num('target');if(target<minimum)fail('La existencia deseada debe ser igual o mayor al mínimo.');return {code:str('code',80,true),name:str('name',160,true),category:str('category',160,true),unit:str('unit',50,true),location:str('location'),specs:str('specs',1000),minimum,target,supplier,note:str('note',1500)};}
  fail('Tipo de registro inválido.');
 }
+export function validateTdr(p,fail){
+ const object=v=>v&&typeof v==='object'&&!Array.isArray(v);
+ if(!object(p)||!object(p.fields)||!Array.isArray(p.items)||p.items.length<1||p.items.length>30)fail('Revise el borrador y la cantidad de bienes.');
+ const string=(v,n)=>{if(typeof v!=='string'||v.length>n)fail('Hay un campo inválido o demasiado largo.');return v.trim();};
+ const limits={kind:10,reference:80,subject:180,purpose:1800,serviceType:120,activities:4000,deliverables:4000,profile:1800,inputs:1800,location:180,term:200,acceptance:3000,warranty:1800,payment:1800,date:10,time:5,channel:250,offer:2500,criteria:3000};
+ const fields=Object.fromEntries(Object.entries(limits).map(([k,n])=>[k,string(p.fields[k]??'',n)]));
+ if(!['goods','services'].includes(fields.kind)||!fields.subject)fail('Indique el tipo y el objeto de la contratación.');
+ if(fields.date&&(!/^\d{4}-\d{2}-\d{2}$/.test(fields.date)||!Number.isFinite(Date.parse(fields.date))||new Date(fields.date).toISOString().slice(0,10)!==fields.date))fail('Ingrese una fecha válida.');
+ if(fields.time&&!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(fields.time))fail('Ingrese una hora válida.');
+ const items=p.items.map(i=>{if(!object(i))fail('Revise la lista de bienes.');return Object.fromEntries(Object.entries({guide:80,item:180,quantity:40,unit:50,specs:3500}).map(([k,n])=>[k,string(i[k]??'',n)]));});
+ return {fields,items};
+}
 export async function warehouseAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError}){
  const fail=(m,s=400)=>{throw new PublicError(s,m);},who=await authorized(sessionToken(request)),url=new URL(request.url),input=request.method==='POST'?await body(request):null;
  let asada=who.asada;const requested=input?.asada||url.searchParams.get('asada');
  if(who.admin){if(!uuid(requested))fail('Seleccione una ASADA.');asada=(await sb('/rest/v1/asadas?id=eq.'+requested+'&active=eq.true&select=id,name'))[0];if(!asada)fail('La ASADA no está activa.',403);}else if(requested&&requested!==asada.id)fail('No tiene acceso a esta ASADA.',403);
  const canManage=who.admin||who.role==='Administración',canMove=canManage||who.role==='Operación',scope='asada_id=eq.'+asada.id;
  async function rows(table,extra=''){let all=[];for(let offset=0;offset<50000;offset+=1000){const a=await sb('/rest/v1/'+table+'?'+scope+extra+'&select=*&order=created_at.asc,id.asc&limit=1000&offset='+offset);all.push(...a);if(a.length<1000)return all;}fail('Hay demasiados registros para una sola consulta. Contacte a Star Water.',413);}
+ const tdrPath='/rest/v1/warehouse_tdr',canEditTdr=!who.external&&(canManage||who.role==='Junta Directiva');
+ if(api==='warehouse-tdr-list'&&request.method==='GET')return json({records:await sb(tdrPath+'?'+scope+'&select=id,title,version,updated_at&order=updated_at.desc,id.asc&limit=100'),canEdit:canEditTdr});
+ if(api==='warehouse-tdr-get'&&request.method==='GET'){
+  const id=url.searchParams.get('id');if(!uuid(id))fail('Seleccione un borrador.');
+  const [record]=await sb(tdrPath+'?'+scope+'&id=eq.'+id+'&select=id,title,version,payload,updated_at');
+  if(!record)fail('Borrador no disponible en esta ASADA.',404);return json({record});
+ }
+ if(api==='warehouse-tdr-save'&&request.method==='POST'){
+  if(!canEditTdr)fail('Solo Administración o Junta Directiva pueden guardar borradores.',403);
+  const id=input?.id,version=input?.version;
+  if(id&&(!uuid(id)||!Number.isInteger(version)||version<1||version>=2147483647))fail('Seleccione un borrador válido.');
+  const payload=validateTdr(input?.payload,fail);
+  const row={title:payload.fields.subject,payload,updated_by:who.user.id,updated_at:new Date().toISOString()};
+  const [record]=await (id?sb(tdrPath+'?'+scope+'&id=eq.'+id+'&version=eq.'+version,{method:'PATCH',body:{...row,version:version+1},prefer:'return=representation'}):sb(tdrPath,{method:'POST',body:{...row,asada_id:asada.id,created_by:who.user.id},prefer:'return=representation'}));
+  if(!record)fail('El borrador cambió o ya no está disponible. Abra la última versión para continuar.',409);return json({record:{id:record.id,title:record.title,version:record.version,updated_at:record.updated_at}});
+ }
  if(api==='warehouse-data'&&request.method==='GET'){const records=await rows('warehouse_records'),moves=await rows('warehouse_moves');return json({asada,records,moves,canManage,canMove,loadedAt:new Date().toISOString()});}
  if(api==='warehouse-history'&&request.method==='GET')return json({changes:await sb('/rest/v1/warehouse_changes?'+scope+'&select=*&order=changed_at.desc&limit=200')});
  if(api==='warehouse-save'&&request.method==='POST'){
