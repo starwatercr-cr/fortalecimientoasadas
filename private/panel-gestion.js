@@ -158,6 +158,7 @@ function practicalHome(){
 }
 function homeMonthDetail(index){const d=SWFinancialHome.build(records,year),x=d.monthly[index];if(x&&$('#sw-home-month-detail'))$('#sw-home-month-detail').textContent=months[index]+' · '+(x.count?'Entradas: '+money(x.income)+' · Pagos: '+money(x.expenses)+' · Diferencia de efectivo: '+money(x.income-x.expenses)+'. '+x.count+' movimientos registrados.':'Falta registrar movimientos. No se supone que el resultado sea cero.');}
 function draw(){
+ $('.sw-layout').dataset.summary=String(isSummary(module));
  $('#sw-title').textContent=modules.find(m=>m[0]===module)[1];$('.sw-nav').innerHTML=modules.filter(m=>!['properties','finance-summary'].includes(m[0])).map(m=>'<button type="button" data-module="'+m[0]+'" aria-pressed="'+(m[0]===module||m[0]==='home'&&isSummary(module))+'">'+m[1]+'</button>').join('')+(canEdit?'<a class="sw-btn" href="abonados.html">Análisis e Información de Abonados</a>':'')+(canEdit?'<button type="button" data-followup="true" aria-pressed="false">Seguimiento de morosidad</button>':'')+'<button type="button" data-module="properties" aria-pressed="'+(module==='properties')+'">Consulta de propiedades</button>';
  $('.sw-sub').textContent=(asadas.find(a=>a.id===asada)?.name||'Información de su ASADA')+(module==='properties'?' · Consulta en el portal oficial':' · Año '+year+' · Montos en colones');
  if(module==='board'&&boardSearch)$('.sw-sub').textContent=(asadas.find(a=>a.id===asada)?.name||'ASADA')+' · '+(boardSearch.year?'Año '+boardSearch.year:'Todos los años registrados')+' · Resultados de la búsqueda';
