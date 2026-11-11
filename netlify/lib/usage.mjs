@@ -4,7 +4,7 @@ export const USAGE_PAGES={
  '/nuestra-asada.html':['asada','Nuestra ASADA'], '/decision-center.html':['centro','Centro de decisiones'],
  '/nuestra-agua.html':['agua','Nuestra agua'], '/aforos.html':['aforos','Aforos'], '/anc.html':['anc','Macromedición y micromedición'],
  '/nuestras-finanzas.html':['finanzas','Nuestras finanzas'], '/morosidad.html':['morosidad','Seguimiento de morosidad'],
- '/bodega.html':['bodega','Proveedores y bodega'], '/operacion.html':['operacion','Bitácora de operación'],
+ '/bodega.html':['bodega','Proveeduría'], '/operacion.html':['operacion','Bitácora de operación'],
  '/calidad.html':['calidad','Calidad de nuestra agua'], '/equipo.html':['equipo','Nuestro equipo'],
  '/asamblea.html':['asamblea','Informes para la Asamblea'], '/diagnostico.html':['diagnostico','Evaluación de la ASADA'],
  '/planes.html':['planes','Planes de gestión'], '/biblioteca.html':['biblioteca','Biblioteca de consulta'],

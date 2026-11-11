@@ -9,7 +9,7 @@ export const TOOLS=[
 {id:'agua',name:'Nuestra agua',desc:'Revise aforos, oferta, demanda y medición.',href:'nuestra-agua.html',icon:'water',areas:['agua'],module:'agua'},
 {id:'calidad',name:'Calidad de nuestra agua',desc:'Interprete resultados y dé seguimiento.',href:'calidad.html',icon:'flask',areas:['agua'],module:'calidad'},
 {id:'operacion',name:'Bitácora de operación',desc:'Registre labores, mediciones y pendientes.',href:'operacion.html',icon:'check',areas:['agua'],module:'operacion'},
-{id:'bodega',name:'Proveedores y Bodega',desc:'Controle materiales, existencias y proveedores.',href:'bodega.html',icon:'box',areas:['agua'],module:'bodega'},
+{id:'bodega',name:'Proveeduría',desc:'Controle materiales, existencias y proveedores.',href:'bodega.html',icon:'box',areas:['agua'],module:'bodega'},
 {id:'minae',name:'Mapa de fuentes · MINAE',desc:'Consulte información geográfica del agua.',href:'https://mapas.da.go.cr/mapnew.php',icon:'map',areas:['agua'],external:true,module:'agua'},
 {id:'abonados',name:'Análisis e Información de Abonados',desc:'Transforme datos de consumo en decisiones.',href:'abonados.html',icon:'users',areas:['cobros'],module:'abonados'},
 {id:'morosidad',name:'Seguimiento de morosidad',desc:'Organice gestiones de cobro y compromisos.',href:'morosidad.html',icon:'clock',areas:['cobros'],module:'morosidad'},
