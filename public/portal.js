@@ -33,31 +33,83 @@
  const safe=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const trialExpired=x=>x.access_kind==='trial'&&(!Number.isFinite(Date.parse(x.trial_ends_at))||Date.parse(x.trial_ends_at)<=Date.now());
  const accessSwitch=(id,kind,on,label)=>`<button class="button outline" type="button" role="switch" aria-checked="${on}" aria-label="Acceso de ${safe(label)}" data-id="${safe(id)}" data-kind="${kind}" data-active="${on}"><svg width="44" height="24" viewBox="0 0 44 24" aria-hidden="true" style="vertical-align:middle;margin-inline-end:.5em"><rect width="44" height="24" rx="12" fill="${on?'#087755':'#616c75'}"/><circle cx="${on?32:12}" cy="12" r="8" fill="white"/></svg>${on?'Desactivar':'Activar'}</button>`;
- async function loadAdmin(){const d=await api('admin-list');const names=new Map(d.asadas.map(x=>[x.id,x.name]));$('portal-asada-select').innerHTML='<option value="">Seleccione una ASADA</option>'+d.asadas.map(x=>`<option value="${x.id}">${safe(x.name)}${x.active&&!trialExpired(x)?'':' (inactiva)'}</option>`).join('');$('portal-reset-select').innerHTML='<option value="">Seleccione una cuenta</option>'+d.members.map(x=>`<option value="${x.user_id}">${safe(x.email)} · ${safe(names.get(x.asada_id)||'ASADA')}</option>`).join('');
-  $('portal-asadas-list').innerHTML=d.asadas.length?d.asadas.map(x=>{
-   const expired=trialExpired(x),on=x.active&&!expired;
-   const detail=x.access_kind==='trial'?(expired?'Demo vencida · al activar se conceden 3 días':('Demo · vence '+new Date(x.trial_ends_at).toLocaleString('es-CR',{timeZone:'America/Costa_Rica'}))):'Acceso contratado';
-   return `<article class="portal-access-row"><p><strong>${safe(x.name)}</strong><br>${on?'Activo':'Inactivo'} · ${safe(detail)}</p>${x.access_kind==='trial'?'<button class="button outline" type="button" data-convert="'+safe(x.id)+'">Pasar a contratado</button>':''}${accessSwitch(x.id,'asada',on,x.name)}</article>`;
-  }).join(''):'<p>Aún no hay ASADAS registradas.</p>';
-  $('portal-members-list').innerHTML=d.members.length?d.members.map(x=>`<article class="portal-access-row"><p><strong>${safe(x.email)}</strong><br>${safe(names.get(x.asada_id)||'ASADA')} · ${safe(x.role)}<br>${x.active?'Cuenta activa':'Cuenta suspendida'}</p>${accessSwitch(x.user_id,'member',x.active,x.email)}</article>`).join(''):'<p>Aún no hay cuentas registradas.</p>';
+
+ const adminList=$('portal-asadas-list');
+ async function loadAdmin(openId){
+  const d=await api('admin-list');
+  const open=new Set([...adminList.querySelectorAll('details[open]')].map(x=>x.dataset.asada));
+  if(openId)open.add(openId);
+  const members=new Map();
+  for(const member of d.members){
+   if(!members.has(member.asada_id))members.set(member.asada_id,[]);
+   members.get(member.asada_id).push(member);
+  }
+  adminList.innerHTML=d.asadas.map(x=>{
+   const expired=trialExpired(x),on=x.active&&!expired,trial=x.access_kind==='trial';
+   const detail=trial?(expired?'Prueba vencida · Activar concede 3 días':'En prueba · vence '+new Date(x.trial_ends_at).toLocaleString('es-CR',{timeZone:'America/Costa_Rica'})):'Contratada';
+   const team=members.get(x.id)||[];
+   return `<article class="water-panel">
+    <div class="portal-access-row"><div><h3>${safe(x.name)}</h3><p>${on?'Activa':'Inactiva'} · ${safe(detail)}</p></div>${accessSwitch(x.id,'asada',on,x.name)}</div>
+    <details data-asada="${safe(x.id)}"${open.has(x.id)?' open':''}>
+     <summary><strong>Usuarios (${team.length})</strong></summary>
+     ${team.length?'<ul>'+team.map(m=>`<li><strong>${safe(m.full_name||m.email)}</strong> · ${safe(m.role)} · ${safe(m.email)}${m.active?'':' · Suspendida'}</li>`).join('')+'</ul>':'<p>Todavía no hay usuarios.</p>'}
+     <form data-add-user>
+      <input type="hidden" name="asada" value="${safe(x.id)}">
+      <label>Nombre completo<input name="name" minlength="3" maxlength="120" required></label>
+      <label>Correo electrónico<input name="email" type="email" maxlength="254" required></label>
+      <label>Función<select name="role"><option>Administración</option><option>Junta Directiva</option><option>Operación</option></select></label>
+      <label>Contraseña inicial<input name="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label>
+      <button class="button primary" type="submit">Agregar usuario</button>
+      <p role="status"></p>
+     </form>
+     ${trial?'<button class="button outline" type="button" data-convert="'+safe(x.id)+'">Pasar a contratada</button>':''}
+    </details>
+   </article>`;
+  }).join('')||'<p>Aún no hay ASADAS registradas.</p>';
  }
- $('portal-asadas-list')?.addEventListener('click',async e=>{const b=e.target.closest('[data-convert]');if(!b)return;if(!confirm('¿La contratación de esta ASADA está confirmada? Esto habilita su mismo espacio y conserva los registros. No realiza ningún cobro.'))return;b.disabled=true;try{await api('admin-trial-convert',{id:b.dataset.convert,confirm:true});await loadAdmin();notify('Acceso habilitado. La ASADA puede ingresar con su misma cuenta.');}catch(err){notify(err.message);b.disabled=false;}});
  let accessSaving=false;
- for(const id of ['portal-asadas-list','portal-members-list'])$(id)?.addEventListener('click',async e=>{
-  const b=e.target.closest('button[data-id]');if(!b||accessSaving)return;
-  const list=$(id),target=b.dataset.id,kind=b.dataset.kind,active=b.dataset.active!=='true';
-  accessSaving=true;b.disabled=true;
+ adminList?.addEventListener('click',async e=>{
+  const btn=e.target.closest('button[data-id],button[data-convert]');
+  if(!btn||accessSaving)return;
+  const convert=btn.dataset.convert,target=convert||btn.dataset.id,active=btn.dataset.active!=='true';
+  if(convert&&!confirm('¿Confirmás la contratación de esta ASADA? Conserva sus usuarios y registros.'))return;
+  accessSaving=true;btn.disabled=true;
   try{
-   const result=await api('admin-toggle',{id:target,kind,active});
+   const result=convert?await api('admin-trial-convert',{id:target,confirm:true}):await api('admin-toggle',{id:target,kind:'asada',active});
    await loadAdmin();
-   [...list.querySelectorAll('button[data-id]')].find(x=>x.dataset.id===target)?.focus({preventScroll:true});
-   notify(result.renewed?'Demo reactivada por 3 días.':active?'Acceso activado.':'Acceso desactivado.');
-  }catch(err){notify(err.message);b.disabled=false;b.focus({preventScroll:true});}
+   [...adminList.querySelectorAll('button[data-id]')].find(x=>x.dataset.id===target)?.focus({preventScroll:true});
+   notify(convert?'ASADA contratada y activa.':result.renewed?'Prueba reactivada por 3 días.':active?'ASADA activada.':'ASADA desactivada.');
+  }catch(err){notify(err.message);btn.disabled=false;}
   finally{accessSaving=false;}
  });
- $('portal-asada-form')?.addEventListener('submit',e=>{e.preventDefault();const f=e.currentTarget;submit(f,'admin-asada',x=>x,async()=>{f.reset();await loadAdmin();notify('ASADA registrada. Ahora puede crear sus cuentas.');});});
- $('portal-user-form')?.addEventListener('submit',e=>{e.preventDefault();const f=e.currentTarget;submit(f,'admin-user',x=>x,async()=>{f.reset();await loadAdmin();notify('Cuenta creada. Comparta el correo y la contraseña directamente con la persona.');});});
- $('portal-reset-form')?.addEventListener('submit',e=>{e.preventDefault();const f=e.currentTarget;submit(f,'admin-reset',x=>x,()=>{f.reset();notify('Contraseña actualizada. Compártala directamente con la persona.');});});
+ adminList?.addEventListener('submit',async e=>{
+  const f=e.target.closest('form[data-add-user]');if(!f)return;
+  e.preventDefault();if(accessSaving)return;
+  const btn=f.querySelector('button[type=submit]'),status=f.querySelector('[role=status]'),data=fields(f);
+  accessSaving=true;btn.disabled=true;status.textContent='Guardando…';
+  try{
+   await api('admin-user',data);
+   f.reset();
+   await loadAdmin(data.asada);
+   const opened=[...adminList.querySelectorAll('details')].find(x=>x.dataset.asada===data.asada);
+   if(opened){opened.querySelector('[role=status]').textContent='Usuario agregado. Compartí su contraseña por un medio seguro.';opened.querySelector('input[name=name]').focus({preventScroll:true});}
+  }catch(err){status.textContent=err.message;}
+  finally{accessSaving=false;btn.disabled=false;}
+ });
+ $('portal-asada-form')?.addEventListener('submit',e=>{
+  e.preventDefault();const f=e.currentTarget,button=f.querySelector('[type=submit]');
+  if(accessSaving)return;
+  accessSaving=true;button.disabled=true;
+  (async()=>{
+   try{
+    const result=await api('admin-asada',fields(f));f.reset();
+    f.closest('details').open=false;
+    await loadAdmin(result.asada?.id);notify('ASADA registrada. Ya podés agregar sus usuarios.');
+    [...adminList.querySelectorAll('details')].find(x=>x.dataset.asada===result.asada?.id)?.querySelector('input[name=name]').focus();
+   }catch(err){notify(err.message);}
+   finally{accessSaving=false;button.disabled=false;}
+  })();
+ });
  api('me').then(async who=>{if(who.termsPending){location.replace('/condiciones-prueba.html');return;}import('/tools-catalog.js?v=70').then(m=>m.rememberVisit(who,location.pathname,undefined,location.search)).catch(()=>{});if(who.admin){const host=document.querySelector('.portal-session>div')||document.querySelector('.portal-session');if(host&&!host.querySelector('[href="uso-plataforma.html"]')){const a=document.createElement('a');a.href='uso-plataforma.html';a.className='button primary';a.textContent='Uso de la plataforma';host.prepend(a);}}else if(who.asada&&location.pathname!=='/condiciones-prueba.html'){const p=document.createElement('p');p.className='small';p.textContent='Se registran aperturas de herramientas y tiempo activo aproximado para dar seguimiento al uso de la plataforma. Este registro no incluye el contenido de formularios ni documentos.';document.querySelector('main')?.append(p);import('/usage-tracker.js').then(m=>m.startUsageTracker()).catch(()=>{});}if(who.admin||who.role==='Administración'){const host=document.querySelector('.portal-session>div')||document.querySelector('.portal-session');if(host&&!host.querySelector('[href="accesos.html"]')){const a=document.createElement('a');a.href='accesos.html';a.className='button outline';a.textContent='Usuarios y permisos';host.prepend(a);}}if(who.external){const mapping={'planes.html':'planes','abonados.html':'abonados','panel-gestion.html':'panel','nuestras-finanzas.html':'panel','nuestra-agua.html':'agua','bodega.html':'bodega','asamblea.html':'asamblea','calidad.html':'calidad','biblioteca.html':'biblioteca','diagnostico.html':'diagnostico','morosidad.html':'morosidad','operacion.html':'operacion'};document.querySelector('.tools-decision')?.setAttribute('hidden','');document.querySelectorAll('.tool-card').forEach(card=>{const href=card.querySelector('a.button')?.getAttribute('href')?.split('?')[0];if(!who.modules.includes(mapping[href]))card.hidden=true;});const info=document.createElement('p');info.className='water-panel';info.textContent='Acceso externo de consulta · '+(who.fullName||who.email)+' · vence '+new Date(who.expires).toLocaleString('es-CR');document.querySelector('main')?.prepend(info);}if(who.asada?.access_kind==='trial'){
  const banner=document.createElement('aside');banner.className='trial-banner';banner.setAttribute('aria-label','Prueba gratuita');
  const label=document.createElement('div'),title=document.createElement('strong'),detail=document.createElement('p'),link=document.createElement('a');title.textContent='Está explorando la plataforma · Prueba gratuita';label.append(title,detail);link.className='button primary';link.textContent='Consultar para contratar';link.href='https://wa.me/50673006172?text='+encodeURIComponent('Hola, quisiera contratar la plataforma para '+who.asada.name+'.');banner.append(label,link);document.querySelector('main')?.prepend(banner);
