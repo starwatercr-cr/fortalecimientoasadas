@@ -130,7 +130,25 @@ async function dispatch(request,authorized=authorizeToken){
     const found=await sb('/rest/v1/asadas?id=eq.'+input.id+'&access_kind=eq.trial&select=id');if(!found?.length)throw new PublicError(409,'Esta ASADA no tiene un acceso de prueba.');
     await sb('/rest/v1/asadas?id=eq.'+input.id+'&access_kind=eq.trial',{method:'PATCH',body:{access_kind:'standard',active:true}});return json({ok:true});
    }
-   if(api==='login'&&request.method==='POST'){
+      if(api==='recovery-request'&&request.method==='POST'){
+    const input=await body(request,4096);
+    const email=text(input.email,254).toLowerCase();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new PublicError(400,'Ingrese un correo válido.');
+    const redirect='https://fortalecimientoasadas.netlify.app/recuperar.html';
+    try{await sb('/auth/v1/recover?redirect_to='+encodeURIComponent(redirect),{method:'POST',publicKey:true,body:{email}});}
+    catch(error){if(error.status!==401&&error.status!==429)throw error;}
+    return json({ok:true});
+   }
+   if(api==='recovery-save'&&request.method==='POST'){
+    const input=await body(request,16384);
+    const token=request.headers.get('authorization')?.match(/^Bearer ([A-Za-z0-9_.-]{20,12000})$/)?.[1];
+    if(!token)throw new PublicError(401,'Solicite un enlace nuevo para continuar.');
+    if(typeof input.password!=='string'||input.password.length<8||input.password.length>128)throw new PublicError(400,'Use una contraseña de 8 a 128 caracteres.');
+    try{await sb('/auth/v1/user',{method:'PUT',publicKey:true,token,body:{password:input.password}});}
+    catch(error){if(error.status===401)throw new PublicError(400,'No se pudo guardar. Revise los requisitos de la contraseña o solicite un enlace nuevo si venció.');throw error;}
+    return json({ok:true});
+   }
+if(api==='login'&&request.method==='POST'){
     const input=await body(request);const email=text(input.email,254).toLowerCase(),password=input.password;
     if(!email||typeof password!=='string'||password.length<1||password.length>256)throw new PublicError(400,'Ingrese su correo y contraseña.');
     const session=await sb('/auth/v1/token?grant_type=password',{method:'POST',publicKey:true,body:{email,password}});
@@ -176,7 +194,7 @@ export default async function handler(request){
  const url=new URL(request.url),api=url.pathname.startsWith('/api/')?url.pathname.slice(5):url.searchParams.get('api');
  // Reject cross-origin writes before inspecting or renewing any credentials.
  if(request.method==='POST'&&request.headers.get('origin')!==url.origin)return json({error:'Origen de la solicitud no autorizado.'},403);
- const refresh=cookieValue(request,refreshName);if(!refresh||api==='login'||api==='logout'||api==='trial-register'||api==='trial-confirm'||!['GET','POST'].includes(request.method))return dispatch(request);
+ const refresh=cookieValue(request,refreshName);if(!refresh||['recovery-request','recovery-save'].includes(api)||api==='login'||api==='logout'||api==='trial-register'||api==='trial-confirm'||!['GET','POST'].includes(request.method))return dispatch(request);
  let renewed=[];
  try{let token=sessionToken(request),who;
   try{who=await authorizeToken(token);}catch(error){if(error.status!==401)throw error;const session=await sb('/auth/v1/token?grant_type=refresh_token',{method:'POST',publicKey:true,body:{refresh_token:refresh}});renewed=sessionCookies(session,true);token=session.access_token;who=await authorizeToken(token);requestTokens.set(request,token);}
