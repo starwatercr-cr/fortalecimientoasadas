@@ -1,0 +1,5 @@
+1. En GitHub abrí netlify/functions/gateway.mjs y presioná el lápiz.
+2. Buscá admin-toggle. Reemplazá el bloque completo desde la línea que empieza con if(api==='admin-toggle' hasta la llave justo antes de if(api==='admin-reset'. Pegá todo el contenido de REEMPLAZAR-admin-toggle.txt. Conservá admin-reset y el resto del archivo, incluidas las rutas de recuperación. Guardá con Commit changes.
+3. En la carpeta public subí el archivo portal.js incluido, reemplazando public/portal.js, y guardá con Commit changes.
+4. Cuando Netlify termine el despliegue, abrí /administrar-accesos.html con la cuenta de Star Water. En «ASADAS registradas» estará el interruptor general y en «Cuentas por ASADA» el individual.
+5. Probá con una ASADA de prueba autorizada: una demo vencida debe mostrar Inactivo. Al pulsar Activar, debe mostrar una nueva fecha de vencimiento y permitir el ingreso con una cuenta individual activa. Desactivar detiene el acceso; si la demo aún está vigente, volver a Activar conserva el vencimiento original.
