@@ -166,8 +166,30 @@ if(api==='login'&&request.method==='POST'){
     const created=await sb('/rest/v1/asadas',{method:'POST',body:{name},prefer:'return=representation'});return json({asada:created?.[0]},201);
    }
    if(api==='admin-toggle'&&request.method==='POST'){
-    await owner(request,authorized);const input=await body(request);if(!uuid(input.id)||typeof input.active!=='boolean'||!['asada','member'].includes(input.kind))throw new PublicError(400,'Seleccione un acceso válido.');
-    const table=input.kind==='asada'?'asadas':'memberships',key=input.kind==='asada'?'id':'user_id';await sb('/rest/v1/'+table+'?'+key+'=eq.'+encodeURIComponent(input.id),{method:'PATCH',body:{active:input.active}});return json({ok:true});
+    await owner(request,authorized);
+    const input=await body(request);
+    if(!uuid(input.id)||typeof input.active!=='boolean'||!['asada','member'].includes(input.kind))throw new PublicError(400,'Seleccione un acceso válido.');
+    const id=encodeURIComponent(input.id);
+    let route=input.kind==='asada'?'/rest/v1/asadas?id=eq.'+id:'/rest/v1/memberships?user_id=eq.'+id;
+    const changes={active:input.active};
+    let renewed=false;
+    if(input.kind==='asada'&&input.active){
+     const [asada]=await sb(route+'&select=access_kind,trial_ends_at');
+     if(!asada)throw new PublicError(404,'No se encontró la ASADA.');
+     route+='&access_kind=eq.'+encodeURIComponent(asada.access_kind);
+     if(asada.access_kind==='trial'){
+      route+=asada.trial_ends_at==null?'&trial_ends_at=is.null':'&trial_ends_at=eq.'+encodeURIComponent(asada.trial_ends_at);
+      const now=Date.now(),end=Date.parse(asada.trial_ends_at);
+      if(!Number.isFinite(end)||end<=now){
+       changes.trial_started_at=new Date(now).toISOString();
+       changes.trial_ends_at=new Date(now+3*86400000).toISOString();
+       renewed=true;
+      }
+     }
+    }
+    const updated=await sb(route,{method:'PATCH',body:changes,prefer:'return=representation'});
+    if(!updated?.length)throw new PublicError(409,'No se pudo guardar. Recargue el listado e inténtelo de nuevo.');
+    return json({ok:true,renewed});
    }
    if(api==='admin-reset'&&request.method==='POST'){
     await owner(request,authorized);const input=await body(request);if(!uuid(input.user)||typeof input.password!=='string'||input.password.length<8||input.password.length>128)throw new PublicError(400,'Seleccione una cuenta y una contraseña de al menos 8 caracteres.');
