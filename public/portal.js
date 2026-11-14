@@ -1,5 +1,17 @@
 (() => {
  const $=id=>document.getElementById(id),message=$('portal-message');
+ const returnAreas={finanzas:'Finanzas',agua:'Agua y operación',cobros:'Abonados y cobros',junta:'Junta Directiva y planificación',consulta:'Organización y consultas'};
+ const returnArea=new URLSearchParams(location.search).get('volverArea');
+ if(Object.hasOwn(returnAreas,returnArea)){
+  const updateReturnLinks=()=>document.querySelectorAll('a[href]').forEach(link=>{
+   const url=new URL(link.href,location.href);
+   if(url.origin!==location.origin||!['/herramientas.html','/herramientas'].includes(url.pathname)||!/^\s*←?\s*volver a (?:las )?herramientas\b/i.test(link.textContent))return;
+   url.searchParams.set('area',returnArea);
+   link.href=url.href;
+   link.textContent='← Volver a '+returnAreas[returnArea];
+  });
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',updateReturnLinks,{once:true});else updateReturnLinks();
+ }
  function notify(text){if(message)message.textContent=text;}
  async function api(route,body){const res=await fetch('/api/'+route,{method:body===undefined?'GET':'POST',credentials:'same-origin',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});let data;try{data=await res.json();}catch{throw new Error('No pudimos conectar con la plataforma. Revise que el acceso privado esté configurado.');}if(!res.ok)throw new Error(data.error||'No fue posible completar la operación.');return data;}
  const fields=form=>Object.fromEntries(new FormData(form));
