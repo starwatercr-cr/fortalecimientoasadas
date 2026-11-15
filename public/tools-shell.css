@@ -39,3 +39,11 @@ body.sw-app{margin:0;background:#f2f7f8}#sw-tools{border-radius:0;font-size:15px
 #sw-tools .sw-booking-instructions{padding:12px 22px;color:var(--sw-muted)}
 #sw-tools .sw-booking-dialog iframe{display:block;width:calc(100% - 24px);height:min(680px,65dvh);margin:0 auto;border:0;background:#fff;border-radius:8px}
 @media(max-width:620px){#sw-tools .sw-booking-head{padding:15px 14px 9px}#sw-tools .sw-booking-instructions{padding:10px 14px}#sw-tools .sw-booking-dialog iframe{height:70dvh}}
+
+/* Downloadable platform guide */
+#sw-tools .sw-manual{display:flex;align-items:center;gap:14px;margin:16px 0 18px;padding:16px 18px;border:1px solid #b8dddd;border-radius:12px;background:light-dark(#e8f7f5,#1f4147);color:var(--sw-ink)}
+#sw-tools .sw-manual-icon{display:grid;place-items:center;width:43px;height:43px;flex:none;border-radius:11px;background:light-dark(#ccefeb,#2b656a);color:var(--sw-teal)}
+#sw-tools .sw-manual>div{min-width:0;flex:1}#sw-tools .sw-manual strong{font-size:15px}#sw-tools .sw-manual p{font-size:12px;color:var(--sw-muted);margin-top:3px}
+#sw-tools .sw-manual-download{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:10px 16px;border-radius:8px;background:#087b85;color:#fff;text-decoration:none;font-weight:650;white-space:nowrap}#sw-tools .sw-manual-download:hover,#sw-tools .sw-manual-download:focus-visible{background:#075f68;color:#fff}
+#sw-tools .sw-help .sw-manual-side{font-weight:650;color:#a4f1ea}
+@media(max-width:720px){#sw-tools .sw-manual{flex-wrap:wrap}#sw-tools .sw-manual-download{width:100%}}
