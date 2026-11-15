@@ -4,7 +4,7 @@ const kinds=['settings','movement','petty','budget','statement','asset','agreeme
 export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError,profileStorage}){
  const fail=(m,s=400)=>{throw new PublicError(s,m);};
  const who=await authorized(sessionToken(request));const url=new URL(request.url);
- if(api==='panel-asadas')return json({isPlatformAdmin:who.admin===true,asadas:who.admin?await sb('/rest/v1/asadas?active=eq.true&select=id,name&order=name.asc'):[who.asada],canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role),canEditOperations:who.admin||['Administración','Junta Directiva'].includes(who.role),canCompleteOrders:who.admin||['Administración','Junta Directiva','Operación'].includes(who.role)});
+ if(api==='panel-asadas')return json({isPlatformAdmin:who.admin===true,asadas:who.admin?await sb('/rest/v1/asadas?active=eq.true&select=id,name&order=name.asc'):[who.asada],canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role),canEditOperations:who.admin||['Administración','Junta Directiva'].includes(who.role),canCompleteOrders:who.admin||['Administración','Junta Directiva','Operación'].includes(who.role),canRestoreOutages:who.admin||['Administración','Junta Directiva','Operación'].includes(who.role)});
  const input=request.method==='POST'?await body(request):null;
  const requested=input?.asada||url.searchParams.get('asada');
  let asada=who.asada;
@@ -32,7 +32,7 @@ export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid
  const year=Number(input?.year||url.searchParams.get('year'));if(!Number.isInteger(year)||year<1900||year>2200)fail('Seleccione un año válido.');
  const scope='asada_id=eq.'+asada.id+'&year=eq.'+year;
  if(['panel-data','panel-planning'].includes(api)&&request.method==='GET'){
-  let records=[];for(let offset=0;offset<50000;offset+=1000){const rows=await sb('/rest/v1/panel_records?'+scope+(api==='panel-planning'?'&kind=in.(workplan,water)':'')+'&deleted=eq.false&select=id,year,kind,payload,version,created_at,updated_at&order=created_at.asc,id.asc&limit=1000&offset='+offset);records.push(...rows);if(rows.length<1000)return json({asada,year,records:records.map(agreementWithProgress),canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role),canSaveWater:who.admin||['Administración','Junta Directiva','Operación'].includes(who.role),canEditOperations:who.admin||['Administración','Junta Directiva'].includes(who.role),canCompleteOrders:who.admin||['Administración','Junta Directiva','Operación'].includes(who.role)});}
+  let records=[];for(let offset=0;offset<50000;offset+=1000){const rows=await sb('/rest/v1/panel_records?'+scope+(api==='panel-planning'?'&kind=in.(workplan,water)':'')+'&deleted=eq.false&select=id,year,kind,payload,version,created_at,updated_at&order=created_at.asc,id.asc&limit=1000&offset='+offset);records.push(...rows);if(rows.length<1000)return json({asada,year,records:records.map(agreementWithProgress),canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role),canSaveWater:who.admin||['Administración','Junta Directiva','Operación'].includes(who.role),canEditOperations:who.admin||['Administración','Junta Directiva'].includes(who.role),canCompleteOrders:who.admin||['Administración','Junta Directiva','Operación'].includes(who.role),canRestoreOutages:who.admin||['Administración','Junta Directiva','Operación'].includes(who.role)});}
   fail('Este período requiere una consulta por bloques. Contacte a Star Water.',413);
  }
  if(api==='panel-order-file'&&request.method==='GET'){
@@ -60,6 +60,37 @@ export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid
   if(!updated.length)fail('Otra persona actualizó la orden. Pulse Actualizar y vuelva a intentarlo.',409);
   return json({record:updated[0]});
  }
+ if(api==='panel-outage-file'&&request.method==='GET'){
+  const id=url.searchParams.get('id');if(!uuid(id))fail('Interrupción inválida.');
+  const outage=(await sb('/rest/v1/panel_records?'+scope+'&id=eq.'+id+'&kind=eq.service_outage&deleted=eq.false&select=payload'))?.[0];
+  if(!outage||!uuid(outage.payload?.documentId))fail('Esta interrupción no tiene evidencia adjunta.',404);
+  const doc=(await sb('/rest/v1/asada_documents?asada_id=eq.'+asada.id+'&id=eq.'+outage.payload.documentId+'&select=*'))?.[0];
+  if(!doc||doc.category!=='Evidencia de trabajo'||typeof doc.path!=='string'||!doc.path.startsWith(asada.id+'/'))fail('Evidencia no disponible.',404);
+  return new Response(await profileStorage('GET',doc.path),{headers:{'Content-Type':doc.type,'Content-Disposition':"attachment; filename*=UTF-8''"+encodeURIComponent(doc.filename),'Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY'}});
+ }
+ if(api==='panel-outage-restore'&&request.method==='POST'){
+  if(!who.admin&&!['Administración','Junta Directiva','Operación'].includes(who.role))fail('Su perfil no puede confirmar el restablecimiento.',403);
+  if(!uuid(input.id)||!Number.isInteger(input.version)||input.version<1||input.documentId&&!uuid(input.documentId))fail('Revise la interrupción y la fotografía.');
+  const note=typeof input.note==='string'?input.note.trim():'';
+  if(note.length>500)fail('La nota del restablecimiento es demasiado extensa.');
+  const old=(await sb('/rest/v1/panel_records?'+scope+'&id=eq.'+input.id+'&kind=eq.service_outage&deleted=eq.false&select=id,version,payload'))?.[0];
+  if(!old)fail('La interrupción no está disponible.',404);
+  if(old.version!==input.version)fail('Otra persona actualizó la interrupción. Pulse Actualizar y vuelva a intentarlo.',409);
+  if(old.payload.state==='Restablecido')fail('Este servicio ya figura como restablecido.',409);
+  const now=new Date(),parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/Costa_Rica',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(now),part=k=>parts.find(x=>x.type===k)?.value;
+  const endDate=part('year')+'-'+part('month')+'-'+part('day'),endTime=part('hour')+':'+part('minute');
+  if(endDate+'T'+endTime<old.payload.date+'T'+old.payload.time)fail('La fecha de restablecimiento no puede ser anterior al inicio. Pida a la administración revisar el registro.',409);
+  let documentId=old.payload.documentId||'';
+  if(input.documentId){
+   const doc=(await sb('/rest/v1/asada_documents?asada_id=eq.'+asada.id+'&id=eq.'+input.documentId+'&category=eq.'+encodeURIComponent('Evidencia de trabajo')+'&select=id,type'))?.[0];
+   if(!doc||!['image/jpeg','image/png'].includes(doc.type))fail('Adjunte una fotografía JPG o PNG de esta ASADA.');
+   documentId=doc.id;
+  }
+  const payload={...old.payload,state:'Restablecido',endDate,endTime,documentId,restoredAt:now.toISOString(),restoredBy:who.user.id,restorationNote:note};
+  const updated=await sb('/rest/v1/panel_records?'+scope+'&id=eq.'+old.id+'&version=eq.'+old.version+'&deleted=eq.false',{method:'PATCH',body:{payload,version:old.version+1,updated_by:who.user.id,updated_at:now.toISOString()},prefer:'return=representation'});
+  if(!updated.length)fail('Otra persona actualizó la interrupción. Pulse Actualizar y vuelva a intentarlo.',409);
+  return json({record:updated[0]});
+ }
  if(api==='panel-monthly'&&request.method==='GET'){
   const month=Number(url.searchParams.get('month'));if(!Number.isInteger(month)||month<1||month>12)fail('Seleccione un mes válido.');
   const first=year+'-'+String(month).padStart(2,'0')+'-01',last=new Date(Date.UTC(year,month,0)).toISOString().slice(0,10);
@@ -72,13 +103,19 @@ export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid
  if(!kinds.includes(input.kind))fail('Seleccione un tipo de registro válido.');
  let old=null;if(input.id){if(!uuid(input.id)||!Number.isInteger(input.version)||input.version<1)fail('El registro no es válido.');old=(await sb('/rest/v1/panel_records?'+scope+'&id=eq.'+input.id+'&deleted=eq.false&select=id,kind,version,payload'))?.[0];if(!old||old.kind!==input.kind)fail('El registro no está disponible.',404);if(old.version!==input.version)fail('Otra persona actualizó este registro. Recargue los datos antes de editarlo.',409);}
  if(input.archive&&!old)fail('Seleccione el registro que desea archivar.');
- const payload=input.archive?old.payload:validate(input.kind,input.payload,year,fail);
+ let payload=input.archive?old.payload:validate(input.kind,input.payload,year,fail);
+ if(!input.archive&&input.kind==='service_outage'&&old)payload={...payload,documentId:old.payload.documentId||'',restoredAt:old.payload.restoredAt||'',restoredBy:old.payload.restoredBy||'',restorationNote:old.payload.restorationNote||''};
  if(!input.archive&&['service_order','service_outage'].includes(input.kind)&&payload.pointId){
   if(!uuid(payload.pointId))fail('Seleccione un punto válido.');
   const point=(await sb('/rest/v1/panel_records?'+scope+'&id=eq.'+payload.pointId+'&kind=eq.service_point&deleted=eq.false&select=id'))?.[0];
   if(!point)fail('El punto relacionado no está disponible para esta ASADA y año.');
  }
  if(!input.archive&&input.kind==='service_order'&&payload.documentId){
+  if(!uuid(payload.documentId))fail('La evidencia adjunta no es válida.');
+  const doc=(await sb('/rest/v1/asada_documents?asada_id=eq.'+asada.id+'&id=eq.'+payload.documentId+'&category=eq.'+encodeURIComponent('Evidencia de trabajo')+'&select=id'))?.[0];
+  if(!doc)fail('La evidencia no pertenece a esta ASADA.');
+ }
+ if(!input.archive&&input.kind==='service_outage'&&payload.documentId){
   if(!uuid(payload.documentId))fail('La evidencia adjunta no es válida.');
   const doc=(await sb('/rest/v1/asada_documents?asada_id=eq.'+asada.id+'&id=eq.'+payload.documentId+'&category=eq.'+encodeURIComponent('Evidencia de trabajo')+'&select=id'))?.[0];
   if(!doc)fail('La evidencia no pertenece a esta ASADA.');
@@ -173,10 +210,10 @@ function validate(kind,p,y,fail){
  if(kind==='service_outage'){
   if(!['En curso','Restablecido'].includes(p.state))fail('Revise el estado de la interrupción.');
   const dateStart=date('date'),dateEnd=p.endDate?date('endDate','any'):'',time=str('time',5),endTime=p.endTime?str('endTime',5):'';
-  if(!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(time)||endTime&&!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(endTime))fail('Revise la hora de la interrupción.');
+  if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)||endTime&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(endTime))fail('Revise la hora de la interrupción.');
   if(p.state==='Restablecido'&&(!dateEnd||!endTime||dateEnd+'T'+endTime<dateStart+'T'+time))fail('Indique cuándo se restableció el servicio.');
   const affected=num('affected');if(!Number.isInteger(affected))fail('Revise los abonados afectados.');
-  return {date:dateStart,time,sector:str('sector',160),cause:str('cause',500),affected,state:p.state,endDate:dateEnd,endTime,notice:str('notice',500,false),pointId:p.pointId?str('pointId',36):''};
+  return {date:dateStart,time,sector:str('sector',160),cause:str('cause',500),affected,state:p.state,endDate:dateEnd,endTime,notice:str('notice',500,false),pointId:p.pointId?str('pointId',36):'',documentId:p.documentId?str('documentId',36):'',restoredAt:typeof p.restoredAt==='string'?p.restoredAt:'',restoredBy:typeof p.restoredBy==='string'?p.restoredBy:'',restorationNote:typeof p.restorationNote==='string'?p.restorationNote:''};
  }
  if(kind==='service_point'){
   const latitude=num('latitude',true),longitude=num('longitude',true);
