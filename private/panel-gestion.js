@@ -1,6 +1,47 @@
 (()=>{
 'use strict';
 const root=document.getElementById('sw-asadas-demo'),$=s=>root.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const statementStyle=document.createElement('style');
+statementStyle.textContent=`
+#sw-asadas-demo .sw-insight{padding:28px;border:1px solid var(--sw-line);border-radius:16px;background:var(--sw-panel);color:var(--sw-text)}
+#sw-asadas-demo .sw-insight *{box-sizing:border-box}
+#sw-asadas-demo .sw-insight-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:24px}
+#sw-asadas-demo .sw-insight-eyebrow{display:block;color:var(--sw-brand);font-size:12px;font-weight:800;letter-spacing:.11em;margin-bottom:9px}
+#sw-asadas-demo .sw-insight h2{font-size:clamp(24px,2.7vw,32px);line-height:1.2;letter-spacing:-.025em;margin:0 0 7px}
+#sw-asadas-demo .sw-insight-heading p{color:var(--sw-muted);margin:0}
+#sw-asadas-demo .sw-insight-status{flex:none;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:700}
+#sw-asadas-demo .sw-insight-status.ok{background:#e5f5ee;color:#126244}
+#sw-asadas-demo .sw-insight-status.attention{background:#fff0e5;color:#9b451d}
+#sw-asadas-demo .sw-insight-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:0 0 22px}
+#sw-asadas-demo .sw-insight-metric{display:flex;flex-direction:column;gap:6px;min-width:0;min-height:126px;padding:18px;border:1px solid var(--sw-line);border-radius:12px;background:var(--sw-bg);border-top:3px solid var(--sw-brand)}
+#sw-asadas-demo .sw-insight-metric.expenses{border-top-color:#8098aa}
+#sw-asadas-demo .sw-insight-metric.negative{border-top-color:#bd604e;background:#fff8f5}
+#sw-asadas-demo .sw-insight-metric.cash{border-top-color:#579d82}
+#sw-asadas-demo .sw-insight-metric span{font-size:13px;font-weight:700;color:var(--sw-muted)}
+#sw-asadas-demo .sw-insight-metric strong{display:block;font-size:clamp(17px,1.8vw,23px);line-height:1.25;letter-spacing:-.025em;overflow-wrap:anywhere}
+#sw-asadas-demo .sw-insight-metric.negative strong{color:#a44635}
+#sw-asadas-demo .sw-insight-metric small{font-size:12px;color:var(--sw-muted);margin-top:auto}
+#sw-asadas-demo .sw-insight-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:0 0 20px}
+#sw-asadas-demo .sw-insight-chart{min-width:0;padding:22px;border:1px solid var(--sw-line);border-radius:12px;background:var(--sw-panel)}
+#sw-asadas-demo .sw-insight-chart h3,#sw-asadas-demo .sw-insight-reading h3{font-size:18px;margin:0 0 5px}
+#sw-asadas-demo .sw-insight-chart>p{font-size:13px;color:var(--sw-muted);margin:0 0 22px}
+#sw-asadas-demo .sw-insight-bar{margin:16px 0}
+#sw-asadas-demo .sw-insight-bar-label{display:flex;justify-content:space-between;gap:12px;align-items:baseline;font-size:13px}
+#sw-asadas-demo .sw-insight-bar-label strong{font-size:13px;white-space:nowrap}
+#sw-asadas-demo .sw-insight-track{display:block;width:100%;height:12px;margin-top:8px;background:var(--sw-bg);border-radius:999px;overflow:hidden}
+#sw-asadas-demo .sw-insight-track>span{display:block;height:100%;border-radius:999px;background:var(--sw-brand)}
+#sw-asadas-demo .sw-insight-track>span.expenses{background:#8098aa}
+#sw-asadas-demo .sw-insight-track>span.equity{background:#579d82}
+#sw-asadas-demo .sw-insight-reading{padding:22px;border-radius:12px;background:var(--sw-soft)}
+#sw-asadas-demo .sw-insight-reading h3{margin-bottom:14px}
+#sw-asadas-demo .sw-insight-alert{padding:14px 16px;border-left:4px solid #b45c41;border-radius:7px;background:#fff8f4;line-height:1.5;margin:0 0 16px}
+#sw-asadas-demo .sw-insight-points{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+#sw-asadas-demo .sw-insight-points p{margin:0;line-height:1.5;font-size:14px}
+#sw-asadas-demo .sw-insight-foot{font-size:12px;color:var(--sw-muted);line-height:1.5;margin:18px 0 0}
+@media(max-width:980px){#sw-asadas-demo .sw-insight-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}#sw-asadas-demo .sw-insight-points{grid-template-columns:1fr}}
+@media(max-width:680px){#sw-asadas-demo .sw-insight{padding:18px}#sw-asadas-demo .sw-insight-heading{display:block}#sw-asadas-demo .sw-insight-status{display:inline-block;margin-top:14px}#sw-asadas-demo .sw-insight-metrics,#sw-asadas-demo .sw-insight-charts{grid-template-columns:1fr}#sw-asadas-demo .sw-insight-metric{min-height:0}#sw-asadas-demo .sw-insight-chart{padding:16px}}
+`;
+document.head.appendChild(statementStyle);
 const money=n=>'₡'+Number(n||0).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2}),pct=n=>Number.isFinite(n)?n.toLocaleString('es-CR',{maximumFractionDigits:1})+' %':'Sin base';
 const months=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const modules=[['home','Resumen financiero'],['statements','Estados financieros'],['budget','Presupuesto de la ASADA'],['cash','Flujo de efectivo'],['petty','Caja chica'],['assets','Auxiliar de activos'],['board','Acuerdos de Junta Directiva'],['workplan','Plan de trabajo'],['payments','Acuerdos de pago para Junta Directiva'],['properties','Consulta de propiedades'],['finance-summary','Resumen financiero']];
@@ -281,18 +322,13 @@ function draw(){
 }
 function statementAnalysis(p){
  const cash=Number(p.cash||0),receivables=Number(p.receivables||0),fixed=Number(p.fixed||0),other=Number(p.other||0),liabilities=Number(p.liabilities||0),equity=Number(p.equity||0),income=Number(p.income||0),expenses=Number(p.expenses||0);
- const assets=cash+receivables+fixed+other,result=income-expenses,balanced=Math.abs(assets-liabilities-equity)<=.02;
- const metric=(label,value,sub)=>'<div class="sw-statement-metric"><span>'+esc(label)+'</span><strong class="'+(value<0?'sw-negative':'')+'">'+money(value)+'</strong><small>'+esc(sub)+'</small></div>';
- const bar=(label,value,max,color)=>'<div class="sw-statement-bar"><div><span>'+esc(label)+'</span><strong>'+money(value)+'</strong></div><span class="sw-statement-track"><span class="'+color+'" style="width:'+Math.max(0,Math.min(100,value/Math.max(1,max)*100))+'%"></span></span></div>';
+ const assets=cash+receivables+fixed+other,result=income-expenses,difference=assets-liabilities-equity,balanced=Math.abs(difference)<=.02;
+ const metric=(label,value,sub,tone='')=>'<div class="sw-insight-metric '+tone+'"><span>'+esc(label)+'</span><strong>'+money(value)+'</strong><small>'+esc(sub)+'</small></div>';
+ const bar=(label,value,max,color)=>'<div class="sw-insight-bar"><div class="sw-insight-bar-label"><span>'+esc(label)+'</span><strong>'+money(value)+'</strong></div><div class="sw-insight-track"><span class="'+color+'" style="width:'+Math.max(0,Math.min(100,value/Math.max(1,max)*100))+'%"></span></div></div>';
  const maxResult=Math.max(1,income,expenses),maxPosition=Math.max(1,assets,liabilities,equity);
- const observations=[];
- if(!balanced)observations.push('El balance no cuadra: activos y pasivos más patrimonio difieren en '+money(Math.abs(assets-liabilities-equity))+'. Revise los datos antes de presentar este informe.');
- if(income>0)observations.push('Por cada ₡100 de ingresos contables, se registraron '+money(expenses/income*100)+' en gastos.');
- else observations.push('No hay ingresos contables registrados para calcular la proporción de gastos.');
- if(result<0)observations.push('El período presenta un déficit de '+money(-result)+'. Conviene revisar sus causas con la administración y el contador.');
- else if(result>0)observations.push('El período presenta un excedente de '+money(result)+'. Revise el efectivo y los compromisos pendientes antes de destinarlo.');
- if(receivables>0)observations.push('Hay '+money(receivables)+' por cobrar; ese monto todavía no es efectivo disponible.');
- return '<section class="sw-panel sw-statement-analysis"><h2>Así se ven las finanzas de la ASADA</h2><p>Resumen del estado registrado al '+esc(p.date)+'. Los gráficos muestran este corte; el comparativo entre años aparece más abajo.</p><div class="sw-statement-metrics">'+metric('Ingresos',income,'Del período')+metric('Gastos',expenses,'Del período')+metric(result<0?'Déficit':'Excedente',result,'Ingresos menos gastos')+metric('Efectivo',cash,'Caja y bancos al corte')+'</div><div class="sw-statement-charts"><div><h3>Ingresos frente a gastos</h3>'+bar('Ingresos',income,maxResult,'income')+bar('Gastos',expenses,maxResult,'expense')+'</div><div><h3>Lo que tiene y cómo se financia</h3>'+bar('Activos',assets,maxPosition,'income')+bar('Pasivos',liabilities,maxPosition,'expense')+bar('Patrimonio',equity,maxPosition,'equity')+'</div></div><h3>Lectura para la Junta Directiva</h3><ul>'+observations.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul><p class="sw-note">Análisis descriptivo basado únicamente en las cifras registradas. Los ingresos y gastos contables pueden diferir de los cobros y pagos del flujo de efectivo.</p></section>';
+ const ratio=income>0?'Los gastos representan el '+pct(expenses/income*100)+' de los ingresos registrados.':'Aún no hay ingresos registrados para calcular esta relación.';
+ const resultText=result<0?'Los gastos superan los ingresos por '+money(-result)+'. Revise las causas con la administración y el contador.':result>0?'Los ingresos superan los gastos por '+money(result)+'. Verifique el efectivo y los pagos pendientes antes de tomar decisiones.':'Los ingresos y gastos registrados son iguales.';
+ return '<section class="sw-panel sw-insight"><div class="sw-insight-heading"><div><span class="sw-insight-eyebrow">ESTADOS FINANCIEROS · '+esc(year)+'</span><h2>Las finanzas de su ASADA, con claridad</h2><p>Cifras registradas al '+esc(p.date)+' · Montos en colones</p></div><span class="sw-insight-status '+(balanced?'ok':'attention')+'">'+(balanced?'Balance cuadrado':'Revisar balance')+'</span></div><div class="sw-insight-metrics">'+metric('Ingresos',income,'Durante el período','income')+metric('Gastos',expenses,'Durante el período','expenses')+metric(result<0?'Déficit':result>0?'Excedente':'Resultado',result,'Ingresos menos gastos',result<0?'negative':'result')+metric('Efectivo',cash,'Saldo al corte','cash')+'</div><div class="sw-insight-charts"><div class="sw-insight-chart"><h3>Ingresos y gastos</h3><p>Compare el resultado contable del período.</p>'+bar('Ingresos',income,maxResult,'income')+bar('Gastos',expenses,maxResult,'expenses')+'</div><div class="sw-insight-chart"><h3>Situación financiera</h3><p>Activos, deudas y patrimonio al corte.</p>'+bar('Activos',assets,maxPosition,'income')+bar('Pasivos',liabilities,maxPosition,'expenses')+bar('Patrimonio',equity,maxPosition,'equity')+'</div></div><div class="sw-insight-reading"><h3>Qué nos dicen estos números</h3>'+(balanced?'':'<p class="sw-insight-alert"><strong>El balance necesita revisión.</strong> Activos y pasivos más patrimonio difieren en '+money(Math.abs(difference))+'. Compruebe las cifras antes de presentar el informe.</p>')+'<div class="sw-insight-points"><p>'+esc(resultText)+'</p><p>'+esc(ratio)+'</p>'+(receivables>0?'<p>Hay '+money(receivables)+' por cobrar. Este monto todavía no es dinero disponible.</p>':'')+'</div></div><p class="sw-insight-foot">El análisis se basa en el estado registrado. Los ingresos y gastos contables pueden diferir de los cobros y pagos del flujo de efectivo.</p></section>';
 }
 function statementRows(p){return [['Efectivo y equivalentes',p.cash],['Cuentas por cobrar',p.receivables],['Activos fijos netos',p.fixed],['Otros activos',p.other],['Total de activos',p.cash+p.receivables+p.fixed+p.other],['Total de pasivos',p.liabilities],['Cuentas por pagar (incluidas en pasivos)',p.payables],['Patrimonio',p.equity],['Ingresos contables',p.income],['Gastos contables',p.expenses],['Resultado del período',p.income-p.expenses]];}
 function financialComment(p){
