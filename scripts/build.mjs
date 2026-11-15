@@ -12,7 +12,11 @@ async function updateProgramMenu(dir){
   if(entry.isDirectory()){await updateProgramMenu(file);continue;}
   if(!entry.isFile()||!entry.name.endsWith('.html'))continue;
   const html=await readFile(file,'utf8');
-  const updated=html.replace(/<nav\b[^>]*>[\s\S]*?<\/nav>/gi,menu=>menu.replace(/(<a\b[^>]*\bhref=(["'])(?:\/programa|(?:\.\.\/)*programa\.html)\2[^>]*>)El programa<\/a>\s*<a\b[^>]*\bhref=(["'])(?:\/ejes-desarrollo|(?:\.\.\/)*ejes-desarrollo\.html)\3[^>]*>Ejes de desarrollo<\/a>/gi,'$1Programa</a>'));
+  const normalized=html.replace(/<nav\b[^>]*>[\s\S]*?<\/nav>/gi,menu=>menu.replace(/(<a\b[^>]*\bhref=(["'])(?:\/programa|(?:\.\.\/)*programa\.html)\2[^>]*>)El programa<\/a>\s*<a\b[^>]*\bhref=(["'])(?:\/ejes-desarrollo|(?:\.\.\/)*ejes-desarrollo\.html)\3[^>]*>Ejes de desarrollo<\/a>/gi,'$1Programa</a>'));
+  const updated=normalized.replace(/<nav\b[^>]*\bid=(["'])nav-links\1[^>]*>[\s\S]*?<\/nav>/gi,menu=>{
+   if(menu.includes('/deteccion-de-fugas'))return menu;
+   return menu.replace(/<a\b[^>]*\bhref=(["'])(?:\/programa|(?:\.\.\/)*programa\.html)\1[^>]*>Programa<\/a>/i,'  if(updated!==html)<a href="/deteccion-de-fugas">Detección de fugas</a>');
+  });
   if(updated!==html)await writeFile(file,updated);
  }
 }
