@@ -6,6 +6,16 @@
   node_bundler = "esbuild"
   included_files = ["private/**"]
 [[redirects]]
+  from = "/ejes-desarrollo"
+  to = "/programa#ejes"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/ejes-desarrollo.html"
+  to = "/programa#ejes"
+  status = 301
+  force = true
+[[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/gateway?api=:splat"
   status = 200
