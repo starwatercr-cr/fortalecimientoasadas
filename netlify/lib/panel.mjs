@@ -1,10 +1,10 @@
 import {agreementMatches,agreementProgress,agreementWithProgress} from './agreement-search.mjs';
 import {computeWater} from '../../private/water-model.js';
-const kinds=['settings','movement','petty','budget','statement','asset','agreement','payment','workplan','water','cash_projection'];
+const kinds=['settings','movement','petty','budget','statement','asset','agreement','payment','workplan','water','cash_projection','service_order','service_outage','service_point','deadline'];
 export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError,profileStorage}){
  const fail=(m,s=400)=>{throw new PublicError(s,m);};
  const who=await authorized(sessionToken(request));const url=new URL(request.url);
- if(api==='panel-asadas')return json({isPlatformAdmin:who.admin===true,asadas:who.admin?await sb('/rest/v1/asadas?active=eq.true&select=id,name&order=name.asc'):[who.asada],canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role)});
+ if(api==='panel-asadas')return json({isPlatformAdmin:who.admin===true,asadas:who.admin?await sb('/rest/v1/asadas?active=eq.true&select=id,name&order=name.asc'):[who.asada],canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role),canEditOperations:who.admin||['Administración','Junta Directiva','Operación'].includes(who.role)});
  const input=request.method==='POST'?await body(request):null;
  const requested=input?.asada||url.searchParams.get('asada');
  let asada=who.asada;
@@ -32,16 +32,40 @@ export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid
  const year=Number(input?.year||url.searchParams.get('year'));if(!Number.isInteger(year)||year<1900||year>2200)fail('Seleccione un año válido.');
  const scope='asada_id=eq.'+asada.id+'&year=eq.'+year;
  if(['panel-data','panel-planning'].includes(api)&&request.method==='GET'){
-  let records=[];for(let offset=0;offset<50000;offset+=1000){const rows=await sb('/rest/v1/panel_records?'+scope+(api==='panel-planning'?'&kind=in.(workplan,water)':'')+'&deleted=eq.false&select=id,year,kind,payload,version,created_at,updated_at&order=created_at.asc,id.asc&limit=1000&offset='+offset);records.push(...rows);if(rows.length<1000)return json({asada,year,records:records.map(agreementWithProgress),canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role),canSaveWater:who.admin||['Administración','Junta Directiva','Operación'].includes(who.role)});}
+  let records=[];for(let offset=0;offset<50000;offset+=1000){const rows=await sb('/rest/v1/panel_records?'+scope+(api==='panel-planning'?'&kind=in.(workplan,water)':'')+'&deleted=eq.false&select=id,year,kind,payload,version,created_at,updated_at&order=created_at.asc,id.asc&limit=1000&offset='+offset);records.push(...rows);if(rows.length<1000)return json({asada,year,records:records.map(agreementWithProgress),canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role),canSaveWater:who.admin||['Administración','Junta Directiva','Operación'].includes(who.role),canEditOperations:who.admin||['Administración','Junta Directiva','Operación'].includes(who.role)});}
   fail('Este período requiere una consulta por bloques. Contacte a Star Water.',413);
+ }
+ if(api==='panel-order-file'&&request.method==='GET'){
+  const id=url.searchParams.get('id');if(!uuid(id))fail('Orden inválida.');
+  const order=(await sb('/rest/v1/panel_records?'+scope+'&id=eq.'+id+'&kind=eq.service_order&deleted=eq.false&select=payload'))?.[0];
+  if(!order||!uuid(order.payload?.documentId))fail('Esta orden no tiene evidencia adjunta.',404);
+  const doc=(await sb('/rest/v1/asada_documents?asada_id=eq.'+asada.id+'&id=eq.'+order.payload.documentId+'&select=*'))?.[0];
+  if(!doc||doc.category!=='Evidencia de trabajo'||!doc.path.startsWith(asada.id+'/'))fail('Evidencia no disponible.',404);
+  return new Response(await profileStorage('GET',doc.path),{headers:{'Content-Type':doc.type,'Content-Disposition':"attachment; filename*=UTF-8''"+encodeURIComponent(doc.filename),'Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY'}});
+ }
+ if(api==='panel-monthly'&&request.method==='GET'){
+  const month=Number(url.searchParams.get('month'));if(!Number.isInteger(month)||month<1||month>12)fail('Seleccione un mes válido.');
+  const first=year+'-'+String(month).padStart(2,'0')+'-01',last=new Date(Date.UTC(year,month,0)).toISOString().slice(0,10);
+  const rows=await sb('/rest/v1/operation_records?asada_id=eq.'+asada.id+'&deleted=eq.false&date=gte.'+first+'&date=lte.'+last+'&select=kind,payload,reviewed_at&limit=1000');
+  return json({month,waterMeasurements:rows.filter(r=>r.kind==='chlorine').length,operationalLogs:rows.filter(r=>r.kind==='log').length,qualityRecords:rows.filter(r=>r.kind==='chlorine'&&r.reviewed_at).length,limited:rows.length===1000});
  }
  if(api==='panel-history'&&request.method==='GET')return json({changes:await sb('/rest/v1/panel_changes?'+scope+'&select=id,record_id,actor,action,changed_at,current_data&order=changed_at.desc&limit=200')});
  if(api!=='panel-save'||request.method!=='POST')fail('Operación no disponible.',404);
- if(!who.admin&&!['Administración','Junta Directiva'].includes(who.role)&&!(input.kind==='water'&&who.role==='Operación'))fail('Su perfil permite consultar. La administración o la Junta pueden guardar cambios.',403);
+ if(!who.admin&&!['Administración','Junta Directiva'].includes(who.role)&&!(['water','service_order'].includes(input.kind)&&who.role==='Operación'))fail('Su perfil permite consultar. La administración o la Junta pueden guardar cambios.',403);
  if(!kinds.includes(input.kind))fail('Seleccione un tipo de registro válido.');
  let old=null;if(input.id){if(!uuid(input.id)||!Number.isInteger(input.version)||input.version<1)fail('El registro no es válido.');old=(await sb('/rest/v1/panel_records?'+scope+'&id=eq.'+input.id+'&deleted=eq.false&select=id,kind,version,payload'))?.[0];if(!old||old.kind!==input.kind)fail('El registro no está disponible.',404);if(old.version!==input.version)fail('Otra persona actualizó este registro. Recargue los datos antes de editarlo.',409);}
  if(input.archive&&!old)fail('Seleccione el registro que desea archivar.');
  const payload=input.archive?old.payload:validate(input.kind,input.payload,year,fail);
+ if(!input.archive&&['service_order','service_outage'].includes(input.kind)&&payload.pointId){
+  if(!uuid(payload.pointId))fail('Seleccione un punto válido.');
+  const point=(await sb('/rest/v1/panel_records?'+scope+'&id=eq.'+payload.pointId+'&kind=eq.service_point&deleted=eq.false&select=id'))?.[0];
+  if(!point)fail('El punto relacionado no está disponible para esta ASADA y año.');
+ }
+ if(!input.archive&&input.kind==='service_order'&&payload.documentId){
+  if(!uuid(payload.documentId))fail('La evidencia adjunta no es válida.');
+  const doc=(await sb('/rest/v1/asada_documents?asada_id=eq.'+asada.id+'&id=eq.'+payload.documentId+'&category=eq.'+encodeURIComponent('Evidencia de trabajo')+'&select=id'))?.[0];
+  if(!doc)fail('La evidencia no pertenece a esta ASADA.');
+ }
  if(input.kind==='payment'){
   if(input.archive&&['Aprobado','Pagado'].includes(old?.payload.state))fail('Los pagos aprobados o pagados se conservan. Registre una devolución para revisión antes de archivar.',409);
   if(!input.archive){
@@ -125,6 +149,27 @@ function validate(kind,p,y,fail){
  if(kind==='petty'){if(num('amount')<=0)fail('El monto debe ser mayor que cero.');if(typeof p.reimbursed!=='boolean')fail('Revise el reintegro.');return {date:date('date'),amount:num('amount'),concept:str('concept',500),reference:str('reference',160),responsible:str('responsible'),reimbursed:p.reimbursed,...(p.part!==undefined?{part:str('part')}:{}),...classification()};}
  if(kind==='budget')return {part:str('part'),amount:num('amount'),reference:str('reference',500,false),...classification()};
  if(kind==='statement'){const result={};for(const k of ['cash','receivables','fixed','other','liabilities','payables','equity','income','expenses'])result[k]=num(k,k==='equity');if(result.payables>result.liabilities)fail('Las cuentas por pagar no pueden superar el total de pasivos.');return {...result,date:date('date'),note:str('note',1000,false)};}
+ if(kind==='service_order'){
+  if(!['Pendiente','En proceso','Terminada'].includes(p.state)||!['Normal','Prioritaria','Urgente'].includes(p.priority))fail('Revise el estado y la prioridad.');
+  return {date:date('date'),title:str('title',300),sector:str('sector',160),responsible:str('responsible',160),due:date('due','any'),priority:p.priority,state:p.state,pointId:p.pointId?str('pointId',36):'',description:str('description',1500,false),resolution:str('resolution',1500,false),documentId:p.documentId?str('documentId',36):''};
+ }
+ if(kind==='service_outage'){
+  if(!['En curso','Restablecido'].includes(p.state))fail('Revise el estado de la interrupción.');
+  const dateStart=date('date'),dateEnd=p.endDate?date('endDate','any'):'',time=str('time',5),endTime=p.endTime?str('endTime',5):'';
+  if(!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(time)||endTime&&!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(endTime))fail('Revise la hora de la interrupción.');
+  if(p.state==='Restablecido'&&(!dateEnd||!endTime||dateEnd+'T'+endTime<dateStart+'T'+time))fail('Indique cuándo se restableció el servicio.');
+  const affected=num('affected');if(!Number.isInteger(affected))fail('Revise los abonados afectados.');
+  return {date:dateStart,time,sector:str('sector',160),cause:str('cause',500),affected,state:p.state,endDate:dateEnd,endTime,notice:str('notice',500,false),pointId:p.pointId?str('pointId',36):''};
+ }
+ if(kind==='service_point'){
+  const latitude=num('latitude',true),longitude=num('longitude',true);
+  if(latitude<8||latitude>12||longitude< -86||longitude> -82)fail('Revise las coordenadas en Costa Rica.');
+  return {date:date('date'),name:str('name',160),type:str('type',80),sector:str('sector',160),latitude,longitude,note:str('note',1000,false)};
+ }
+ if(kind==='deadline'){
+  if(!['Pendiente','Cumplido'].includes(p.state))fail('Revise el estado del compromiso.');
+  return {date:date('date'),title:str('title',300),category:str('category',100),responsible:str('responsible',160),state:p.state,note:str('note',1000,false)};
+ }
  if(kind==='asset'){const cost=num('cost'),depreciation=num('depreciation');if(depreciation>cost)fail('La depreciación acumulada no puede superar el costo.');return {code:str('code',80),name:str('name'),category:str('category'),date:date('date','before'),cost,depreciation,life:num('life'),location:str('location'),responsible:str('responsible'),state:str('state',80)};}
  if(kind==='payment'){
   if(!['Pendiente de aprobación','Aprobado','Devuelto para revisión','Pagado'].includes(p.state))fail('Seleccione el estado del pago.');
