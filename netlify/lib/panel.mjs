@@ -4,7 +4,7 @@ const kinds=['settings','movement','petty','budget','statement','asset','agreeme
 export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError,profileStorage}){
  const fail=(m,s=400)=>{throw new PublicError(s,m);};
  const who=await authorized(sessionToken(request));const url=new URL(request.url);
- if(api==='panel-asadas')return json({isPlatformAdmin:who.admin===true,asadas:who.admin?await sb('/rest/v1/asadas?active=eq.true&select=id,name&order=name.asc'):[who.asada],canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role),canEditOperations:who.admin||['Administración','Junta Directiva','Operación'].includes(who.role)});
+ if(api==='panel-asadas')return json({isPlatformAdmin:who.admin===true,asadas:who.admin?await sb('/rest/v1/asadas?active=eq.true&select=id,name&order=name.asc'):[who.asada],canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role),canEditOperations:who.admin||['Administración','Junta Directiva'].includes(who.role),canCompleteOrders:who.admin||['Administración','Junta Directiva','Operación'].includes(who.role)});
  const input=request.method==='POST'?await body(request):null;
  const requested=input?.asada||url.searchParams.get('asada');
  let asada=who.asada;
@@ -32,7 +32,7 @@ export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid
  const year=Number(input?.year||url.searchParams.get('year'));if(!Number.isInteger(year)||year<1900||year>2200)fail('Seleccione un año válido.');
  const scope='asada_id=eq.'+asada.id+'&year=eq.'+year;
  if(['panel-data','panel-planning'].includes(api)&&request.method==='GET'){
-  let records=[];for(let offset=0;offset<50000;offset+=1000){const rows=await sb('/rest/v1/panel_records?'+scope+(api==='panel-planning'?'&kind=in.(workplan,water)':'')+'&deleted=eq.false&select=id,year,kind,payload,version,created_at,updated_at&order=created_at.asc,id.asc&limit=1000&offset='+offset);records.push(...rows);if(rows.length<1000)return json({asada,year,records:records.map(agreementWithProgress),canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role),canSaveWater:who.admin||['Administración','Junta Directiva','Operación'].includes(who.role),canEditOperations:who.admin||['Administración','Junta Directiva','Operación'].includes(who.role)});}
+  let records=[];for(let offset=0;offset<50000;offset+=1000){const rows=await sb('/rest/v1/panel_records?'+scope+(api==='panel-planning'?'&kind=in.(workplan,water)':'')+'&deleted=eq.false&select=id,year,kind,payload,version,created_at,updated_at&order=created_at.asc,id.asc&limit=1000&offset='+offset);records.push(...rows);if(rows.length<1000)return json({asada,year,records:records.map(agreementWithProgress),canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role),canSaveWater:who.admin||['Administración','Junta Directiva','Operación'].includes(who.role),canEditOperations:who.admin||['Administración','Junta Directiva'].includes(who.role),canCompleteOrders:who.admin||['Administración','Junta Directiva','Operación'].includes(who.role)});}
   fail('Este período requiere una consulta por bloques. Contacte a Star Water.',413);
  }
  if(api==='panel-order-file'&&request.method==='GET'){
@@ -43,6 +43,23 @@ export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid
   if(!doc||doc.category!=='Evidencia de trabajo'||!doc.path.startsWith(asada.id+'/'))fail('Evidencia no disponible.',404);
   return new Response(await profileStorage('GET',doc.path),{headers:{'Content-Type':doc.type,'Content-Disposition':"attachment; filename*=UTF-8''"+encodeURIComponent(doc.filename),'Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY'}});
  }
+ if(api==='panel-order-complete'&&request.method==='POST'){
+  if(!who.admin&&!['Administración','Junta Directiva','Operación'].includes(who.role))fail('Su perfil no puede finalizar órdenes.',403);
+  if(!uuid(input.id)||!Number.isInteger(input.version)||input.version<1||!uuid(input.documentId))fail('Revise la orden y la fotografía.');
+  const note=typeof input.resolution==='string'?input.resolution.trim():'';
+  if(note.length>1500)fail('La nota del trabajo es demasiado extensa.');
+  const old=(await sb('/rest/v1/panel_records?'+scope+'&id=eq.'+input.id+'&kind=eq.service_order&deleted=eq.false&select=id,version,payload'))?.[0];
+  if(!old)fail('La orden no está disponible.',404);
+  if(old.version!==input.version)fail('Otra persona actualizó la orden. Pulse Actualizar y vuelva a intentarlo.',409);
+  if(old.payload.state==='Terminada')fail('La orden ya está terminada. Solicite a la administración cualquier corrección.',409);
+  const doc=(await sb('/rest/v1/asada_documents?asada_id=eq.'+asada.id+'&id=eq.'+input.documentId+'&category=eq.'+encodeURIComponent('Evidencia de trabajo')+'&select=id,type'))?.[0];
+  if(!doc||!['image/jpeg','image/png'].includes(doc.type))fail('Adjunte una fotografía JPG o PNG de esta ASADA.',400);
+  const now=new Date().toISOString();
+  const payload={...old.payload,state:'Terminada',resolution:note,documentId:doc.id,completedAt:now,completedBy:who.user.id};
+  const updated=await sb('/rest/v1/panel_records?'+scope+'&id=eq.'+old.id+'&version=eq.'+old.version+'&deleted=eq.false',{method:'PATCH',body:{payload,version:old.version+1,updated_by:who.user.id,updated_at:now},prefer:'return=representation'});
+  if(!updated.length)fail('Otra persona actualizó la orden. Pulse Actualizar y vuelva a intentarlo.',409);
+  return json({record:updated[0]});
+ }
  if(api==='panel-monthly'&&request.method==='GET'){
   const month=Number(url.searchParams.get('month'));if(!Number.isInteger(month)||month<1||month>12)fail('Seleccione un mes válido.');
   const first=year+'-'+String(month).padStart(2,'0')+'-01',last=new Date(Date.UTC(year,month,0)).toISOString().slice(0,10);
@@ -51,7 +68,7 @@ export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid
  }
  if(api==='panel-history'&&request.method==='GET')return json({changes:await sb('/rest/v1/panel_changes?'+scope+'&select=id,record_id,actor,action,changed_at,current_data&order=changed_at.desc&limit=200')});
  if(api!=='panel-save'||request.method!=='POST')fail('Operación no disponible.',404);
- if(!who.admin&&!['Administración','Junta Directiva'].includes(who.role)&&!(['water','service_order'].includes(input.kind)&&who.role==='Operación'))fail('Su perfil permite consultar. La administración o la Junta pueden guardar cambios.',403);
+ if(!who.admin&&!['Administración','Junta Directiva'].includes(who.role)&&!(input.kind==='water'&&who.role==='Operación'))fail('Su perfil permite consultar. La administración o la Junta pueden guardar cambios.',403);
  if(!kinds.includes(input.kind))fail('Seleccione un tipo de registro válido.');
  let old=null;if(input.id){if(!uuid(input.id)||!Number.isInteger(input.version)||input.version<1)fail('El registro no es válido.');old=(await sb('/rest/v1/panel_records?'+scope+'&id=eq.'+input.id+'&deleted=eq.false&select=id,kind,version,payload'))?.[0];if(!old||old.kind!==input.kind)fail('El registro no está disponible.',404);if(old.version!==input.version)fail('Otra persona actualizó este registro. Recargue los datos antes de editarlo.',409);}
  if(input.archive&&!old)fail('Seleccione el registro que desea archivar.');
