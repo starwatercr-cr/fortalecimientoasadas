@@ -1,6 +1,6 @@
 import {agreementMatches,agreementProgress,agreementWithProgress} from './agreement-search.mjs';
 import {computeWater} from '../../private/water-model.js';
-const kinds=['settings','movement','petty','budget','statement','asset','agreement','payment','workplan','water'];
+const kinds=['settings','movement','petty','budget','statement','asset','agreement','payment','workplan','water','cash_projection'];
 export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError,profileStorage}){
  const fail=(m,s=400)=>{throw new PublicError(s,m);};
  const who=await authorized(sessionToken(request));const url=new URL(request.url);
@@ -80,6 +80,16 @@ function validate(kind,p,y,fail){
   return result;
  };
 
+ if(kind==='cash_projection'){
+  const opening=num('opening',true);
+  if(!Array.isArray(p.lines)||!p.lines.length||p.lines.length>24)fail('Agregue entre 1 y 24 rubros.');
+  const lines=p.lines.map(line=>{
+   if(!line||!['in','out'].includes(line.type)||typeof line.label!=='string'||!line.label.trim()||line.label.length>60||!Array.isArray(line.values)||line.values.length!==12)fail('Revise el nombre y los 12 meses de cada rubro.');
+   const values=line.values.map(n=>{if(typeof n!=='number'||!Number.isFinite(n)||n<0||n>1e12)fail('Revise los montos mensuales.');return Math.round(n*100)/100;});
+   return {type:line.type,label:line.label.trim(),values};
+  });
+  return {opening,lines};
+ }
  if(kind==='workplan'){
   if(!['Junta Directiva','Administración','Operación'].includes(p.area))fail('Seleccione el área responsable.');
   if(!['Pendiente','En proceso','Cumplido','Cancelado'].includes(p.state))fail('Seleccione el estado de la actividad.');
