@@ -211,9 +211,10 @@ function validate(kind,p,y,fail){
   if(!['En curso','Restablecido'].includes(p.state))fail('Revise el estado de la interrupción.');
   const dateStart=date('date'),dateEnd=p.endDate?date('endDate','any'):'',time=str('time',5),endTime=p.endTime?str('endTime',5):'';
   if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)||endTime&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(endTime))fail('Revise la hora de la interrupción.');
-  if(p.state==='Restablecido'&&(!dateEnd||!endTime||dateEnd+'T'+endTime<dateStart+'T'+time))fail('Indique cuándo se restableció el servicio.');
+  const finalState=p.state==='En curso'&&dateEnd&&endTime?'Restablecido':p.state;
+  if((dateEnd&&!endTime)||(!dateEnd&&endTime)||finalState==='Restablecido'&&(!dateEnd||!endTime||dateEnd+'T'+endTime<dateStart+'T'+time))fail('Complete una fecha y hora de restablecimiento posterior al inicio.');
   const affected=num('affected');if(!Number.isInteger(affected))fail('Revise los abonados afectados.');
-  return {date:dateStart,time,sector:str('sector',160),cause:str('cause',500),affected,state:p.state,endDate:dateEnd,endTime,notice:str('notice',500,false),pointId:p.pointId?str('pointId',36):'',documentId:p.documentId?str('documentId',36):'',restoredAt:typeof p.restoredAt==='string'?p.restoredAt:'',restoredBy:typeof p.restoredBy==='string'?p.restoredBy:'',restorationNote:typeof p.restorationNote==='string'?p.restorationNote:''};
+  return {date:dateStart,time,sector:str('sector',160),cause:str('cause',500),affected,state:finalState,endDate:dateEnd,endTime,notice:str('notice',500,false),pointId:p.pointId?str('pointId',36):'',documentId:p.documentId?str('documentId',36):'',restoredAt:typeof p.restoredAt==='string'?p.restoredAt:'',restoredBy:typeof p.restoredBy==='string'?p.restoredBy:'',restorationNote:typeof p.restorationNote==='string'?p.restorationNote:''};
  }
  if(kind==='service_point'){
   const latitude=num('latitude',true),longitude=num('longitude',true);
