@@ -56,3 +56,6 @@ body.sw-app{margin:0;background:#f2f7f8}#sw-tools{border-radius:0;font-size:15px
 #sw-tools .sw-section h2{font-size:16px}
 #sw-tools .sw-identity small,#sw-tools .sw-person,#sw-tools .sw-status,#sw-tools .sw-detail p,#sw-tools .sw-detail ul{font-size:13px}
 @media(max-width:620px){#sw-tools .sw-tool h3{font-size:15px}}
+
+/* Menú y campos táctiles en iPhone y Android */
+@media(max-width:620px){#sw-tools .sw-side.sw-expanded .sw-help{display:block;margin-top:0}#sw-tools .sw-mobile{font-size:14px}#sw-tools .sw-search input,#sw-tools .portal-session input,#sw-tools select,#sw-tools textarea{font-size:16px}}
