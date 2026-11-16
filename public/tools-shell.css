@@ -47,3 +47,12 @@ body.sw-app{margin:0;background:#f2f7f8}#sw-tools{border-radius:0;font-size:15px
 #sw-tools .sw-manual-download{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:10px 16px;border-radius:8px;background:#087b85;color:#fff;text-decoration:none;font-weight:650;white-space:nowrap}#sw-tools .sw-manual-download:hover,#sw-tools .sw-manual-download:focus-visible{background:#075f68;color:#fff}
 #sw-tools .sw-help .sw-manual-side{font-weight:650;color:#a4f1ea}
 @media(max-width:720px){#sw-tools .sw-manual{flex-wrap:wrap}#sw-tools .sw-manual-download{width:100%}}
+
+/* Legibilidad coherente con el panel STRATEGIA 360 */
+#sw-tools{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;line-height:1.55}
+#sw-tools .sw-tool h3{font-size:15px}
+#sw-tools .sw-tool p,#sw-tools .sw-open,#sw-tools .sw-tab,#sw-tools .sw-decision p,#sw-tools .sw-help,#sw-tools .sw-manual p{font-size:13px}
+#sw-tools .sw-sub,#sw-tools .sw-search input,#sw-tools .sw-booking-link{font-size:14px}
+#sw-tools .sw-section h2{font-size:16px}
+#sw-tools .sw-identity small,#sw-tools .sw-person,#sw-tools .sw-status,#sw-tools .sw-detail p,#sw-tools .sw-detail ul{font-size:13px}
+@media(max-width:620px){#sw-tools .sw-tool h3{font-size:15px}}
