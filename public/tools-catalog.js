@@ -13,6 +13,7 @@ export const TOOLS=[
 {id:'orders',name:'Órdenes de trabajo',desc:'Asigne reparaciones y dé seguimiento a cada labor.',href:'panel-gestion.html',view:'orders',icon:'check',areas:['agua'],module:'panel'},
 {id:'outages',name:'Interrupciones del servicio',desc:'Registre sectores afectados y restablecimiento.',href:'panel-gestion.html',view:'outages',icon:'clock',areas:['agua'],module:'panel'},
 {id:'network',name:'Mapa del acueducto',desc:'Ubique la infraestructura y sus puntos críticos.',href:'panel-gestion.html',view:'network',icon:'map',areas:['agua'],module:'panel'},
+{id:'proyectos',name:'Portafolio de proyectos',desc:'Prepare perfiles con estudios, presupuesto, avances y respaldos para la Junta o financiadores.',href:'panel-gestion.html',view:'projects',icon:'target',areas:['junta'],module:'panel'},
 {id:'calendar',name:'Calendario de obligaciones',desc:'Vea fechas propias, acuerdos y planes por vencer.',href:'panel-gestion.html',view:'calendar',icon:'calendar',areas:['junta'],module:'panel'},
 {id:'monthly',name:'Informe mensual para la Junta',desc:'Reúna finanzas, trabajos, servicio y calidad en un PDF.',href:'panel-gestion.html',view:'monthly',icon:'file',areas:['junta'],module:'panel'},
 {id:'minae',name:'Mapa de fuentes · MINAE',desc:'Consulte información geográfica del agua.',href:'https://mapas.da.go.cr/mapnew.php',icon:'map',areas:['agua'],external:true,module:'agua'},

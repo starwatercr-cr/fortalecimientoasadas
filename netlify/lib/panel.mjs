@@ -1,6 +1,6 @@
 import {agreementMatches,agreementProgress,agreementWithProgress} from './agreement-search.mjs';
 import {computeWater} from '../../private/water-model.js';
-const kinds=['settings','movement','petty','budget','statement','asset','agreement','payment','workplan','water','cash_projection','service_order','service_outage','service_point','deadline'];
+const kinds=['settings','movement','petty','budget','statement','asset','agreement','payment','workplan','water','cash_projection','service_order','service_outage','service_point','deadline','project'];
 export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError,profileStorage}){
  const fail=(m,s=400)=>{throw new PublicError(s,m);};
  const who=await authorized(sessionToken(request));const url=new URL(request.url);
@@ -10,6 +10,24 @@ export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid
  let asada=who.asada;
  if(who.admin){if(!uuid(requested))fail('Seleccione una ASADA.');asada=(await sb('/rest/v1/asadas?id=eq.'+encodeURIComponent(requested)+'&active=eq.true&select=id,name'))?.[0];if(!asada)fail('La ASADA no está activa.',403);}
  else if(requested&&requested!==asada.id)fail('No tiene acceso a esta ASADA.',403);
+ if(api==='panel-projects'&&request.method==='GET'){
+  const records=[];
+  for(let offset=0;offset<10000;offset+=1000){
+   const rows=await sb('/rest/v1/panel_records?asada_id=eq.'+asada.id+'&kind=eq.project&deleted=eq.false&select=id,year,kind,payload,version,created_at,updated_at&order=created_at.desc,id.asc&limit=1000&offset='+offset);
+   records.push(...rows);
+   if(rows.length<1000)return json({asada,records,canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role)});
+  }
+  fail('Hay demasiados proyectos para mostrar. Contacte a Star Water.',413);
+ }
+ if(api==='panel-project-file'&&request.method==='GET'){
+  const id=url.searchParams.get('id'),documentId=url.searchParams.get('document');
+  if(!uuid(id)||!uuid(documentId))fail('Documento inválido.');
+  const record=(await sb('/rest/v1/panel_records?asada_id=eq.'+asada.id+'&id=eq.'+id+'&kind=eq.project&deleted=eq.false&select=payload'))?.[0];
+  if(!record||!record.payload?.documents?.some(d=>d.id===documentId))fail('El documento no pertenece a este proyecto.',404);
+  const doc=(await sb('/rest/v1/asada_documents?asada_id=eq.'+asada.id+'&id=eq.'+documentId+'&select=*'))?.[0];
+  if(!doc||doc.category!=='Otro documento'||!doc.path.startsWith(asada.id+'/'))fail('Documento no disponible.',404);
+  return new Response(await profileStorage('GET',doc.path),{headers:{'Content-Type':doc.type,'Content-Disposition':"attachment; filename*=UTF-8''"+encodeURIComponent(doc.filename),'Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY'}});
+ }
  if(api==='panel-agreements'&&request.method==='GET'){
   const raw=url.searchParams.get('year'),y=raw&&raw!=='all'?Number(raw):null; if(y!==null&&(!Number.isInteger(y)||y<1900||y>2200))fail('Seleccione un año válido.');const q=(url.searchParams.get('q')||'').trim(),offset=Number(url.searchParams.get('offset')||0);
   if(q.length>200||!Number.isInteger(offset)||offset<0||offset>50000)fail('Revise la búsqueda.');
@@ -155,6 +173,13 @@ export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid
   const document=(await sb('/rest/v1/asada_documents?asada_id=eq.'+asada.id+'&id=eq.'+payload.documentId+'&select=id,category'))?.[0];
   if(!document||document.category!=='Acuerdo de Junta Directiva')fail('El respaldo del acuerdo no pertenece a esta ASADA o no corresponde a un acuerdo.',403);
  }
+ if(!input.archive&&input.kind==='project'){
+  for(const docRef of payload.documents){
+   if(!uuid(docRef.id))fail('Adjunto de proyecto inválido.');
+   const doc=(await sb('/rest/v1/asada_documents?asada_id=eq.'+asada.id+'&id=eq.'+docRef.id+'&category=eq.'+encodeURIComponent('Otro documento')+'&select=id,type,filename'))?.[0];
+   if(!doc||doc.filename!==docRef.name||doc.type!==docRef.type)fail('El adjunto no pertenece a esta ASADA.',403);
+  }
+ }
  if(new TextEncoder().encode(JSON.stringify(payload)).length>10000)fail('El registro es demasiado extenso. Reduzca las observaciones o la cantidad de fuentes.',413);
  const row={payload,updated_by:who.user.id,updated_at:new Date().toISOString()};
  let result;
@@ -223,6 +248,21 @@ function validate(kind,p,y,fail){
  if(kind==='petty'){if(num('amount')<=0)fail('El monto debe ser mayor que cero.');if(typeof p.reimbursed!=='boolean')fail('Revise el reintegro.');return {date:date('date'),amount:num('amount'),concept:str('concept',500),reference:str('reference',160),responsible:str('responsible'),reimbursed:p.reimbursed,...(p.part!==undefined?{part:str('part')}:{}),...classification()};}
  if(kind==='budget')return {part:str('part'),amount:num('amount'),reference:str('reference',500,false),...classification()};
  if(kind==='statement'){const result={};for(const k of ['cash','receivables','fixed','other','liabilities','payables','equity','income','expenses'])result[k]=num(k,k==='equity');if(result.payables>result.liabilities)fail('Las cuentas por pagar no pueden superar el total de pasivos.');return {...result,date:date('date'),note:str('note',1000,false)};}
+ if(kind==='project'){
+  const type=str('type',80),state=str('state',80);
+  if(!['Tanque','Tubería','Macromedición','Fuente de agua','Calidad del agua','Otro'].includes(type))fail('Seleccione el tipo de proyecto.');
+  if(!['Idea','En estudio','Listo para financiar','En ejecución','Finalizado'].includes(state))fail('Seleccione el estado del proyecto.');
+  const progress=num('progress');if(progress>100)fail('El avance debe estar entre 0 y 100 %.');
+  const budget=num('budget'),secured=num('secured');if(secured>budget)fail('El financiamiento confirmado supera el presupuesto.');
+  if(!Array.isArray(p.documents)||p.documents.length>12)fail('Adjunte hasta 12 documentos por proyecto.');
+  const documents=p.documents.map(d=>{
+   if(!d||typeof d.id!=='string'||!/^[-0-9a-f]{36}$/i.test(d.id)||typeof d.name!=='string'||!d.name.trim()||d.name.length>160||!['application/pdf','image/jpeg','image/png'].includes(d.type)||!['Estudio técnico','Presupuesto','Acuerdo de Junta','Permiso','Fotografía','Otro respaldo'].includes(d.category))fail('Revise los documentos adjuntos.');
+   return {id:d.id,name:d.name.trim(),type:d.type,category:d.category};
+  });
+  if(new Set(documents.map(d=>d.id)).size!==documents.length)fail('Un documento está repetido.');
+  if(!['Normal','Alta','Urgente'].includes(p.priority))fail('Seleccione la prioridad.');
+  return {title:str('title',200),type,sector:str('sector',160),state,priority:str('priority',30),problem:str('problem',2500),solution:str('solution',2500,false),benefit:str('benefit',1500,false),scope:str('scope',2000,false),technical:str('technical',1200,false),budget,secured,funding:str('funding',800,false),responsible:str('responsible',160,false),agreement:str('agreement',500,false),permits:str('permits',1000,false),start:p.start?date('start','any'):'',target:p.target?date('target','any'):'',progress,notes:str('notes',1500,false),documents};
+ }
  if(kind==='service_order'){
   if(!['Pendiente','En proceso','Terminada'].includes(p.state)||!['Normal','Prioritaria','Urgente'].includes(p.priority))fail('Revise el estado y la prioridad.');
   return {date:date('date'),title:str('title',300),sector:str('sector',160),responsible:str('responsible',160),due:date('due','any'),priority:p.priority,state:p.state,pointId:p.pointId?str('pointId',36):'',description:str('description',1500,false),resolution:str('resolution',1500,false),documentId:p.documentId?str('documentId',36):''};
