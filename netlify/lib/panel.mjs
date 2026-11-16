@@ -91,6 +91,26 @@ export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid
   if(!updated.length)fail('Otra persona actualizó la interrupción. Pulse Actualizar y vuelva a intentarlo.',409);
   return json({record:updated[0]});
  }
+ if(api==='panel-outage-evidence'&&request.method==='POST'){
+  if(!who.admin&&!['Administración','Junta Directiva','Operación'].includes(who.role))fail('Su perfil no puede agregar evidencia.',403);
+  if(!uuid(input.id)||!Number.isInteger(input.version)||input.version<1||input.documentId&&!uuid(input.documentId))fail('Revise la interrupción y la fotografía.');
+  const note=typeof input.note==='string'?input.note.trim():'';
+  if(note.length>500||!note&&!input.documentId)fail('Agregue una fotografía o una nota breve.');
+  const old=(await sb('/rest/v1/panel_records?'+scope+'&id=eq.'+input.id+'&kind=eq.service_outage&deleted=eq.false&select=id,version,payload'))?.[0];
+  if(!old)fail('La interrupción no está disponible.',404);
+  if(old.version!==input.version)fail('Otra persona actualizó la interrupción. Pulse Actualizar y vuelva a intentarlo.',409);
+  if(old.payload.state!=='Restablecido')fail('Confirme primero que el servicio está restablecido.',409);
+  let documentId=old.payload.documentId||'';
+  if(input.documentId){
+   const doc=(await sb('/rest/v1/asada_documents?asada_id=eq.'+asada.id+'&id=eq.'+input.documentId+'&category=eq.'+encodeURIComponent('Evidencia de trabajo')+'&select=id,type'))?.[0];
+   if(!doc||!['image/jpeg','image/png'].includes(doc.type))fail('Adjunte una fotografía JPG o PNG de esta ASADA.');
+   documentId=doc.id;
+  }
+  const now=new Date().toISOString(),payload={...old.payload,documentId,restorationNote:note||old.payload.restorationNote||'',evidenceAt:now,evidenceBy:who.user.id};
+  const updated=await sb('/rest/v1/panel_records?'+scope+'&id=eq.'+old.id+'&version=eq.'+old.version+'&deleted=eq.false',{method:'PATCH',body:{payload,version:old.version+1,updated_by:who.user.id,updated_at:now},prefer:'return=representation'});
+  if(!updated.length)fail('Otra persona actualizó la interrupción. Pulse Actualizar y vuelva a intentarlo.',409);
+  return json({record:updated[0]});
+ }
  if(api==='panel-monthly'&&request.method==='GET'){
   const month=Number(url.searchParams.get('month'));if(!Number.isInteger(month)||month<1||month>12)fail('Seleccione un mes válido.');
   const first=year+'-'+String(month).padStart(2,'0')+'-01',last=new Date(Date.UTC(year,month,0)).toISOString().slice(0,10);
