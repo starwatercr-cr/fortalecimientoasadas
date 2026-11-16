@@ -1,4 +1,5 @@
-import {QUALITY_PARAMS,qualityReport,parameterUnits} from './water-parameters.js';
+import {QUALITY_PARAMS,qualityReport} from './water-parameters.js';
+import {readWaterAnalysis,extractWaterAnalysis} from '/quality-import.mjs';
 
 export const filledQualityRows=rows=>rows.filter(row=>String(row.value||'').trim());
 export function compactQualityResult(r){
@@ -27,38 +28,66 @@ export async function buildQualityWord(report,tasks){
  return Packer.toBlob(new Document({creator:d.name||'ASADA',title:'Resumen de calidad del agua',styles:{default:{document:{run:{font:'Arial',size:22,color:'000000'}}}},sections:[{properties:{page:{size:{width:12240,height:15840},margin:{top:1080,right:1440,bottom:1080,left:1440}}},children:c}]}));
 }
 function initQuality(){
- const $q=id=>document.getElementById(id);if(!$q('quality-form'))return;
- const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));let current=null,rowId=0,timer;const taskCache={};
- const context=()=>Object.fromEntries(['name','sample','date','lab','report','stage','origin','disinfection','temperature'].map(k=>[k,$q('q-'+k).value.trim()]));
- const readRow=div=>Object.fromEntries(['param','value','unit','ld'].map(k=>[k,div.querySelector('[data-q="'+k+'"]').value.trim()]));
- function reading(r){const brief=compactQualityResult(r);return `${brief.priority?'<p class="quality-priority">'+esc(brief.priority)+'</p>':''}<h3>${esc(brief.title)}</h3><p class="small"><strong>Referencia:</strong> ${esc(r.criterion)}</p><p><strong>Qué hacer:</strong> ${esc(brief.action)}</p>`;}
- function saveTasks(){document.querySelectorAll('.quality-task').forEach(t=>{taskCache[t.dataset.key]=Object.fromEntries(['action','owner','deadline','state'].map(k=>[k,t.querySelector('[data-task="'+k+'"]').value]));});}
- function tasksNow(){return [...document.querySelectorAll('.quality-task')].map(t=>({name:t.dataset.key,...Object.fromEntries(['action','owner','deadline','state'].map(k=>[k,t.querySelector('[data-task="'+k+'"]').value.trim()]))}));}
- function refresh(){
-  const c=context(),divs=[...$q('quality-rows').children],rows=divs.map(readRow),filled=filledQualityRows(rows),report=qualityReport(filled,c);
-  let idx=0;for(let i=0;i<divs.length;i++){const box=divs[i].querySelector('[data-q="reading"]');if(!rows[i].value){box.className='quality-reading';box.innerHTML='<h3>Ingrese el resultado</h3><p class="small">Aquí verá cómo está y qué hacer.</p>';continue;}const r=report.results[idx++];box.className='quality-reading '+r.status+(compactQualityResult(r).priority?.includes('inmediata')?' immediate':'');box.innerHTML=reading(r);}
-  const aggregate=report.results.slice(filled.length);$q('quality-aggregate').innerHTML=aggregate.map(r=>`<div class="quality-reading ${r.status}"><h3>${esc(r.name)}</h3><p>${esc(r.reported)} ${esc(r.unit)}</p>${reading(r)}</div>`).join('');
+ const $=id=>document.getElementById(id);if(!$('quality-upload-form'))return;
+ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ let asadas=[],asada='',canEdit=false,current=null,selected=null,records=[],busy=false;
+ const status=t=>{$('quality-message').textContent=t;};
+ async function api(route,input){
+  const response=await fetch('/api/'+route,{method:input?'POST':'GET',credentials:'same-origin',headers:input?{'Content-Type':'application/json'}:{},body:input?JSON.stringify(input):undefined});
+  const data=await response.json();if(!response.ok)throw Error(data.error||'No se pudo completar la operación.');return data;
  }
- function changed(){saveTasks();current=null;$q('quality-output').hidden=true;$q('quality-followup').hidden=true;$q('quality-download-status').textContent='';$q('quality-message').textContent='';clearTimeout(timer);timer=setTimeout(refresh,250);}
- function add(param='chlorine'){
-  const id=++rowId,p=QUALITY_PARAMS.find(p=>p.id===param),div=document.createElement('div');div.className='quality-input-row';
-  div.innerHTML=`<div class="quality-entry"><div class="quality-entry-top"><label for="q-param-${id}">Parámetro<select id="q-param-${id}" data-q="param">${QUALITY_PARAMS.map(p=>`<option value="${p.id}" ${p.id===param?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label><button type="button" class="button outline" data-q="remove" aria-label="Quitar parámetro ${id}">Quitar</button></div><div class="quality-entry-fields"><label for="q-value-${id}">Resultado<input id="q-value-${id}" data-q="value" maxlength="80" placeholder="Ej.: 0,45, ND o presente"></label><label for="q-unit-${id}">Unidad<select id="q-unit-${id}" data-q="unit">${parameterUnits(p).map(u=>'<option>'+esc(u)+'</option>').join('')}</select></label></div><details class="quality-ld"><summary>Límite de detección (si el informe lo indica)</summary><label for="q-ld-${id}">En la unidad seleccionada<input id="q-ld-${id}" data-q="ld" maxlength="40" placeholder="Ej.: 0,01"></label></details></div><div class="quality-reading" data-q="reading" aria-live="polite"><h3>Ingrese el resultado</h3><p class="small">Aquí verá cómo está y qué hacer.</p></div>`;
-  div.querySelector('[data-q="param"]').addEventListener('change',()=>{const np=QUALITY_PARAMS.find(p=>p.id===readRow(div).param);div.querySelector('[data-q="unit"]').innerHTML=parameterUnits(np).map(u=>'<option>'+esc(u)+'</option>').join('');div.querySelector('[data-q="value"]').value='';div.querySelector('[data-q="ld"]').value='';if(np.id==='fluoride'||np.id==='combined')$q('q-temperature').closest('details').open=true;changed();});
-  div.querySelector('[data-q="remove"]').addEventListener('click',()=>{div.remove();changed();});$q('quality-rows').append(div);
+ const asadaName=()=>asadas.find(x=>x.id===asada)?.name||'Su ASADA';
+ function render(payload,record){
+  current=qualityReport(payload.rows,{...payload.context,name:asadaName()});selected=record;
+  const results=current.results,flag=results.filter(r=>['urgent','outside','alert'].includes(r.status)).length,pending=results.filter(r=>r.status==='pending').length,favorable=results.filter(r=>r.status==='within').length;
+  $('quality-output').hidden=false;
+  $('quality-overview').textContent=payload.rows.length+' parámetros reconocidos · '+favorable+' con comparación favorable · '+flag+' requieren atención · '+pending+' por confirmar.';
+  $('quality-context').textContent='ASADA: '+asadaName()+' · Muestra: '+(payload.context.date||'Fecha no identificada')+' · '+({treated:'Agua tratada',raw:'Agua sin tratamiento',unknown:'Tipo de agua por confirmar'}[payload.context.stage])+' · '+payload.filename+(payload.ocr?' · Leído mediante reconocimiento de imagen':'');
+  $('quality-results').innerHTML=results.map((r,i)=>{const brief=compactQualityResult(r),source=payload.rows[i]?.source;return '<article class="quality-reading '+esc(r.status)+(brief.priority?' immediate':'')+'"><p class="small"><strong>'+esc(r.name)+'</strong> · '+esc(r.reported)+' '+esc(r.unit)+'</p>'+(brief.priority?'<p class="quality-priority">'+esc(brief.priority)+'</p>':'')+'<h3>'+esc(brief.title)+'</h3><p class="small"><strong>Referencia:</strong> '+esc(r.criterion)+'</p><p>'+esc(brief.action)+'</p>'+(source?'<p class="quality-source">Leído del informe: '+esc(source)+'</p>':'')+'</article>';}).join('');
+  const alerts=[...payload.warnings];if(payload.context.stage==='unknown'&&!alerts.some(w=>w.includes('tipo de agua')))alerts.push('No se confirmó el tipo de agua; no se declara cumplimiento.');
+  $('quality-warnings').hidden=!alerts.length;
+  $('quality-warnings').innerHTML=alerts.length?'<h3>Datos que requieren confirmar con el informe</h3><ul>'+alerts.map(w=>'<li>'+esc(w)+'</li>').join('')+'</ul>':'';
+  const original=$('quality-original');original.hidden=!record;original.href=record?'/api/panel-quality-file?asada='+encodeURIComponent(asada)+'&id='+encodeURIComponent(record.id):'#';
+  $('quality-download-status').textContent='';
+  $('quality-results-title').focus();
  }
- $q('quality-add').addEventListener('click',()=>{add();changed();});$q('quality-form').addEventListener('input',changed);$q('quality-form').addEventListener('change',changed);
- $q('quality-form').addEventListener('submit',e=>{
-  e.preventDefault();clearTimeout(timer);saveTasks();refresh();const rows=filledQualityRows([...$q('quality-rows').children].map(readRow));
-  if(!rows.length){$q('quality-message').textContent='Ingrese al menos un resultado.';return;}
-  if(new Set(rows.map(r=>r.param)).size!==rows.length){$q('quality-message').textContent='Hay parámetros repetidos. Use un resultado por parámetro de la misma muestra.';return;}
-  current=qualityReport(rows,context());const results=current.results,tasks=results.filter(r=>r.status!=='within'&&r.status!=='context');
-  $q('quality-output').hidden=false;$q('quality-followup').hidden=!tasks.length;
-  const favorable=results.filter(r=>r.status==='within').length;
-  $q('quality-overview').textContent=favorable+' con comparación favorable · '+tasks.length+' requieren atención o confirmación'+(results.some(r=>r.status==='context')?' · Agua sin tratamiento: no se califica cumplimiento.':'.');
-  $q('quality-tasks').innerHTML=tasks.map((r,i)=>{const t=taskCache[r.name]||{};return `<fieldset class="quality-task" data-key="${esc(r.name)}"><legend>${esc(r.name)} · ${esc(compactQualityResult(r).title)}</legend>${compactQualityResult(r).priority?'<p class="small"><strong>'+esc(compactQualityResult(r).priority)+'</strong></p>':''}<label for="q-task-action-${i}">Acción acordada<textarea id="q-task-action-${i}" data-task="action" rows="2" maxlength="3000" placeholder="Ej.: verificar medición y revisar el dosificador">${esc(t.action||'')}</textarea></label><div class="fin-fields"><label for="q-task-owner-${i}">Responsable<input id="q-task-owner-${i}" data-task="owner" maxlength="150" value="${esc(t.owner||'')}"></label><label for="q-task-deadline-${i}">Fecha de verificación<input id="q-task-deadline-${i}" data-task="deadline" type="date" value="${esc(t.deadline||'')}"></label></div><label for="q-task-state-${i}">Estado / resultado de la verificación<textarea id="q-task-state-${i}" data-task="state" rows="2" maxlength="3000">${esc(t.state||'')}</textarea></label></fieldset>`;}).join('');
-  $q('quality-results-title').focus();
+ function history(){
+  $('quality-history').innerHTML=records.length?records.map(r=>'<div class="quality-history-row"><div><strong>'+esc(r.payload.filename)+'</strong><small>'+(r.payload.context.date?esc(r.payload.context.date)+' · ':'')+esc(r.payload.rows.length)+' parámetros reconocidos'+(r.payload.ocr?' · Imagen escaneada':'')+'</small></div><button class="button outline" type="button" data-quality-view="'+esc(r.id)+'">Ver interpretación</button></div>').join(''):'<p>Aún no hay análisis guardados.</p>';
+ }
+ async function load(){
+  if(!asada){records=[];history();return;}
+  $('quality-history').textContent='Cargando análisis…';
+  const d=await api('panel-quality-list?asada='+encodeURIComponent(asada));records=d.records;canEdit=d.canEdit;history();
+  $('quality-read').disabled=!canEdit;
+  if(!canEdit)status('Su perfil permite consultar análisis; la administración o la Junta pueden adjuntar nuevos informes.');
+ }
+ $('quality-asada').addEventListener('change',async e=>{asada=e.target.value;current=null;selected=null;$('quality-output').hidden=true;try{await load();}catch(error){status(error.message);}});
+ $('quality-history').addEventListener('click',e=>{const button=e.target.closest('[data-quality-view]');if(!button)return;const r=records.find(x=>x.id===button.dataset.qualityView);if(r){render(r.payload,r);$('quality-output').scrollIntoView({behavior:'smooth',block:'start'});}});
+ $('quality-upload-form').addEventListener('submit',async e=>{
+  e.preventDefault();if(busy||!canEdit||!asada)return;
+  const file=$('quality-file').files[0];if(!file)return;
+  busy=true;$('quality-read').disabled=true;status('Leyendo el análisis…');
+  try{
+   const reading=await readWaterAnalysis(file,status);
+   const extracted=extractWaterAnalysis(reading.lines,QUALITY_PARAMS);
+   if(!extracted.rows.length)throw Error('No se identificaron resultados con unidad y valor suficientes para una interpretación segura. Pruebe con un PDF legible o una foto nítida de una sola muestra.');
+   if(extracted.rows.length>30)throw Error('El informe tiene demasiados parámetros para una lectura automática. Use el análisis de una sola muestra.');
+   const preview={documentId:'00000000-0000-0000-0000-000000000000',filename:file.name.slice(0,160),ocr:reading.ocr,context:{...extracted.context,name:asadaName()},rows:extracted.rows,warnings:extracted.warnings};
+   if(new TextEncoder().encode(JSON.stringify(preview)).length>9500)throw Error('El documento contiene demasiados datos para guardarlos automáticamente. Use el análisis de una sola muestra.');
+   status('Guardando el documento y los resultados reconocidos…');
+   const type=file.type||({pdf:'application/pdf',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png'}[file.name.split('.').at(-1).toLowerCase()]||'');
+   const label=('Análisis de agua · '+file.name.replace(/\.[^.]+$/,'')).slice(0,160);
+   const params=new URLSearchParams({asada,name:label,category:'Otro documento'});
+   const response=await fetch('/api/profile-upload?'+params,{method:'POST',credentials:'same-origin',headers:{'Content-Type':type},body:file}),uploaded=await response.json();
+   if(!response.ok)throw Error(uploaded.error||'No se pudo guardar el informe.');
+   const context={...extracted.context,name:asadaName()},payload={documentId:uploaded.document.id,filename:file.name.slice(0,160),ocr:reading.ocr,context,rows:extracted.rows,warnings:extracted.warnings};
+   const year=Number(context.date.slice(0,4))||Number(new Date().toLocaleDateString('en-CA',{timeZone:'America/Costa_Rica'}).slice(0,4));
+   const saved=await api('panel-save',{asada,year,kind:'quality_analysis',payload});
+   await load();render(saved.record.payload,saved.record);$('quality-file').value='';
+   status('Análisis guardado. Revise los parámetros reconocidos y las observaciones de la lectura.');
+  }catch(error){status(error.message);}finally{busy=false;$('quality-read').disabled=!canEdit;}
  });
- $q('quality-download').addEventListener('click',async()=>{if(!current)return;const button=$q('quality-download');button.disabled=true;$q('quality-download-status').textContent='Preparando el resumen…';try{const blob=await buildQualityWord(current,tasksNow()),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Resumen_Calidad_Agua_ASADA.docx';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);$q('quality-download-status').textContent='Resumen preparado.';}catch{$q('quality-download-status').textContent='No se pudo descargar. Intente nuevamente.';}finally{button.disabled=false;}});
- for(const p of ['ecoli','fecal','chlorine','turbidity','ph','color'])add(p);
+ $('quality-download').addEventListener('click',async()=>{if(!current)return;const b=$('quality-download');b.disabled=true;$('quality-download-status').textContent='Preparando la interpretación…';try{const blob=await buildQualityWord(current,[]),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Interpretacion_Calidad_Agua_ASADA.docx';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);$('quality-download-status').textContent='Documento preparado.';}catch(error){$('quality-download-status').textContent='No se pudo descargar. Intente nuevamente.';}finally{b.disabled=false;}});
+ (async()=>{try{const d=await api('panel-asadas');asadas=d.asadas;canEdit=d.canEdit;$('quality-asada').innerHTML=asadas.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.name)+'</option>').join('');$('quality-asada-label').hidden=asadas.length<=1;asada=asadas[0]?.id||'';if(!asada)throw Error('No hay una ASADA disponible.');await load();if(canEdit)status('Adjunte un informe para iniciar la lectura automática.');}catch(error){status(error.message);$('quality-read').disabled=true;$('quality-history').textContent='No se pudieron cargar los análisis.';}})();
 }
 if(typeof document!=='undefined'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initQuality);else initQuality();}

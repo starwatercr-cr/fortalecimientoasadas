@@ -1,6 +1,7 @@
 import {agreementMatches,agreementProgress,agreementWithProgress} from './agreement-search.mjs';
 import {computeWater} from '../../private/water-model.js';
-const kinds=['settings','movement','petty','budget','statement','asset','agreement','payment','workplan','water','cash_projection','service_order','service_outage','service_point','deadline','project'];
+import {QUALITY_PARAMS,parameterUnits} from '../../private/water-parameters.js';
+const kinds=['settings','movement','petty','budget','statement','asset','agreement','payment','workplan','water','cash_projection','service_order','service_outage','service_point','deadline','project','quality_analysis'];
 export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError,profileStorage}){
  const fail=(m,s=400)=>{throw new PublicError(s,m);};
  const who=await authorized(sessionToken(request));const url=new URL(request.url);
@@ -10,6 +11,22 @@ export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid
  let asada=who.asada;
  if(who.admin){if(!uuid(requested))fail('Seleccione una ASADA.');asada=(await sb('/rest/v1/asadas?id=eq.'+encodeURIComponent(requested)+'&active=eq.true&select=id,name'))?.[0];if(!asada)fail('La ASADA no está activa.',403);}
  else if(requested&&requested!==asada.id)fail('No tiene acceso a esta ASADA.',403);
+ if(api==='panel-quality-list'&&request.method==='GET'){
+  const records=[];
+  for(let offset=0;offset<5000;offset+=1000){
+   const rows=await sb('/rest/v1/panel_records?asada_id=eq.'+asada.id+'&kind=eq.quality_analysis&deleted=eq.false&select=id,year,kind,payload,version,created_at,updated_at&order=created_at.desc,id.asc&limit=1000&offset='+offset);
+   records.push(...rows);if(rows.length<1000)return json({asada,records,canEdit:who.admin||['Administración','Junta Directiva'].includes(who.role)});
+  }
+  fail('Hay demasiados análisis para mostrar. Contacte a Star Water.',413);
+ }
+ if(api==='panel-quality-file'&&request.method==='GET'){
+  const id=url.searchParams.get('id');if(!uuid(id))fail('Análisis inválido.');
+  const record=(await sb('/rest/v1/panel_records?asada_id=eq.'+asada.id+'&id=eq.'+id+'&kind=eq.quality_analysis&deleted=eq.false&select=payload'))?.[0];
+  if(!record||!uuid(record.payload?.documentId))fail('El análisis no está disponible.',404);
+  const doc=(await sb('/rest/v1/asada_documents?asada_id=eq.'+asada.id+'&id=eq.'+record.payload.documentId+'&select=*'))?.[0];
+  if(!doc||doc.category!=='Otro documento'||!doc.path.startsWith(asada.id+'/'))fail('Documento no disponible.',404);
+  return new Response(await profileStorage('GET',doc.path),{headers:{'Content-Type':doc.type,'Content-Disposition':"attachment; filename*=UTF-8''"+encodeURIComponent(doc.filename),'Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY'}});
+ }
  if(api==='panel-projects'&&request.method==='GET'){
   const records=[];
   for(let offset=0;offset<10000;offset+=1000){
@@ -173,6 +190,11 @@ export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid
   const document=(await sb('/rest/v1/asada_documents?asada_id=eq.'+asada.id+'&id=eq.'+payload.documentId+'&select=id,category'))?.[0];
   if(!document||document.category!=='Acuerdo de Junta Directiva')fail('El respaldo del acuerdo no pertenece a esta ASADA o no corresponde a un acuerdo.',403);
  }
+ if(!input.archive&&input.kind==='quality_analysis'){
+  if(!uuid(payload.documentId))fail('El documento del análisis no es válido.');
+  const doc=(await sb('/rest/v1/asada_documents?asada_id=eq.'+asada.id+'&id=eq.'+payload.documentId+'&category=eq.'+encodeURIComponent('Otro documento')+'&select=id,type'))?.[0];
+  if(!doc||!['application/pdf','image/png','image/jpeg'].includes(doc.type))fail('El archivo no pertenece a esta ASADA.',403);
+ }
  if(!input.archive&&input.kind==='project'){
   for(const docRef of payload.documents){
    if(!uuid(docRef.id))fail('Adjunto de proyecto inválido.');
@@ -248,6 +270,22 @@ function validate(kind,p,y,fail){
  if(kind==='petty'){if(num('amount')<=0)fail('El monto debe ser mayor que cero.');if(typeof p.reimbursed!=='boolean')fail('Revise el reintegro.');return {date:date('date'),amount:num('amount'),concept:str('concept',500),reference:str('reference',160),responsible:str('responsible'),reimbursed:p.reimbursed,...(p.part!==undefined?{part:str('part')}:{}),...classification()};}
  if(kind==='budget')return {part:str('part'),amount:num('amount'),reference:str('reference',500,false),...classification()};
  if(kind==='statement'){const result={};for(const k of ['cash','receivables','fixed','other','liabilities','payables','equity','income','expenses'])result[k]=num(k,k==='equity');if(result.payables>result.liabilities)fail('Las cuentas por pagar no pueden superar el total de pasivos.');return {...result,date:date('date'),note:str('note',1000,false)};}
+ if(kind==='quality_analysis'){
+  if(typeof p.documentId!=='string'||!/^[-0-9a-f]{36}$/i.test(p.documentId))fail('Adjunte un análisis de agua válido.');
+  const context=p.context;if(!context||typeof context!=='object'||Array.isArray(context))fail('Revise los datos de la muestra.');
+  const cs=(k,max=150)=>typeof context[k]==='string'&&context[k].length<=max?context[k].trim():fail('Revise el dato '+k+'.');
+  if(!['treated','raw','unknown'].includes(context.stage)||!['groundwater','surface','mixed','unknown'].includes(context.origin)||!['free','combined','unknown'].includes(context.disinfection))fail('Revise el tipo de muestra.');
+  const sampleDate=context.date?cs('date',10):'';if(sampleDate){const parsed=new Date(sampleDate+'T12:00:00Z');if(!/^\d{4}-\d{2}-\d{2}$/.test(sampleDate)||Number.isNaN(parsed.getTime())||parsed.toISOString().slice(0,10)!==sampleDate)fail('Revise la fecha de la muestra.');}
+  if(!Array.isArray(p.rows)||!p.rows.length||p.rows.length>50)fail('No se identificaron resultados suficientes.');
+  const rows=p.rows.map(row=>{
+   const param=QUALITY_PARAMS.find(x=>x.id===row?.param);
+   if(!param||typeof row.value!=='string'||!row.value.trim()||row.value.length>80||typeof row.unit!=='string'||!parameterUnits(param).includes(row.unit)||typeof row.ld!=='string'||row.ld.length>40||typeof row.source!=='string'||row.source.length>180||!Number.isInteger(row.page)||row.page<1||row.page>12)fail('Revise los resultados reconocidos.');
+   return {param:param.id,value:row.value.trim(),unit:row.unit,ld:row.ld.trim(),source:row.source.trim(),page:row.page};
+  });
+  if(new Set(rows.map(r=>r.param)).size!==rows.length)fail('El análisis contiene parámetros duplicados.');
+  if(typeof p.filename!=='string'||!p.filename.trim()||p.filename.length>160||typeof p.ocr!=='boolean'||!Array.isArray(p.warnings)||p.warnings.length>20||p.warnings.some(w=>typeof w!=='string'||w.length>180))fail('Revise los datos del archivo.');
+  return {documentId:p.documentId,filename:p.filename.trim(),ocr:p.ocr,context:{name:cs('name'),sample:cs('sample',200),date:sampleDate,lab:cs('lab'),report:cs('report',100),stage:context.stage,origin:context.origin,disinfection:context.disinfection,temperature:cs('temperature',30)},rows,warnings:p.warnings};
+ }
  if(kind==='project'){
   const type=str('type',80),state=str('state',80);
   if(!['Tanque','Tubería','Macromedición','Fuente de agua','Calidad del agua','Otro'].includes(type))fail('Seleccione el tipo de proyecto.');
