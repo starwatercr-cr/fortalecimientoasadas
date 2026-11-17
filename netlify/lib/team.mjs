@@ -45,7 +45,8 @@ export async function teamAPI(api,request,{sb,authorized,sessionToken,body,uuid,
  const related=old?old.related_id:input.related_id||null;
  if(['evaluation','event','document','labor_contract'].includes(input.kind)&&!input.archive)await find(related,'employee');
  if(['employee','profile'].includes(input.kind)&&related)fail('Este registro no se vincula a un trabajador.');
- const payload=input.archive?old.payload:validateTeam(input.kind,input.payload,fail);
+ let payload=input.archive?old.payload:validateTeam(input.kind,input.payload,fail);
+ if(input.kind==='event'&&!input.archive){if(old&&Boolean(old.payload.salaryVersion)!==Boolean(payload.salaryVersion))fail('Conserve el tipo de registro.');if(payload.salaryVersion){const employee=await find(related,'employee');payload={...payload,asadaName:asada.name,workerName:employee.payload.name,workerIdentity:employee.payload.identity||'',workerPosition:employee.payload.position};}}
  if(old&&input.kind==='evaluation'&&!input.archive&&(old.payload.evaluationVersion||1)!==(payload.evaluationVersion||1))fail('Conserve el modelo de esta evaluación. Cree una nueva evaluación para utilizar la escala sobre 100.');
  if(Buffer.byteLength(JSON.stringify(payload),'utf8')>9200)fail('El registro contiene demasiado texto. Resuma los ejemplos y observaciones antes de guardar.',413);
  if(input.kind==='employee'&&payload.profile_id&&!input.archive)await find(payload.profile_id,'profile');
@@ -66,6 +67,14 @@ export function validateTeam(kind,p,fail){
   if(!['Activo','Inactivo'].includes(result.status)||!['Mensual','Quincenal','Semanal','Por hora','Otro'].includes(result.salaryPeriod))fail('Seleccione el estado y la periodicidad del salario.');if(result.end&&result.end<result.start)fail('La salida no puede ser anterior al ingreso.');return result;
  }
  if(kind==='profile'){const r={name:str('name','el nombre del puesto',160),type:str('type','el tipo de puesto',80),purpose:str('purpose','el propósito',800),daily:str('daily','las tareas diarias',800,false),weekly:str('weekly','las tareas semanales',800,false),monthly:str('monthly','las tareas mensuales',800,false),occasional:str('occasional','las tareas ocasionales',800,false),supervisor:str('supervisor','a quién informa',300),authority:str('authority','la autoridad del puesto',800),requirements:str('requirements','la preparación necesaria',800),resources:str('resources','los recursos',800),results:str('results','los resultados esperados',800)};if(!evaluationCriteria[r.type])fail('Seleccione un tipo de puesto.');return r;}
+ if(kind==='event'&&p.salaryVersion!==undefined){
+  if(p.salaryVersion!==1||typeof p.month!=='string'||!/^2026-(0[1-9]|1[0-2])$/.test(p.month)||typeof p.spouse!=='boolean')fail('Revise el mes del salario (2026) y los créditos aplicables.');
+  const gross=number('gross','el salario bruto'),round=n=>Math.round((n+Number.EPSILON)*100)/100;
+  const sem=round(gross*.055),ivm=round(gross*.0433),bp=round(gross*.01);let tax=0,lower=0;
+  for(const [upper,rate]of [[918000,0],[1347000,.10],[2364000,.15],[4727000,.20],[Infinity,.25]]){tax+=Math.max(0,Math.min(gross,upper)-lower)*rate;lower=upper;if(gross<=upper)break;}
+  const beforeCredit=round(tax),credit=Math.min(beforeCredit,p.spouse?2590:0),incomeTax=round(beforeCredit-credit),contributions=round(sem+ivm+bp);
+  return {salaryVersion:1,month:p.month,gross,spouse:p.spouse,type:'Seguimiento',date:p.month+'-01',end:'',title:'Salario mensual '+p.month,quantity:gross,unit:'CRC',responsible:'Administración',note:'',result:{sem,ivm,bp,beforeCredit,credit,incomeTax,contributions,net:round(gross-contributions-incomeTax)}};
+ }
  if(kind==='event'){const r={type:str('type','el tipo de seguimiento',80),date:dt('date','la fecha'),end:dt('end','la fecha final',false),title:str('title','el motivo',300),quantity:number('quantity','la cantidad'),unit:str('unit','la unidad',60,false),responsible:str('responsible','el responsable',160),note:str('note','las observaciones',1200,false)};if(!['Vacaciones','Permiso','Capacitación','Entrega de equipo','Seguimiento'].includes(r.type))fail('Seleccione un tipo de seguimiento.');if(r.end&&r.end<r.date)fail('Revise las fechas del seguimiento.');return r;}
  if(kind==='evaluation'){
   const r={type:str('type','el tipo de puesto',80),start:dt('start','el inicio del período'),end:dt('end','el cierre del período'),date:dt('date','la fecha de evaluación'),evaluator:str('evaluator','quién evalúa',160),strengths:str('strengths','las fortalezas',1000,false),difficulties:str('difficulties','las dificultades',1000,false),support:str('support','el apoyo necesario',1000),workerComment:str('workerComment','el comentario del trabajador',1000,false),commitment:str('commitment','el compromiso de mejora',1000),responsible:str('responsible','el responsable del seguimiento',160),review:dt('review','la fecha de revisión')};
@@ -80,3 +89,4 @@ export function validateTeam(kind,p,fail){
  }
  fail('Tipo de registro no válido.');
 }
+

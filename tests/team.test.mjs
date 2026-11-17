@@ -32,3 +32,17 @@ test('No se cambian escalas de evaluaciones históricas y las nuevas requieren r
  for(const score of [0,4,6])await assert.rejects(h.save('evaluation',{...modern,ratings:modern.ratings.map(r=>({...r,score,evidence:''}))},{related_id:w.id}),e=>e.status===400);
  await assert.rejects(h.save('evaluation',{...modern,ratings:modern.ratings.slice(1)},{related_id:w.id}),e=>e.status===400);
 });
+
+
+test('Salario mensual se guarda privado, calcula rebajos en servidor y conserva versiones',async()=>{
+ const h=harness(),w=await h.save('employee',worker);
+ const payload={salaryVersion:1,month:'2026-11',gross:1000000,spouse:false,result:{net:9999999},workerName:'Falso'};
+ const r=await h.save('event',payload,{related_id:w.id});
+ assert.equal(r.payload.result.net,883500);assert.equal(r.payload.result.incomeTax,8200);assert.equal(r.payload.workerName,'Ana');assert.equal(r.payload.asadaName,'ASADA A');
+ const data=await(await h.call('team-data?asada='+A)).json();assert.equal(data.records[1].payload.month,'2026-11');
+ const updated=await h.save('event',{...payload,gross:800000},{id:r.id,version:1});assert.equal(updated.payload.result.net,713360);
+ await assert.rejects(h.save('event',payload,{id:r.id,version:1}),e=>e.status===409);
+ for(const bad of [{month:'2027-01'},{month:'2026-13'},{gross:-1},{spouse:'true'}])await assert.rejects(h.save('event',{...payload,...bad},{related_id:w.id}),e=>e.status===400);
+ await assert.rejects(h.save('event',payload,{related_id:B}),e=>e.status===404);
+ await assert.rejects(h.save('event',{...payload,salaryVersion:2},{related_id:w.id}),e=>e.status===400);
+});
