@@ -46,7 +46,7 @@
   }
   adminList.innerHTML=d.asadas.map(x=>{
    const expired=trialExpired(x),on=x.active&&!expired,trial=x.access_kind==='trial';
-   const detail=trial?(expired?'Prueba vencida · Activar concede 3 días':'En prueba · vence '+new Date(x.trial_ends_at).toLocaleString('es-CR',{timeZone:'America/Costa_Rica'})):'Contratada';
+   const detail=trial?(expired?'Prueba vencida · Activar concede 5 días':'En prueba · vence '+new Date(x.trial_ends_at).toLocaleString('es-CR',{timeZone:'America/Costa_Rica'})):'Contratada';
    const team=members.get(x.id)||[];
    return `<article class="water-panel">
     <div class="portal-access-row"><div><h3>${safe(x.name)}</h3><p>${on?'Activa':'Inactiva'} · ${safe(detail)}</p></div>${accessSwitch(x.id,'asada',on,x.name)}</div>
@@ -78,7 +78,7 @@
    const result=convert?await api('admin-trial-convert',{id:target,confirm:true}):await api('admin-toggle',{id:target,kind:'asada',active});
    await loadAdmin();
    [...adminList.querySelectorAll('button[data-id]')].find(x=>x.dataset.id===target)?.focus({preventScroll:true});
-   notify(convert?'ASADA contratada y activa.':result.renewed?'Prueba reactivada por 3 días.':active?'ASADA activada.':'ASADA desactivada.');
+   notify(convert?'ASADA contratada y activa.':result.renewed?'Prueba reactivada por 5 días.':active?'ASADA activada.':'ASADA desactivada.');
   }catch(err){notify(err.message);btn.disabled=false;}
   finally{accessSaving=false;}
  });

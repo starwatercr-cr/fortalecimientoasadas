@@ -70,7 +70,7 @@ async function authorizeToken(token){if(!token)throw new PublicError(401,'Inicie
  }
  const membership=rows?.[0];
  if(!membership?.asadas?.active)throw new PublicError(403,'Su acceso no está activo. Consulte a Star Water.');
- if(membership.asadas.access_kind==='trial'&&(!Number.isFinite(Date.parse(membership.asadas.trial_ends_at))||Date.now()>=Date.parse(membership.asadas.trial_ends_at)))throw new PublicError(402,'Su prueba gratuita de 3 días terminó. Contacte a Star Water para contratar y continuar con la información registrada.');
+ if(membership.asadas.access_kind==='trial'&&(!Number.isFinite(Date.parse(membership.asadas.trial_ends_at))||Date.now()>=Date.parse(membership.asadas.trial_ends_at)))throw new PublicError(402,'Su prueba gratuita terminó. Contacte a Star Water para contratar y continuar con la información registrada.');
  if(membership.expires_at&&(!Number.isFinite(Date.parse(membership.expires_at))||Date.now()>=Date.parse(membership.expires_at)))throw new PublicError(403,'Su acceso temporal ha vencido. Consulte a la administración de la ASADA.');
  let termsPending=false;
  if(membership.asadas.access_kind==='trial'){
@@ -118,7 +118,7 @@ async function dispatch(request,authorized=authorizeToken){
     await sb('/rest/v1/trial_requests?email=eq.'+encodeURIComponent(email),{method:'PATCH',body:{terms_version:TRIAL_TERMS_VERSION,terms_accepted_at:new Date().toISOString()}});
     const session=await sb('/auth/v1/signup?redirect_to='+encodeURIComponent(url.origin+'/acceso.html?prueba=confirmada'),{method:'POST',publicKey:true,body:{email,password:input.password}});
     if(session?.access_token){await authorized(session.access_token);return withCookies(json({ok:true,ready:true},201),sessionCookies(session,false));}
-    return json({ok:true,ready:false,message:'Revise su correo para confirmar el acceso. Después ingrese con su correo y contraseña. Los 3 días comienzan con su primer ingreso.'},201);
+    return json({ok:true,ready:false,message:'Revise su correo para confirmar el acceso. Después ingrese con su correo y contraseña. Los 5 días comienzan con su primer ingreso.'},201);
    }
    if(api==='trial-confirm'&&request.method==='POST'){
     const input=await body(request);if(typeof input.token!=='string'||input.token.length>16384||! /^[A-Za-z0-9._~-]+$/.test(input.token))throw new PublicError(400,'El enlace no es válido. Ingrese con su correo y contraseña.');
@@ -182,7 +182,7 @@ if(api==='login'&&request.method==='POST'){
       const now=Date.now(),end=Date.parse(asada.trial_ends_at);
       if(!Number.isFinite(end)||end<=now){
        changes.trial_started_at=new Date(now).toISOString();
-       changes.trial_ends_at=new Date(now+3*86400000).toISOString();
+       changes.trial_ends_at=new Date(now+5*86400000).toISOString();
        renewed=true;
       }
      }
