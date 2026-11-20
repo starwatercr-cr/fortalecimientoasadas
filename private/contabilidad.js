@@ -115,7 +115,7 @@ function financialExample(settleInvoice) {
 
 function renderExample() {
   const {entries,b,flows,openingCash,expenses,result,assets,liabilities,equity,cashChange}=financialExample($('example-settle').checked);
-  const currency=value=>'₡'+format.format(value);
+  const currency=value=>'₡'+format.format(value || 0);
   const render=(id,rows)=>{$(id).innerHTML=table(['Concepto','Monto'],rows.map(([label,value])=>[label,currency(value)]));};
   render('example-position',[
     ['Bancos',b.bank],['Cuentas por cobrar',b.receivable],['Propiedad, planta y equipo',b.equipment],
@@ -146,11 +146,18 @@ function renderExample() {
   const describe=lines=>lines.map(([account,value])=>exampleAccounts[account]+' · '+currency(value)).join(' + ');
   $('example-journal').innerHTML=table(['Fecha','Asiento','Debe','Haber'],
     entries.map(([date,description,debits,credits])=>[date,description,describe(debits),describe(credits)]));
-  $('example-check').textContent='Al cierre, activos: '+currency(assets)+' · Pasivos más patrimonio: '+currency(liabilities+equity)
-    +' · Saldo pendiente con el proveedor: '+currency(-b.payable);
+  $('example-assets').textContent=currency(assets);
+  $('example-surplus').textContent=currency(result);
+  $('example-ending-cash').textContent=currency(openingCash+cashChange);
+  $('example-check').textContent='Saldo pendiente con el proveedor: '+currency(-b.payable);
 }
 
 $('example-settle').addEventListener('change',renderExample);
+$('example-report-select').addEventListener('change',event=>{
+  for(const report of document.querySelectorAll('.cras-example-reports > section')){
+    report.hidden=report.firstElementChild.id!==event.target.value;
+  }
+});
 
 function show(name){
   view=name; offset=0;

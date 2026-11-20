@@ -13,9 +13,26 @@
 .cras dialog{max-width:min(94vw,500px);padding:20px;border:1px solid #9fb6c0;color:#12364b;border-radius:10px}
 .cras dialog label{margin:12px 0}.cras [hidden]{display:none!important}
 
-.cras .cras-example-toggle{display:flex;align-items:center;gap:10px;margin-block:16px}
-.cras-example-reports{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:16px;margin-top:16px}
-.cras-example-reports section{min-width:0;padding:14px;border:1px solid #d4e2e8;border-radius:8px}
-.cras-example-reports h3{margin:0;font-size:1.1rem}
-.cras-example-reports tr:last-child{font-weight:700;color:#0e6271}
-.cras-example-reports td:last-child,.cras-example-reports th:last-child{text-align:right;white-space:nowrap}
+.cras-example-heading,.cras-example-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap}
+.cras-example-heading h2,.cras-example-heading p{margin:0}
+.cras-example-heading p,.cras-example-toolbar span,.cras-example-scenario p{color:#456173}
+.cras-example-heading p{margin-top:5px}
+.cras-example-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:12px;margin:22px 0}
+.cras-example-metrics div{padding:12px 15px;background:#f1f7f8;border:1px solid #d4e2e8;border-radius:8px}
+.cras-example-metrics dd{margin:5px 0 0;font-size:1.2rem;font-weight:700;font-variant-numeric:tabular-nums}
+.cras-example-toolbar{align-items:end;padding-bottom:10px}
+.cras-example-toolbar select{background:#fff}
+.cras-example-reports{border:1px solid #d4e2e8;border-radius:8px;overflow:hidden}
+.cras-example-reports .cras-scroll{margin:0}
+.cras-example-reports thead{background:#eff6f7}
+.cras-example-reports :is(th,td):not(:first-child){text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.cras-example-reports :not(#example-trial)>table tbody tr:last-child{font-weight:700;color:#0e6271;background:#f5fafb}
+#example-trial table{min-width:620px}
+.cras-example-scenario{margin-top:18px;padding:12px 15px;background:#f5f8fa;border-radius:8px}
+.cras .cras-example-toggle{display:flex;align-items:center;gap:10px}
+.cras-example-toggle input{width:auto;flex:none}
+.cras-example-scenario p{margin:5px 0 0 24px}
+.cras-example-journal{margin-top:12px}
+.cras-example-journal summary{font-weight:600}
+.cras-example-journal table{min-width:620px}
+.cras-example-journal :is(th,td):first-child{white-space:nowrap}
