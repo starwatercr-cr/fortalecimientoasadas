@@ -15,6 +15,7 @@
 <button type="button" data-view="entry">Nuevo asiento</button><button type="button" data-view="diary">Libro diario</button>
 <button type="button" data-view="balance">Balanza y mayor</button>
 <button type="button" data-view="catalog">Catálogo de cuentas</button><button type="button" data-view="periods">Cierres mensuales</button>
+<button class="button primary" type="button" data-view="example">Explorar ejemplo</button>
 <button type="button" data-view="regulation">Ingresadores ARESEP</button>
 </nav>
 <section id="entry" class="cras-panel" hidden>
@@ -59,6 +60,23 @@
 <h2>Cierre mensual</h2><p>El cierre bloquea nuevos asientos y reversiones en el mes elegido.</p>
 <form id="close-form"><label>Mes <input id="month" type="month" required></label><button type="submit">Cerrar mes</button></form>
 <div id="periods-output"></div></section>
+<section id="example" class="cras-panel" hidden>
+  <h2>Ejemplo de estados financieros</h2>
+  <p>ASADA ficticia · Enero · Montos en colones. Los asientos y estados de esta práctica se calculan en pantalla.</p>
+  <label class="cras-example-toggle"><input type="checkbox" id="example-settle"> Simular el pago de los ₡100.000 pendientes al proveedor</label>
+  <p id="example-check" role="status"></p>
+  <details class="cras-example-journal" open>
+    <summary>Ver los asientos del ejemplo</summary>
+    <div id="example-journal" class="cras-scroll"></div>
+  </details>
+  <div class="cras-example-reports">
+    <section><h3>Estado de situación financiera</h3><div id="example-position" class="cras-scroll"></div></section>
+    <section><h3>Estado de resultados</h3><div id="example-results" class="cras-scroll"></div></section>
+    <section><h3>Estado de flujos de efectivo</h3><div id="example-cash" class="cras-scroll"></div></section>
+    <section><h3>Estado de cambios en el patrimonio</h3><div id="example-equity" class="cras-scroll"></div></section>
+  </div>
+</section>
+
 <section id="regulation" class="cras-panel" hidden>
 <h2>Ingresadores ARESEP</h2>
 <p>Identifique los ingresadores que corresponden a la etapa de implementación y a los servicios de su ASADA. Descargue los formatos oficiales para preparar y conciliar la información.</p>

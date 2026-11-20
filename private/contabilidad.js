@@ -70,6 +70,77 @@ function clearEntry(){
   draftId=crypto.randomUUID();
   line();line();totals();
 }
+const exampleAccounts={
+  bank:'Bancos', receivable:'Cuentas por cobrar', equipment:'Propiedad, planta y equipo',
+  accumulated:'Depreciación acumulada', payable:'Cuentas por pagar a proveedores',
+  loan:'Préstamo por pagar', capital:'Patrimonio inicial', revenue:'Ingresos por servicio de agua',
+  expense:'Gasto de mantenimiento', depreciation:'Gasto de depreciación'
+};
+
+function financialExample(settleInvoice) {
+  const entries=[
+    ['01/01','Saldos de apertura',[['bank',2000000],['equipment',1000000]],[['capital',3000000]]],
+    ['05/01','Facturación del servicio de agua',[['receivable',900000]],[['revenue',900000]]],
+    ['10/01','Cobro de recibos a abonados',[['bank',650000]],[['receivable',650000]],'operating'],
+    ['13/01','Factura de mantenimiento a crédito',[['expense',300000]],[['payable',300000]]],
+    ['16/01','Pago parcial al proveedor',[['payable',200000]],[['bank',200000]],'operating'],
+    ['20/01','Compra de equipo al contado',[['equipment',400000]],[['bank',400000]],'investing'],
+    ['24/01','Desembolso de préstamo',[['bank',500000]],[['loan',500000]],'financing'],
+    ['31/01','Depreciación del mes',[['depreciation',50000]],[['accumulated',50000]]]
+  ];
+  if(settleInvoice) entries.splice(7,0,
+    ['28/01','Pago del saldo al proveedor',[['payable',100000]],[['bank',100000]],'operating']);
+
+  const balances=Object.fromEntries(Object.keys(exampleAccounts).map(key=>[key,0]));
+  const flows={operating:0,investing:0,financing:0};
+  let openingCash=0;
+  for(const [index,[, , debits, credits, activity]] of entries.entries()) {
+    for(const [account,amount] of debits) balances[account]+=amount;
+    for(const [account,amount] of credits) balances[account]-=amount;
+    const cash=[debits,credits].map(lines=>lines.reduce((sum,[key,amount])=>sum+(key==='bank'?amount:0),0));
+    const movement=cash[0]-cash[1];
+    if(index===0) openingCash=movement;
+    if(activity) flows[activity]+=movement;
+  }
+  const b=balances;
+  const expenses=b.expense+b.depreciation;
+  const result=-b.revenue-expenses;
+  const assets=b.bank+b.receivable+b.equipment+b.accumulated;
+  const liabilities=-b.payable-b.loan;
+  const equity=-b.capital+result;
+  const cashChange=flows.operating+flows.investing+flows.financing;
+  return {entries,b,flows,openingCash,expenses,result,assets,liabilities,equity,cashChange};
+}
+
+function renderExample() {
+  const {entries,b,flows,openingCash,expenses,result,assets,liabilities,equity,cashChange}=financialExample($('example-settle').checked);
+  const currency=value=>'₡'+format.format(value);
+  const render=(id,rows)=>{$(id).innerHTML=table(['Concepto','Monto'],rows.map(([label,value])=>[label,currency(value)]));};
+  render('example-position',[
+    ['Bancos',b.bank],['Cuentas por cobrar',b.receivable],['Propiedad, planta y equipo',b.equipment],
+    ['Depreciación acumulada',b.accumulated],['Total activos',assets],['Cuentas por pagar a proveedores',-b.payable],
+    ['Préstamo por pagar',-b.loan],['Total pasivos',liabilities],['Total patrimonio',equity],['Pasivos más patrimonio',liabilities+equity]
+  ]);
+  render('example-results',[
+    ['Ingresos por servicio de agua',-b.revenue],['Gasto de mantenimiento',b.expense],
+    ['Gasto de depreciación',b.depreciation],['Total gastos',expenses],['Excedente del mes',result]
+  ]);
+  render('example-cash',[
+    ['Efectivo inicial',openingCash],['Flujo de operación',flows.operating],['Flujo de inversión',flows.investing],
+    ['Flujo de financiamiento',flows.financing],['Variación neta de efectivo',cashChange],['Efectivo final',openingCash+cashChange]
+  ]);
+  render('example-equity',[
+    ['Patrimonio inicial',-b.capital],['Excedente del mes',result],['Patrimonio final',equity]
+  ]);
+  const describe=lines=>lines.map(([account,value])=>exampleAccounts[account]+' · '+currency(value)).join(' + ');
+  $('example-journal').innerHTML=table(['Fecha','Asiento','Debe','Haber'],
+    entries.map(([date,description,debits,credits])=>[date,description,describe(debits),describe(credits)]));
+  $('example-check').textContent='Al cierre, activos: '+currency(assets)+' · Pasivos más patrimonio: '+currency(liabilities+equity)
+    +' · Saldo pendiente con el proveedor: '+currency(-b.payable);
+}
+
+$('example-settle').addEventListener('change',renderExample);
+
 function show(name){
   view=name; offset=0;
   for(const button of document.querySelectorAll('[data-view]')){
@@ -78,6 +149,7 @@ function show(name){
     button.setAttribute('aria-current',String(selected));
   }
   $('range').hidden=!['diary','balance','periods'].includes(name);
+  if(name==='example') renderExample();
   refresh();
 }
 function renderCatalog(){
