@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="es-CR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contabilidad regulatoria | Fortalecimiento ASADAS</title>
+<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/contabilidad.css">
+<script type="module" src="/contabilidad.js"></script></head>
+<body><main class="cras">
+<a href="/herramientas.html?area=finanzas">← Volver a las herramientas</a>
+<h1>Contabilidad regulatoria</h1>
+<p>Registro contable en colones por ASADA, cuenta, servicio, etapa y sistema.</p>
+<p class="cras-notice">Implementación inicial. Consulte y valide el catálogo base antes de registrar saldos de apertura. Los informes sirven como papeles de trabajo para la revisión del contador.</p>
+<p id="message" role="status" aria-live="polite"></p>
+<section id="workspace" hidden>
+<label>ASADA <select id="asada"></select></label>
+<nav class="cras-tabs" aria-label="Contabilidad">
+<button type="button" data-view="entry">Nuevo asiento</button><button type="button" data-view="diary">Libro diario</button>
+<button type="button" data-view="balance">Balanza y mayor</button>
+<button type="button" data-view="catalog">Catálogo de cuentas</button><button type="button" data-view="periods">Cierres mensuales</button>
+<button type="button" data-view="regulation">Ingresadores ARESEP</button>
+</nav>
+<section id="entry" class="cras-panel" hidden>
+<h2>Registrar asiento</h2>
+<form id="entry-form">
+<div class="cras-fields">
+<label>Fecha <input id="entry-date" type="date" required></label>
+<label>Tipo <select id="kind"><option value="diario">Diario</option><option value="apertura">Apertura</option><option value="ajuste">Ajuste</option><option value="orden">Cuentas de orden</option></select></label>
+<label>Comprobante o referencia <input id="reference" maxlength="120" required></label>
+<label>Concepto <input id="memo" maxlength="500" required></label>
+</div>
+<p>Los importes admiten hasta dos decimales, sin separador de miles. Complete el Debe o el Haber en cada línea.</p>
+<div id="entry-lines"></div>
+<button type="button" id="add-line">Agregar línea</button>
+<p id="entry-totals" aria-live="polite"></p>
+<button class="button primary" type="submit">Contabilizar asiento</button>
+</form>
+</section>
+<form id="range" class="cras-fields" hidden>
+<label>Desde <input id="from" type="date" required></label>
+<label>Hasta <input id="to" type="date" required></label>
+<button type="submit">Consultar</button>
+</form>
+<section id="diary" class="cras-panel" hidden>
+<h2 id="diary-heading">Libro diario</h2><label>Cuenta para el mayor <select id="ledger-account"></select></label>
+<div id="diary-output"></div><button type="button" id="more" hidden>Siguiente página</button><button type="button" id="first" hidden>Volver a la primera página</button>
+<dialog id="reversal"><form id="reverse-form"><h2>Revertir asiento <span id="reverse-number"></span></h2>
+<p>Se crea un asiento inverso y se conserva el original.</p><label>Fecha <input id="reverse-date" type="date" required></label>
+<label>Motivo <input id="reverse-reason" maxlength="500" required></label>
+<button type="submit">Registrar reversión</button><button id="cancel-reverse" type="button">Cancelar</button></form></dialog>
+</section>
+<section id="balance" class="cras-panel" hidden>
+<h2>Balanza de comprobación</h2>
+<p id="balance-totals"></p><label>Servicio <select id="service-filter"></select></label>
+<button type="button" id="export" disabled>Descargar balanza CSV</button>
+<div class="cras-scroll" id="balance-output"></div>
+</section>
+<section id="catalog" class="cras-panel" hidden>
+<h2>Catálogo base de trabajo</h2><label>Buscar por código o nombre <input id="search-catalog" type="search"></label>
+<div id="catalog-output"></div></section>
+<section id="periods" class="cras-panel" hidden>
+<h2>Cierre mensual</h2><p>El cierre bloquea nuevos asientos y reversiones en el mes elegido.</p>
+<form id="close-form"><label>Mes <input id="month" type="month" required></label><button type="submit">Cerrar mes</button></form>
+<div id="periods-output"></div></section>
+<section id="regulation" class="cras-panel" hidden>
+<h2>Ingresadores ARESEP</h2>
+<p>Identifique los ingresadores que corresponden a la etapa de implementación y a los servicios de su ASADA. Descargue los formatos oficiales para preparar y conciliar la información.</p>
+<details><summary>Consultar los 47 ingresadores del cuadro del punto 12</summary><div class="cras-scroll"><table><thead><tr><th>Código</th><th>Información solicitada</th></tr></thead><tbody>
+<tr><th scope="row">CRAS-000</th><td>Información básica de la ASADA</td></tr>
+<tr><th scope="row">CRAS-001</th><td>Finanzas de acueducto</td></tr>
+<tr><th scope="row">CRAS-002</th><td>Finanzas de alcantarillado</td></tr>
+<tr><th scope="row">CRAS-003</th><td>Finanzas de hidrantes</td></tr>
+<tr><th scope="row">CRAS-004</th><td>Finanzas de protección del recurso hídrico</td></tr>
+<tr><th scope="row">CRAS-005</th><td>Finanzas de actividades no reguladas</td></tr>
+<tr><th scope="row">CRAS-006</th><td>Estado de resultados</td></tr>
+<tr><th scope="row">CRAS-007</th><td>Estado de situación financiera</td></tr>
+<tr><th scope="row">CRAS-008</th><td>Flujo de efectivo</td></tr>
+<tr><th scope="row">CRAS-009</th><td>Cuentas de orden</td></tr>
+<tr><th scope="row">CRAS-010</th><td>Cambios en el patrimonio</td></tr>
+<tr><th scope="row">CRAS-011</th><td>Gastos de acueducto por etapa</td></tr>
+<tr><th scope="row">CRAS-012</th><td>Gastos de acueducto por sistema</td></tr>
+<tr><th scope="row">CRAS-013</th><td>Gastos de alcantarillado por etapa</td></tr>
+<tr><th scope="row">CRAS-014</th><td>Gastos de hidrantes por etapa</td></tr>
+<tr><th scope="row">CRAS-015</th><td>Gastos de protección del recurso hídrico</td></tr>
+<tr><th scope="row">CRAS-016</th><td>Resultados de acueducto por etapa</td></tr>
+<tr><th scope="row">CRAS-017</th><td>Resultados de alcantarillado por etapa</td></tr>
+<tr><th scope="row">CRAS-018</th><td>Resultados de hidrantes por etapa</td></tr>
+<tr><th scope="row">CRAS-019</th><td>Resultados de protección del recurso hídrico por etapa</td></tr>
+<tr><th scope="row">CRAS-020</th><td>Situación financiera de acueducto por etapa</td></tr>
+<tr><th scope="row">CRAS-021</th><td>Situación financiera de alcantarillado por etapa</td></tr>
+<tr><th scope="row">CRAS-022</th><td>Situación financiera de hidrantes por etapa</td></tr>
+<tr><th scope="row">CRAS-023</th><td>Situación financiera de protección del recurso hídrico por etapa</td></tr>
+<tr><th scope="row">CRAS-024</th><td>Inversiones transitorias y a largo plazo</td></tr>
+<tr><th scope="row">CRAS-025</th><td>Documentos por pagar y servicio de la deuda</td></tr>
+<tr><th scope="row">CRAS-026</th><td>Gastos de servicios conexos</td></tr>
+<tr><th scope="row">CRAS-027</th><td>Cuentas por cobrar</td></tr>
+<tr><th scope="row">CRAS-028</th><td>Estimación por incobrables</td></tr>
+<tr><th scope="row">CRAS-029</th><td>Documentos por cobrar a largo plazo</td></tr>
+<tr><th scope="row">CRAS-030</th><td>Activos donados</td></tr>
+<tr><th scope="row">CRAS-031</th><td>Plan de mantenimiento de activos</td></tr>
+<tr><th scope="row">CRAS-032</th><td>Ejecución del plan de mantenimiento</td></tr>
+<tr><th scope="row">CRAS-033</th><td>Electricidad operativa</td></tr>
+<tr><th scope="row">CRAS-034</th><td>Propiedad, planta y equipo</td></tr>
+<tr><th scope="row">CRAS-035</th><td>Revaluación de activos, parte 1</td></tr>
+<tr><th scope="row">CRAS-036</th><td>Revaluación de activos, parte 2</td></tr>
+<tr><th scope="row">CRAS-037</th><td>Facturación en reclamo</td></tr>
+<tr><th scope="row">CRAS-038</th><td>Auxiliar de activos</td></tr>
+<tr><th scope="row">CRAS-039</th><td>Indicadores</td></tr>
+<tr><th scope="row">CRAS-040</th><td>Pagos por servicios ambientales hídricos</td></tr>
+<tr><th scope="row">CRAS-041</th><td>Servicios operativos y administrativos contratados</td></tr>
+<tr><th scope="row">CRAS-042</th><td>Transferencias recibidas</td></tr>
+<tr><th scope="row">CRAS-043</th><td>Retiros, traslados y reclasificaciones de activos</td></tr>
+<tr><th scope="row">CRAS-044</th><td>Combustibles y lubricantes</td></tr>
+<tr><th scope="row">CRAS-045</th><td>Asignación contable de salarios</td></tr>
+<tr><th scope="row">CRAS-046</th><td>Transferencias pagadas</td></tr>
+</tbody></table></div></details>
+<p><a href="https://aresep.go.cr/agua-potable-informacion-regulatoria/ingresadores-financieros-asadas/">Formatos oficiales de ARESEP</a></p>
+<p><a href="https://www.pgrweb.go.cr/DOCS/NORMAS/1/VIGENTE/S/2020-2029/2020-2024/2023/18661/161801.HTML">Resolución RE-0005-IA-2023, versión vigente en SINALEVI</a></p>
+</section>
+</section></main></body></html>

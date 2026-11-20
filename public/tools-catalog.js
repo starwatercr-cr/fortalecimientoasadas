@@ -1,5 +1,6 @@
 export const AREAS=[{"id": "finanzas", "name": "Finanzas", "icon": "chart"}, {"id": "agua", "name": "Agua y operación", "icon": "water"}, {"id": "cobros", "name": "Abonados y cobros", "icon": "users"}, {"id": "junta", "name": "Junta Directiva y planificación", "icon": "target"}, {"id": "consulta", "name": "Organización y consultas", "icon": "book"}];
 export const TOOLS=[
+{id:'contabilidad',name:'Contabilidad regulatoria',desc:'Registre asientos y consulte el catálogo, el diario y la balanza.',href:'contabilidad.html',icon:'file',areas:['finanzas'],module:'cras'},
 {id:'panel',name:'Resumen financiero',desc:'Consulte saldos, resultados y gráficos del año.',href:'panel-gestion.html',view:'home',icon:'chart',areas:['finanzas'],module:'panel'},
 {id:'estados',name:'Estados financieros',desc:'Revise los cierres y compare dos años.',href:'panel-gestion.html',view:'statements',icon:'file',areas:['finanzas'],module:'panel'},
 {id:'presupuesto',name:'Presupuesto de la ASADA',desc:'Revise lo previsto y lo ejecutado.',href:'panel-gestion.html',view:'budget',icon:'target',areas:['finanzas'],module:'panel'},
@@ -33,7 +34,7 @@ export const TOOLS=[
 ];
 export const toolHref=t=>t.href+(t.view?'?module='+t.view+'&from=herramientas'+(t.planArea?'&planArea='+encodeURIComponent(t.planArea):''):'');
 export const normalize=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-export function allowedTools(who){return TOOLS.filter(t=>!who.external?(!t.administration||who.admin||who.role==='Administración'):Boolean(t.module)&&!t.administration&&(who.modules||[]).includes(t.module));}
+export function allowedTools(who){return TOOLS.filter(t=>!who.external?((!t.administration||who.admin||who.role==='Administración')&&(t.module!=='cras'||who.admin||['Administración','Junta Directiva'].includes(who.role))):Boolean(t.module)&&!t.administration&&(who.modules||[]).includes(t.module));}
 export function preferenceKey(who){return 'sw-tools-v1:'+encodeURIComponent(who.email||'')+':'+(who.admin?'starwater':who.asada?.id||'');}
 export function readPreferences(who,storage=globalThis.localStorage){try{const d=JSON.parse(storage.getItem(preferenceKey(who))||'{}'),valid=new Set(TOOLS.map(t=>t.id));return {favorites:[...new Set(Array.isArray(d.favorites)?d.favorites.map(x=>x==='nuestras-finanzas'?'panel':x).filter(x=>valid.has(x)):[])],recent:[...new Set(Array.isArray(d.recent)?d.recent.map(x=>x==='nuestras-finanzas'?'panel':x).filter(x=>valid.has(x)):[])].slice(0,8)};}catch{return {favorites:[],recent:[]};}}
 export function savePreferences(who,prefs,storage=globalThis.localStorage){try{storage.setItem(preferenceKey(who),JSON.stringify(prefs));return true;}catch{return false;}}
