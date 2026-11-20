@@ -301,72 +301,165 @@ try{
   clearEntry();$('workspace').hidden=false;show(canWrite?'entry':'diary');
 }catch(error){notice(error.message);}
 
-function downloadReports(title,meta,reports,filename) {
+function downloadReports({name,period,detail,reports,filename,cover=false}) {
   const JsPDF=window.jspdf?.jsPDF;
   if(!JsPDF){notice('El generador PDF no está disponible. Recargue la página e inténtelo de nuevo.');return;}
-  const doc=new JsPDF({orientation:'landscape',format:'a4'});
-  const left=13, width=271;
-  const clean=value=>String(value??'').replaceAll('₡','CRC ').replace(/[\u00a0\u202f]/g,' ');
-  let y;
-  function page(heading) {
-    doc.setTextColor(15,52,71);
+  const doc=new JsPDF({format:'a4',orientation:!cover&&reports[0].landscape?'landscape':'portrait'});
+  const left=13;
+  const clean=value=>String(value??'').replaceAll('₡','').replace(/[\u00a0\u202f]/g,' ');
+  const index=[];
+  if(cover){
+    doc.setFont('times','bold');
+    doc.setFontSize(28);
+    doc.text('Estados financieros',105,110,{align:'center'});
     doc.setFontSize(17);
-    doc.text(title,left,16);
-    doc.setFontSize(10);
-    const subtitle=doc.splitTextToSize(clean(meta),width);
-    doc.text(subtitle,left,23);
-    y=30+(subtitle.length-1)*4;
+    doc.text(name,105,127,{align:'center'});
     doc.setFontSize(12);
-    doc.text(heading,left,y);
-    y+=6;
-    doc.setFontSize(8);
+    doc.text(period,105,140,{align:'center'});
+    doc.text('Ejemplo con datos ficticios',105,151,{align:'center'});
+    doc.addPage();
   }
-  reports.forEach(({heading,rows,columns},reportIndex)=>{
-    if(reportIndex) doc.addPage();
-    page(heading);
-    function row(values,header=false) {
-      const wrapped=values.map((value,index)=>doc.splitTextToSize(clean(value),columns[index]-4));
-      const height=Math.max(...wrapped.map(cell=>cell.length))*3.7+3;
-      if(y+height>194){doc.addPage();page(heading);row(rows[0],true);}
-      if(header){doc.setFillColor(226,242,243);doc.rect(left,y,width,height,'F');}
-      let x=left;
-      doc.setFont('helvetica',header?'bold':'normal');
-      wrapped.forEach((cell,index)=>{doc.text(cell,x+2,y+4);x+=columns[index];});
-      y+=height;
-      doc.setDrawColor(215,227,231);
-      doc.line(left,y,left+width,y);
+  reports.forEach(({heading,rows,columns,landscape=false,notes=[]},reportIndex)=>{
+    const orientation=landscape?'landscape':'portrait';
+    if(reportIndex||cover) doc.addPage('a4',orientation);
+    index.push([heading,doc.getNumberOfPages()]);
+    const width=doc.internal.pageSize.getWidth()-2*left;
+    const bottom=doc.internal.pageSize.getHeight()-18;
+    const midpoint=left+width/2;
+    let y;
+    function page(continued=false){
+      doc.setTextColor(24,47,64);
+      doc.setFont('times','bold');doc.setFontSize(14);
+      const nameLines=doc.splitTextToSize(clean(name),width);
+      doc.text(nameLines,midpoint,17,{align:'center'});
+      y=17+nameLines.length*5;
+      doc.text(heading,midpoint,y,{align:'center'});
+      doc.setFont('helvetica','normal');doc.setFontSize(9);
+      const description=doc.splitTextToSize(clean(period+' · Colones costarricenses'+(detail?' · '+detail:'')+(continued?' · Continuación':'')),width);
+      doc.text(description,midpoint,y+5,{align:'center'});
+      y+=9+description.length*4;
     }
-    rows.forEach((values,index)=>row(values,index===0));
+    function row(values,header=false){
+      const label=String(values[0]);
+      const section=label.startsWith('§');
+      const emphasis=header||section||label.startsWith('Total')||label.startsWith('Excedente')||label.startsWith('Efectivo final');
+      doc.setFont('helvetica',emphasis?'bold':'normal');doc.setFontSize(8);
+      const numericFrom=columns.length===9?5:columns.length===5?1:2;
+      const wrapped=values.map((value,i)=>doc.splitTextToSize(clean(i===0&&section?label.slice(1):value),columns[i]-4));
+      const height=Math.max(1,...wrapped.map(cell=>cell.length))*3.8+3;
+      if(!header&&y+height>bottom){
+        doc.addPage('a4',orientation);page(true);row(rows[0],true);
+        doc.setFont('helvetica',emphasis?'bold':'normal');doc.setFontSize(8);
+      }
+      if(header||section){doc.setFillColor(232,240,243);doc.rect(left,y,width,height,'F');}
+      if(emphasis&&!header&&!section){doc.setDrawColor(49,76,91);doc.line(left,y,left+width,y);}
+      let x=left;
+      wrapped.forEach((cell,i)=>{
+        const right=i>=numericFrom;
+        doc.text(cell,x+(right?columns[i]-2:2),y+4,{align:right?'right':'left'});
+        x+=columns[i];
+      });
+      y+=height;
+    }
+    page();
+    rows.forEach((values,i)=>row(values,i===0));
+    if(notes.length){
+      if(y+notes.length*7+34>bottom){doc.addPage('a4',orientation);page(true);}
+      y+=5;
+      doc.setFont('helvetica','normal');doc.setFontSize(8);
+      for(const line of notes){
+        const wrapped=doc.splitTextToSize(line,width);
+        doc.text(wrapped,left,y);
+        y+=wrapped.length*4+2;
+      }
+      y+=14;
+      ['Presidencia','Tesorería','Contaduría'].forEach((label,i)=>{
+        const x=left+(i+.5)*width/3;
+        doc.line(x-21,y,x+21,y);
+        doc.text(label,x,y+5,{align:'center'});
+      });
+    }
   });
-  for(let n=1;n<=doc.getNumberOfPages();n++){
-    doc.setPage(n);doc.setFontSize(8);
-    doc.text('Star Water · Contabilidad Regulatoria',left,202);
-    doc.text(String(n)+' / '+doc.getNumberOfPages(),left+width,202,{align:'right'});
+  if(cover){
+    doc.setPage(2);
+    doc.setFont('times','bold');doc.setFontSize(19);
+    doc.text('Contenido',left,25);
+    doc.setFont('helvetica','normal');doc.setFontSize(11);
+    index.forEach(([heading,page],i)=>{
+      doc.text(heading,left,41+i*9);
+      doc.text(String(page),197,41+i*9,{align:'right'});
+    });
+  }
+  const pages=doc.getNumberOfPages();
+  for(let n=1;n<=pages;n++){
+    doc.setPage(n);doc.setFont('helvetica','normal');doc.setFontSize(8);
+    const y=doc.internal.pageSize.getHeight()-8;
+    doc.text('Star Water · Contabilidad Regulatoria',left,y);
+    doc.text(n+' / '+pages,doc.internal.pageSize.getWidth()-left,y,{align:'right'});
   }
   doc.save(filename);
 }
+
 $('export-pdf').addEventListener('click',()=>{
   const rows=reportRows();
   if(!rows.length||!balancePeriod) return;
-  const name=$('asada').selectedOptions[0]?.textContent;
-  const service=services[$('service-filter').value]||'Todos los servicios';
-  downloadReports('Balanza de comprobación',
-    [name, balancePeriod.from+' al '+balancePeriod.to,service,'Montos en CRC'].join(' · '),
-    [{heading:'Saldos y movimientos por cuenta',rows:[balanceHeaders,...rows],columns:[20,50,38,23,24,29,29,29,29]}],
-    'Balanza-'+balancePeriod.from+'-'+balancePeriod.to+'.pdf');
+  downloadReports({
+    name:$('asada').selectedOptions[0]?.textContent,
+    period:balancePeriod.from+' al '+balancePeriod.to,
+    detail:services[$('service-filter').value]||'Todos los servicios',
+    reports:[{heading:'Balance de comprobación detallado',rows:[
+      ['Código','Descripción','Servicio','Etapa','Sistema','Saldo anterior','Débitos','Créditos','Saldo actual'],...rows
+    ],columns:[20,50,38,23,24,29,29,29,29],landscape:true}],
+    filename:'Balanza-'+balancePeriod.from+'-'+balancePeriod.to+'.pdf'
+  });
 });
+
+function comparativeExample(current){
+  const prior={bank:2000000,equipment:1000000,openingCash:1700000,revenue:400000,expense:100000,result:300000,equity:3000000};
+  const {b,flows,openingCash,result,assets,liabilities,equity,cashChange}=current;
+  const amount=value=>format.format(value);
+  function report(heading,data,notes){
+    const rows=data.map(([label,note,now,before])=>[label,note,now==null?'':amount(now),before==null?'':amount(before)]);
+    return {heading,columns:[95,17,35,37],rows:[['Concepto','Nota','Enero 2025','Enero 2024'],...rows],notes};
+  }
+  return [
+    report('Estado de situación financiera',[
+      ['§Activo corriente',''],['Efectivo y equivalentes','1',b.bank,prior.bank],['Cuentas por cobrar','1',b.receivable,0],
+      ['Total activo corriente','',b.bank+b.receivable,prior.bank],['§Activo no corriente',''],
+      ['Propiedad, planta y equipo neto','2',b.equipment+b.accumulated,prior.equipment],
+      ['Total activos','',assets,prior.bank+prior.equipment],['§Pasivos y patrimonio',''],
+      ['Cuentas por pagar a proveedores','3',-b.payable,0],['Préstamo por pagar','3',-b.loan,0],
+      ['Total pasivos','',liabilities,0],['Total patrimonio','',equity,prior.equity],
+      ['Total pasivos y patrimonio','',liabilities+equity,prior.equity]
+    ],['1. Efectivo y cuentas por cobrar del ejercicio ficticio.','2. Equipo al costo menos depreciación acumulada.','3. Obligaciones registradas según el escenario seleccionado.']),
+    report('Estado de resultados',[
+      ['§Ingresos',''],['Ingresos por servicio de agua','1',-b.revenue,prior.revenue],['Total ingresos','',-b.revenue,prior.revenue],
+      ['§Gastos',''],['Mantenimiento','1',b.expense,prior.expense],['Depreciación','1',b.depreciation,0],
+      ['Total gastos','',b.expense+b.depreciation,prior.expense],['Excedente del período','',result,prior.result]
+    ],['1. Ingresos y gastos reconocidos según los asientos del ejemplo.']),
+    report('Estado de flujos de efectivo',[
+      ['§Actividades de operación',''],['Excedente del período','',result,prior.result],['Depreciación','',b.depreciation,0],
+      ['Aumento de cuentas por cobrar','',-b.receivable,0],['Aumento de cuentas por pagar','',-b.payable,0],
+      ['Total flujo de operación','',flows.operating,prior.result],['§Actividades de inversión',''],
+      ['Compra de equipo','',flows.investing,0],['§Actividades de financiamiento',''],['Desembolso de préstamo','',flows.financing,0],
+      ['Variación neta de efectivo','',cashChange,prior.result],['Efectivo inicial','',openingCash,prior.openingCash],
+      ['Efectivo final','',openingCash+cashChange,prior.bank]
+    ],['Método indirecto. Los ajustes concilian el excedente con el flujo de operación.']),
+    report('Estado de cambios en el patrimonio',[
+      ['Patrimonio inicial','',-b.capital,prior.equity-prior.result],
+      ['Excedente del período','',result,prior.result],['Total patrimonio al cierre','',equity,prior.equity]
+    ],['Ejercicio didáctico sin otros movimientos patrimoniales.'])
+  ];
+}
+
 $('example-pdf').addEventListener('click',()=>{
-  const reports=[
-    ['Estado de situación financiera','example-position'],
-    ['Balanza de comprobación','example-trial'],
-    ['Estado de resultados','example-results'],
-    ['Estado de flujos de efectivo','example-cash'],
-    ['Estado de cambios en el patrimonio','example-equity']
-  ].map(([heading,id])=>({
-    heading,
-    rows:[...$(id).querySelectorAll('tr')].map(row=>[...row.cells].map(cell=>cell.textContent)),
-    columns:id==='example-trial'?[111,40,40,40,40]:[200,71]
-  }));
-  downloadReports('Estados financieros · Ejemplo','ASADA ficticia · Enero · Montos en CRC · '+($('example-settle').checked?'Pago al proveedor simulado':'Saldo pendiente con el proveedor'),
-    reports,'Estados-financieros-ejemplo-ASADA.pdf');
+  const settled=$('example-settle').checked;
+  const reports=comparativeExample(financialExample(settled));
+  reports.push({
+    heading:'Balance de comprobación detallado · Enero 2025',
+    rows:[...$('example-trial').querySelectorAll('tr')].map(row=>[...row.cells].map(cell=>cell.textContent)),
+    columns:[68,29,29,29,29]
+  });
+  downloadReports({name:'ASADA ficticia',period:'Enero 2025 y enero 2024',detail:settled?'Pago al proveedor simulado':'Saldo pendiente con el proveedor',
+    reports,cover:true,filename:'Estados-financieros-ejemplo-ASADA.pdf'});
 });
