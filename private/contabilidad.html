@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="es-CR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Contabilidad regulatoria | Fortalecimiento ASADAS</title>
-<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/contabilidad.css">
+<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/contabilidad.css?v=reportes2">
 <script defer src="/assets/jspdf.umd.min.js"></script>
-<script type="module" src="/contabilidad.js?v=milano1"></script></head>
+<script type="module" src="/contabilidad.js?v=reportes2"></script></head>
 <body><main class="cras">
 <a href="/herramientas.html?area=finanzas">← Volver a las herramientas</a>
 <h1>Contabilidad regulatoria</h1>
@@ -63,24 +63,43 @@
 <form id="close-form"><label>Mes <input id="month" type="month" required></label><button type="submit">Cerrar mes</button></form>
 <div id="periods-output"></div></section>
 <section id="example" class="cras-panel" hidden>
-  <h2>Ejemplo de estados financieros</h2>
-  <p>ASADA ficticia · Enero · Montos en colones. Los asientos y estados de esta práctica se calculan en pantalla.</p>
-  <label class="cras-example-toggle"><input type="checkbox" id="example-settle"> Simular el pago de los ₡100.000 pendientes al proveedor</label>
-  <button type="button" class="button primary" id="example-pdf">Descargar estados del ejemplo en PDF</button>
-  <p id="example-check" role="status"></p>
-  <details class="cras-example-journal" open>
-    <summary>Ver los asientos del ejemplo</summary>
+  <header class="cras-example-heading">
+    <div><h2>Estados financieros del ejemplo</h2><p>ASADA ficticia · Enero 2025</p></div>
+    <button type="button" class="button primary" id="example-pdf">Descargar PDF</button>
+  </header>
+  <dl class="cras-example-metrics" aria-label="Resumen al cierre">
+    <div><dt>Total de activos</dt><dd id="example-assets"></dd></div>
+    <div><dt>Excedente del mes</dt><dd id="example-surplus"></dd></div>
+    <div><dt>Efectivo al cierre</dt><dd id="example-ending-cash"></dd></div>
+  </dl>
+  <div class="cras-example-toolbar">
+    <label for="example-report-select">Informe
+      <select id="example-report-select">
+        <option value="example-position">Situación financiera</option>
+        <option value="example-results">Estado de resultados</option>
+        <option value="example-cash">Flujos de efectivo</option>
+        <option value="example-equity">Cambios en el patrimonio</option>
+        <option value="example-trial">Balanza de comprobación</option>
+      </select>
+    </label>
+    <span>Montos en colones</span>
+  </div>
+  <div class="cras-example-reports">
+    <section aria-label="Estado de situación financiera"><div id="example-position" class="cras-scroll"></div></section>
+    <section aria-label="Estado de resultados" hidden><div id="example-results" class="cras-scroll"></div></section>
+    <section aria-label="Estado de flujos de efectivo" hidden><div id="example-cash" class="cras-scroll"></div></section>
+    <section aria-label="Estado de cambios en el patrimonio" hidden><div id="example-equity" class="cras-scroll"></div></section>
+    <section aria-label="Balanza de comprobación" hidden><div id="example-trial" class="cras-scroll"></div></section>
+  </div>
+  <div class="cras-example-scenario">
+    <label class="cras-example-toggle"><input type="checkbox" id="example-settle"> Simular un pago de ₡100.000 al proveedor</label>
+    <p id="example-check" role="status"></p>
+  </div>
+  <details class="cras-example-journal">
+    <summary>Ver asientos contables</summary>
     <div id="example-journal" class="cras-scroll"></div>
   </details>
-  <div class="cras-example-reports">
-    <section><h3>Estado de situación financiera</h3><div id="example-position" class="cras-scroll"></div></section>
-    <section><h3>Balanza de comprobación</h3><div id="example-trial" class="cras-scroll"></div></section>
-    <section><h3>Estado de resultados</h3><div id="example-results" class="cras-scroll"></div></section>
-    <section><h3>Estado de flujos de efectivo</h3><div id="example-cash" class="cras-scroll"></div></section>
-    <section><h3>Estado de cambios en el patrimonio</h3><div id="example-equity" class="cras-scroll"></div></section>
-  </div>
 </section>
-
 <section id="regulation" class="cras-panel" hidden>
 <h2>Ingresadores ARESEP</h2>
 <p>Identifique los ingresadores que corresponden a la etapa de implementación y a los servicios de su ASADA. Descargue los formatos oficiales para preparar y conciliar la información.</p>
