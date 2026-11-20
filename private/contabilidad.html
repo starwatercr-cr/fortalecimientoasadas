@@ -2,7 +2,8 @@
 <html lang="es-CR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Contabilidad regulatoria | Fortalecimiento ASADAS</title>
 <link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/contabilidad.css">
-<script type="module" src="/contabilidad.js"></script></head>
+<script defer src="/assets/jspdf.umd.min.js"></script>
+<script type="module" src="/contabilidad.js?v=pdf1"></script></head>
 <body><main class="cras">
 <a href="/herramientas.html?area=finanzas">← Volver a las herramientas</a>
 <h1>Contabilidad regulatoria</h1>
@@ -51,6 +52,7 @@
 <h2>Balanza de comprobación</h2>
 <p id="balance-totals"></p><label>Servicio <select id="service-filter"></select></label>
 <button type="button" id="export" disabled>Descargar balanza CSV</button>
+<button type="button" id="export-pdf" disabled>Descargar balanza PDF</button>
 <div class="cras-scroll" id="balance-output"></div>
 </section>
 <section id="catalog" class="cras-panel" hidden>
@@ -64,6 +66,7 @@
   <h2>Ejemplo de estados financieros</h2>
   <p>ASADA ficticia · Enero · Montos en colones. Los asientos y estados de esta práctica se calculan en pantalla.</p>
   <label class="cras-example-toggle"><input type="checkbox" id="example-settle"> Simular el pago de los ₡100.000 pendientes al proveedor</label>
+  <button type="button" class="button primary" id="example-pdf">Descargar estados del ejemplo en PDF</button>
   <p id="example-check" role="status"></p>
   <details class="cras-example-journal" open>
     <summary>Ver los asientos del ejemplo</summary>
@@ -71,6 +74,7 @@
   </details>
   <div class="cras-example-reports">
     <section><h3>Estado de situación financiera</h3><div id="example-position" class="cras-scroll"></div></section>
+    <section><h3>Balanza de comprobación</h3><div id="example-trial" class="cras-scroll"></div></section>
     <section><h3>Estado de resultados</h3><div id="example-results" class="cras-scroll"></div></section>
     <section><h3>Estado de flujos de efectivo</h3><div id="example-cash" class="cras-scroll"></div></section>
     <section><h3>Estado de cambios en el patrimonio</h3><div id="example-equity" class="cras-scroll"></div></section>
