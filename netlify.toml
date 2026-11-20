@@ -1,3 +1,21 @@
+[[redirects]]
+  from = "/contabilidad.html"
+  to = "/.netlify/functions/gateway?file=contabilidad.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/contabilidad.js"
+  to = "/.netlify/functions/gateway?file=contabilidad.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/contabilidad.css"
+  to = "/.netlify/functions/gateway?file=contabilidad.css"
+  status = 200
+  force = true
+
 [build]
   command = "npm run build"
   publish = "build"
