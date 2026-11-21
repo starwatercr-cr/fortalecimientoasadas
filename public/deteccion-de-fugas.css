@@ -1,7 +1,7 @@
-.fugas-hero{position:relative;isolation:isolate;overflow:hidden;min-height:660px;padding:clamp(3rem,6vw,5.5rem) 0;background:#072b34;color:#fff;display:flex;align-items:center}
-.fugas-water-background{position:absolute;inset:0 0 0 22%;z-index:-2;background:#0a414c url('/assets/agua-starwater.jpg') center/cover no-repeat}
+.fugas-hero{position:relative;isolation:isolate;overflow:hidden;min-height:calc(100svh - 90px);padding:clamp(3rem,6vw,5.5rem) 0;background:#072b34;color:#fff;display:flex;align-items:center}
+.fugas-water-background{position:absolute;inset:0;z-index:-2;background:#0a414c url('/assets/agua-starwater.jpg') center/cover no-repeat}
 .fugas-water-background video{display:block;width:100%;height:100%;object-fit:cover;object-position:center}
-.fugas-hero::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,#072b34 0%,#072b34f5 27%,#072b34dc 43%,#07323c95 65%,#07323c60 100%)}
+.fugas-hero::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,#072b34c9 0%,#072b349c 38%,#072b3452 68%,#07323c20 100%)}
 .fugas-hero-grid{position:relative;flex:none}.fugas-hero-grid>div{max-width:650px}
 .fugas-hero h1{font-size:clamp(2.5rem,5.5vw,4.7rem);line-height:1.06;color:#fff;max-width:13ch;margin:.25em 0}
 .fugas-hero .eyebrow{color:#78e5db}
@@ -16,7 +16,7 @@
 .fugas-calendar{background:white;border:1px solid #cfdee4;border-radius:.75rem;overflow:hidden}
 .fugas-calendar iframe{width:100%;height:760px;display:block;border:0}
 .fugas-page #reservar{scroll-margin-top:6rem}
-@media(max-width:720px){.fugas-hero{min-height:0;padding:4rem 0}.fugas-water-background{inset:0}.fugas-hero::before{background:linear-gradient(180deg,#072b34ed 0%,#072b34df 65%,#072b34a8 100%)}.fugas-process-grid{grid-template-columns:1fr}.fugas-process-grid>img{height:320px;max-width:32rem;margin-inline:auto}.fugas-calendar iframe{height:920px}}
+@media(max-width:720px){.fugas-hero{min-height:calc(100svh - 76px);padding:4rem 0}.fugas-water-background{inset:0}.fugas-hero::before{background:linear-gradient(180deg,#072b34bc 0%,#072b3492 68%,#072b345c 100%)}.fugas-process-grid{grid-template-columns:1fr}.fugas-process-grid>img{height:320px;max-width:32rem;margin-inline:auto}.fugas-calendar iframe{height:920px}}
 
 .fugas-video-section{background:#eaf5f5}
 .fugas-video-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,360px);align-items:center;justify-content:space-between;gap:clamp(2rem,7vw,6rem)}
