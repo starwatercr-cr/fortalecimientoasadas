@@ -25,6 +25,20 @@ test('una persona ajena no hereda la membresía de otra ASADA',async()=>{mock({f
 test('un miembro accede solo a su identidad y ASADA',async()=>{mock();const r=await handler(req('api=me'));assert.equal(r.status,200);const d=await r.json();assert.equal(d.asada.name,'ASADA A');assert.equal(d.admin,false);});
 test('miembros no pueden listar ni modificar permisos administrativos',async()=>{mock();assert.equal((await handler(req('api=admin-list'))).status,403);assert.equal((await handler(req('api=admin-toggle',{kind:'asada',id:memberID,active:false}))).status,403);});
 test('sesión autorizada sirve las herramientas desde el directorio privado',async()=>{mock();const r=await handler(req('file=herramientas.html'));assert.equal(r.status,200);assert((await r.text()).includes('Herramientas para su ASADA'));});
+test('todos los documentos de la biblioteca se entregan con sesión y permanecen privados',async()=>{
+ mock({admin:true});
+ const source=fs.readFileSync('private/normativa-data.js','utf8');
+ const data=JSON.parse(source.slice('const NORMATIVA_DATA = '.length,-2));
+ for(const document of data.documents){
+  assert.match(document.url,/^assets\/normativa\/[a-z0-9-]+\.pdf$/);
+  assert(fs.existsSync('private/'+document.url),document.id);
+  const response=await handler(req('file='+document.url));
+  assert.equal(response.status,200,document.id);
+  assert.equal(response.headers.get('content-type'),'application/pdf',document.id);
+  assert.equal((await response.arrayBuffer()).byteLength,fs.statSync('private/'+document.url).size,document.id);
+  assert.equal((await handler(req('file='+document.url,undefined,''))).status,401,document.id);
+ }
+});
 test('inicio usa cookie HttpOnly y no expone tokens al navegador',async()=>{mock();const r=await handler(req('api=login',{email:'user@example.test',password:'a long test password'}));assert.equal(r.status,200);const set=r.headers.get('set-cookie');assert(set.includes('HttpOnly')&&set.includes('Secure')&&set.includes('SameSite=Lax'));assert.equal((await r.json()).access_token,undefined);});
 test('solicitud desde otro sitio no inicia ni cambia sesión',async()=>{const request=new Request('https://example.netlify.app/.netlify/functions/gateway?api=login',{method:'POST',headers:{origin:'https://attacker.test'},body:'{}'});assert.equal((await handler(request)).status,403);});
 test('rutas arbitrarias y recorridos de directorio no entregan archivos',async()=>{for(const f of ['../public/index.html','../../etc/passwd','assets/../../.env'])assert.equal((await handler(req('file='+encodeURIComponent(f)))).status,404);});

@@ -89,6 +89,16 @@
   status = 200
   force = true
 [[redirects]]
+  from = "/assets/normativa/sicop-solicitud.pdf"
+  to = "/.netlify/functions/gateway?file=assets/normativa/sicop-solicitud.pdf"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/assets/normativa/aresep-contratacion.pdf"
+  to = "/.netlify/functions/gateway?file=assets/normativa/aresep-contratacion.pdf"
+  status = 200
+  force = true
+[[redirects]]
   from = "/biblioteca.html"
   to = "/.netlify/functions/gateway?file=biblioteca.html"
   status = 200
