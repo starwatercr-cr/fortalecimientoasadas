@@ -563,3 +563,21 @@
   to = "/.netlify/functions/gateway?file=solicitudes-clientes.js"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/public/tienda.html"
+  to = "/tienda"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/public.html"
+  to = "/"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/index.html.html"
+  to = "/"
+  status = 301
+  force = true
