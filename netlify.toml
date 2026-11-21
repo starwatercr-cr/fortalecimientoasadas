@@ -551,3 +551,15 @@
   to = "/.netlify/functions/gateway?file=financial-home-model.js"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/solicitudes-clientes.html"
+  to = "/.netlify/functions/gateway?file=solicitudes-clientes.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/solicitudes-clientes.js"
+  to = "/.netlify/functions/gateway?file=solicitudes-clientes.js"
+  status = 200
+  force = true

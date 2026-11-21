@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Consulta sobre agua | Star Water</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/consulta-agua.css"><script defer src="/consulta-agua.js"></script></head>
+<body><main class="wrap intake">
+<a href="/servicios-generales">← Servicios generales</a>
+<h1>Consulta sobre agua</h1>
+<p>Cuéntenos qué necesita y cómo podemos contactarle. Después de enviar su consulta podrá agendar una cita.</p>
+<form id="intake">
+<label>Tipo de consulta<select name="kind" required>
+<option value="disponibilidad">Solicitar disponibilidad de agua</option>
+<option value="negativa">Consultar por una negativa de agua</option>
+<option value="proyecto">Asesoría para un proyecto de agua</option>
+</select></label>
+<div class="intake-grid">
+<label>Nombre completo<input name="name" autocomplete="name" maxlength="140" required></label>
+<label>Teléfono o WhatsApp<input type="tel" name="phone" autocomplete="tel" maxlength="35" required></label>
+<label>Correo electrónico<input type="email" name="email" autocomplete="email" maxlength="254" required></label>
+<label>Ubicación de la propiedad<input name="location" placeholder="Cantón, distrito y comunidad" maxlength="250" required></label>
+</div>
+<fieldset data-kind="disponibilidad"><legend>Datos de la propiedad</legend>
+<label>Uso previsto<input name="use" maxlength="500" placeholder="Por ejemplo, vivienda, comercio o finca" required></label>
+<label>Operador del servicio, si lo conoce<input name="operator" maxlength="500"></label>
+</fieldset>
+<fieldset data-kind="negativa" hidden disabled><legend>Respuesta del operador</legend>
+<label>Entidad que respondió<select name="operator" required><option value="">Seleccione</option><option>ASADA</option><option>AyA</option><option>Municipalidad</option><option>Otra entidad</option></select></label>
+<label>Fecha de la respuesta, si la conoce<input type="date" name="responseDate"></label>
+<label>Motivo indicado en la respuesta<input name="reason" maxlength="500"></label>
+<label>Carta o correo de respuesta, opcional (PDF, PNG o JPG de hasta 2 MB)<input type="file" name="file" accept="application/pdf,image/png,image/jpeg"></label>
+</fieldset>
+<fieldset data-kind="proyecto" hidden disabled><legend>Datos del proyecto</legend>
+<label>Tipo de proyecto<input name="projectType" maxlength="500" required></label>
+<label>Etapa del proyecto<input name="stage" maxlength="500"></label>
+<label>Cantidad de viviendas, lotes o unidades, si aplica<input name="units" maxlength="500"></label>
+</fieldset>
+<label>¿En qué podemos ayudarle?<textarea name="description" rows="4" maxlength="3000" required></textarea></label>
+<div hidden><label>Sitio web<input name="website" autocomplete="off" tabindex="-1"></label></div>
+<label class="intake-accept"><input type="checkbox" name="accept" required> Autorizo a Star Water Ingeniería a utilizar los datos y documentos que envío para revisar esta consulta y contactarme.</label>
+<button class="button primary" id="submit" type="submit" disabled>Enviar consulta</button>
+<noscript>Active JavaScript para enviar el formulario.</noscript>
+</form>
+<p id="message" role="status" aria-live="polite"></p>
+<section id="receipt" hidden tabindex="-1">
+<h2>Recibimos su consulta</h2><p>Número de caso <strong id="case"></strong></p>
+<p>Puede reservar una cita con el mismo correo que usó en la consulta. Si la agenda le pide un comentario, incluya su número de caso.</p>
+<a class="button primary" href="https://calendar.app.google/tzqcKoUnyX2Jcktt6" target="_blank" rel="noopener noreferrer">Agendar cita</a>
+<p>Si prefiere que le contactemos, su consulta ya está registrada.</p>
+</section>
+</main></body></html>
