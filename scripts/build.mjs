@@ -16,11 +16,11 @@ async function updateProgramMenu(dir){
   const updated=normalized.replace(/<nav\b[^>]*\bid=(["'])nav-links\1[^>]*>[\s\S]*?<\/nav>/gi,menu=>{
    menu=menu.replace(/<a\b[^>]*\bhref=(["'])(?:\/|(?:\.\.\/)*index\.html)?#inversion\1[^>]*>Precios<\/a>/gi,'');
    menu=menu.replace(/<a\b[^>]*>Agendar sesión<\/a>/gi,'');
-   return menu.replace(/(<a\b[^>]*\bhref=(["'])(?:\/programa|(?:\.\.\/)*programa\.html)\2[^>]*>)Programa<\/a>/i,(_match,opening)=>{
+   return menu.replace(/(<a\b[^>]*\bhref=(["'])(?:\/programa|(?:\.\.\/)*programa\.html)\2[^>]*>)Programa<\/a>/i,()=>{
     const platformCurrent=entry.name==='plataforma.html'?' aria-current="page"':'';
     const leaks=menu.includes('/deteccion-de-fugas')?'':'<a href="/deteccion-de-fugas">Detección de fugas</a>';
-    const servicesCurrent=entry.name==='servicios-generales.html'?' aria-current="page"':'';
-    return opening+'Consultoría para ASADAS</a><a href="/plataforma"'+platformCurrent+'>Plataforma</a><a href="/servicios-generales"'+servicesCurrent+'>Servicios generales</a>'+leaks;
+    const servicesCurrent=entry.name==='servicios-generales.html'?' aria-current="page"':entry.name==='programa.html'?' aria-current="true"':'';
+    return '<a href="/plataforma"'+platformCurrent+'>Plataforma</a><a href="/servicios-generales"'+servicesCurrent+'>Servicios generales</a>'+leaks;
    });
   });
   if(updated!==html)await writeFile(file,updated);

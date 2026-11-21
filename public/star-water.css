@@ -142,18 +142,8 @@ a.star-card:hover .star-card-link {
 .star-footer .footer-brand{grid-column:auto}
 }
 
-.star-card-wide {
-  grid-column: 1 / -1;
-}
-
 .star-service-grid .star-card h2 {
   margin: 0;
   font-size: clamp(1.25rem, 2.5vw, 1.6rem);
   line-height: 1.2;
-}
-
-@media (min-width: 960px) {
-  .star-service-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 }
