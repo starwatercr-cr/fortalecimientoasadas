@@ -19,7 +19,8 @@ async function updateProgramMenu(dir){
    return menu.replace(/(<a\b[^>]*\bhref=(["'])(?:\/programa|(?:\.\.\/)*programa\.html)\2[^>]*>)Programa<\/a>/i,(_match,opening)=>{
     const platformCurrent=entry.name==='plataforma.html'?' aria-current="page"':'';
     const leaks=menu.includes('/deteccion-de-fugas')?'':'<a href="/deteccion-de-fugas">Detección de fugas</a>';
-    return opening+'Consultoría para ASADAS</a><a href="/plataforma"'+platformCurrent+'>Plataforma</a>'+leaks;
+    const servicesCurrent=entry.name==='servicios-generales.html'?' aria-current="page"':'';
+    return opening+'Consultoría para ASADAS</a><a href="/plataforma"'+platformCurrent+'>Plataforma</a><a href="/servicios-generales"'+servicesCurrent+'>Servicios generales</a>'+leaks;
    });
   });
   if(updated!==html)await writeFile(file,updated);
