@@ -9,7 +9,7 @@ const fields = {
 };
 const required = {disponibilidad:'use', negativa:'operator', proyecto:'projectType'};
 
-async function notify(id, kind) {
+async function notify(id, kind, caseNumber) {
   const {RESEND_API_KEY, CLIENT_REQUEST_FROM} = process.env;
   if (!RESEND_API_KEY || !CLIENT_REQUEST_FROM) return false;
   try {
@@ -18,7 +18,7 @@ async function notify(id, kind) {
       headers:{Authorization:'Bearer '+RESEND_API_KEY,'Content-Type':'application/json','Idempotency-Key':'client-request-'+id},
       body:JSON.stringify({
         from:CLIENT_REQUEST_FROM, to:['info@starwater.cr'], subject:'Nueva consulta: '+kinds[kind],
-        text:'Caso '+id+'\nhttps://fortalecimientoasadas.netlify.app/solicitudes-clientes.html?caso='+id
+        text:'Caso '+caseNumber+'\nhttps://fortalecimientoasadas.netlify.app/solicitudes-clientes.html?caso='+id
       }),
       signal:AbortSignal.timeout(5000)
     });
@@ -38,11 +38,14 @@ export async function clientRequests(api, request, {sb, owner, body, uuid, json,
     const attachment=clean('attachment',2800000), type=clean('attachmentType',30);
     const magic={'application/pdf':'JVBERi0','image/png':'iVBORw0KGgo','image/jpeg':'/9j/'};
     if (attachment && (kind!=='negativa' || !Object.hasOwn(types,type) || !attachment.startsWith(magic[type]) || !/^[A-Za-z0-9+/]+={0,2}$/.test(attachment) || Buffer.from(attachment,'base64').length>2097152)) throw new PublicError(400,'Adjunte un archivo PDF, PNG o JPG de hasta 2 MB.');
-    const inserted=await sb(route+'?on_conflict=id&select=id',{method:'POST',prefer:'resolution=ignore-duplicates,return=representation',body:{id,kind,details,attachment:attachment||null,attachment_type:attachment?type:null}});
-    if (inserted?.length && await notify(id,kind)) {
+    const inserted=await sb(route+'?on_conflict=id&select=case_number',{method:'POST',prefer:'resolution=ignore-duplicates,return=representation',body:{id,kind,details,attachment:attachment||null,attachment_type:attachment?type:null}});
+    const [record]=inserted?.length ? inserted : await sb(route+'?id=eq.'+id+'&select=case_number');
+    if (!record?.case_number) throw new PublicError(503,'No pudimos recuperar el número de caso. Intente de nuevo.');
+    const caseNumber='6009-'+record.case_number;
+    if (inserted?.length && await notify(id,kind,caseNumber)) {
       await sb(route+'?id=eq.'+id,{method:'PATCH',body:{notified_at:new Date().toISOString()}}).catch(()=>{});
     }
-    return json({id},201);
+    return json({id,caseNumber},201);
   }
   await owner();
   const id=new URL(request.url).searchParams.get('id');
@@ -50,7 +53,7 @@ export async function clientRequests(api, request, {sb, owner, body, uuid, json,
     const limit=30, offset=Math.max(0,Math.min(100000,parseInt(new URL(request.url).searchParams.get('offset'),10)||0));
     if (id!==null && !uuid(id)) throw new PublicError(400,'Número de caso inválido.');
     const filter=id?'&id=eq.'+id:'&order=created_at.desc,id.desc&limit='+(limit+1)+'&offset='+offset;
-    const rows=await sb(route+'?select=id,kind,status,created_at,details,identification,appointment,attachment_type,notified_at'+filter);
+    const rows=await sb(route+'?select=id,case_number,kind,status,created_at,details,identification,appointment,attachment_type,notified_at'+filter);
     return json({rows:rows.slice(0,limit),next:rows.length>limit?offset+limit:null});
   }
   if (!uuid(id)) throw new PublicError(400,'Número de caso inválido.');

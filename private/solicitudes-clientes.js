@@ -14,7 +14,7 @@ async function api(action, input){
 function render(row){
   const article=document.getElementById('request').content.firstElementChild.cloneNode(true);
   article.querySelector('h2').textContent=types[row.kind];
-  article.querySelector('[data-case]').textContent=row.id+' · '+new Date(row.created_at).toLocaleString('es-CR',{timeZone:'America/Costa_Rica'})+' · '+(row.notified_at?'Aviso enviado':'Sin aviso enviado');
+  article.querySelector('[data-case]').textContent='Caso 6009-'+row.case_number+' · '+new Date(row.created_at).toLocaleString('es-CR',{timeZone:'America/Costa_Rica'})+' · '+(row.notified_at?'Aviso enviado':'Sin aviso enviado');
   const details=article.querySelector('dl');
   for (const [key,label] of Object.entries(labels)){
     if(!row.details[key]) continue;

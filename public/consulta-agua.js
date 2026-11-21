@@ -38,7 +38,7 @@ form.addEventListener('submit',async event=>{
     if(!response.ok) throw Error(result.error||'No pudimos registrar la consulta.');
     form.hidden=true;
     message.textContent='';
-    document.getElementById('case').textContent=result.id;
+    document.getElementById('case').textContent=result.caseNumber||result.id;
     const receipt=document.getElementById('receipt');
     receipt.hidden=false;
     receipt.focus();
