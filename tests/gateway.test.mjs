@@ -30,13 +30,15 @@ test('todos los documentos de la biblioteca se entregan con sesión y permanecen
  const source=fs.readFileSync('private/normativa-data.js','utf8');
  const data=JSON.parse(source.slice('const NORMATIVA_DATA = '.length,-2));
  for(const document of data.documents){
-  assert.match(document.url,/^assets\/normativa\/[a-z0-9-]+\.pdf$/);
-  assert(fs.existsSync('private/'+document.url),document.id);
-  const response=await handler(req('file='+document.url));
+  const url=new URL(document.url,'https://example.netlify.app/');
+  const file=url.searchParams.get('file')||url.pathname.slice(1);
+  assert.match(file,/^assets\/normativa\/[a-z0-9-]+\.pdf$/);
+  assert(fs.existsSync('private/'+file),document.id);
+  const response=await handler(req('file='+file));
   assert.equal(response.status,200,document.id);
   assert.equal(response.headers.get('content-type'),'application/pdf',document.id);
-  assert.equal((await response.arrayBuffer()).byteLength,fs.statSync('private/'+document.url).size,document.id);
-  assert.equal((await handler(req('file='+document.url,undefined,''))).status,401,document.id);
+  assert.equal((await response.arrayBuffer()).byteLength,fs.statSync('private/'+file).size,document.id);
+  assert.equal((await handler(req('file='+file,undefined,''))).status,401,document.id);
  }
 });
 test('inicio usa cookie HttpOnly y no expone tokens al navegador',async()=>{mock();const r=await handler(req('api=login',{email:'user@example.test',password:'a long test password'}));assert.equal(r.status,200);const set=r.headers.get('set-cookie');assert(set.includes('HttpOnly')&&set.includes('Secure')&&set.includes('SameSite=Lax'));assert.equal((await r.json()).access_token,undefined);});

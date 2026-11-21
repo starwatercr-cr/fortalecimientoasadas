@@ -194,3 +194,15 @@ a.star-card:hover .star-card-link {
   .home-card-media img { transition: transform 280ms ease; }
   #soluciones .star-card:hover .home-card-media img { transform: scale(1.035); }
 }
+
+/* Let the falling water fill the complete first screen on the homepage. */
+.hero-water:not(.star-platform) {
+  min-height: calc(100svh - 90px);
+  display: flex;
+  align-items: center;
+}
+@media (max-width: 760px) {
+  .hero-water:not(.star-platform) {
+    min-height: calc(100svh - 76px);
+  }
+}
