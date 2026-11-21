@@ -1,5 +1,5 @@
 const types={disponibilidad:'Disponibilidad de agua',negativa:'Negativa de agua',proyecto:'Proyecto de agua'};
-const labels={name:'Nombre',email:'Correo',phone:'Teléfono',location:'Ubicación',description:'Consulta',use:'Uso previsto',operator:'Operador o entidad',responseDate:'Fecha de respuesta',reason:'Motivo',projectType:'Tipo de proyecto',stage:'Etapa',units:'Unidades'};
+const labels={name:'Nombre de contacto',email:'Correo',phone:'Teléfono',location:'Ubicación',ownerName:'Nombre de la persona propietaria',ownerIdentification:'Identificación de la persona propietaria',legacyIdentification:'Identificación registrada anteriormente',description:'Consulta',use:'Uso previsto',operator:'Operador o entidad',responseDate:'Fecha de respuesta',reason:'Motivo',projectType:'Tipo de proyecto',stage:'Etapa',units:'Unidades'};
 const list=document.getElementById('requests'), notice=document.getElementById('status'), more=document.getElementById('more');
 const requested=new URLSearchParams(location.search).get('caso');
 let offset=0;
@@ -16,11 +16,12 @@ function render(row){
   article.querySelector('h2').textContent=types[row.kind];
   article.querySelector('[data-case]').textContent='Caso 6009-'+row.case_number+' · '+new Date(row.created_at).toLocaleString('es-CR',{timeZone:'America/Costa_Rica'});
   const details=article.querySelector('dl');
+  const values={...row.details,legacyIdentification:row.identification};
   for (const [key,label] of Object.entries(labels)){
-    if(!row.details[key]) continue;
+    if(!values[key]) continue;
     const term=document.createElement('dt'), description=document.createElement('dd');
     term.textContent=label;
-    description.textContent=row.details[key];
+    description.textContent=values[key];
     details.append(term,description);
   }
   if(row.attachment_type){
@@ -30,7 +31,6 @@ function render(row){
   }
   const form=article.querySelector('form');
   form.elements.status.value=row.status;
-  form.elements.identification.value=row.identification||'';
   if(row.appointment) form.elements.appointment.value=new Date(Date.parse(row.appointment)-21600000).toISOString().slice(0,16);
   form.addEventListener('submit',async event=>{
     event.preventDefault();

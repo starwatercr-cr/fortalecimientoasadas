@@ -15,7 +15,7 @@ export async function clientRequests(api, request, {sb, owner, body, uuid, json,
     const clean=(key,max)=>typeof input?.[key]==='string' ? input[key].trim().slice(0,max) : '';
     const kind=clean('kind',20), id=clean('id',36);
     if (!uuid(id) || !Object.hasOwn(kinds,kind) || input.accept!==true || clean('website',150)) throw new PublicError(400,'Revise los datos de la consulta.');
-    const details={name:clean('name',140),email:clean('email',254),phone:clean('phone',35),location:clean('location',250),description:clean('description',3000)};
+    const details={name:clean('name',140),email:clean('email',254),phone:clean('phone',35),location:clean('location',250),ownerName:clean('ownerName',140),ownerIdentification:clean('ownerIdentification',40),description:clean('description',3000)};
     for (const field of fields[kind]) details[field]=clean(field,500);
     if (!details.name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(details.email) || details.phone.replace(/\D/g,'').length<8 || !details.location || !details.description || !details[required[kind]]) throw new PublicError(400,'Complete los datos de contacto y del caso.');
     const attachment=clean('attachment',2800000), type=clean('attachmentType',30);
@@ -44,8 +44,8 @@ export async function clientRequests(api, request, {sb, owner, body, uuid, json,
   if (api==='client-request-update' && request.method==='POST') {
     const input=await body(request);
     const appointment=input.appointment ? new Date(input.appointment) : null;
-    if (!statuses.includes(input.status) || typeof input.identification!=='string' || input.identification.length>40 || (appointment && !Number.isFinite(appointment.getTime()))) throw new PublicError(400,'Revise el estado, la identificación y la fecha.');
-    const rows=await sb(route+'?id=eq.'+id+'&select=id',{method:'PATCH',prefer:'return=representation',body:{status:input.status, identification:input.identification.trim()||null,appointment:appointment?.toISOString()||null}});
+    if (!statuses.includes(input.status) || (appointment && !Number.isFinite(appointment.getTime()))) throw new PublicError(400,'Revise el estado y la fecha.');
+    const rows=await sb(route+'?id=eq.'+id+'&select=id',{method:'PATCH',prefer:'return=representation',body:{status:input.status, appointment:appointment?.toISOString()||null}});
     if (!rows?.length) throw new PublicError(404,'Caso no encontrado.');
     return json({ok:true});
   }

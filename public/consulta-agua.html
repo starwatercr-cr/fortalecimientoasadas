@@ -19,12 +19,18 @@
 <option value="negativa">Consultar por una negativa de agua</option>
 <option value="proyecto">Asesoría para un proyecto de agua</option>
 </select></label>
-<fieldset class="intake-contact"><legend>Datos de contacto y ubicación</legend><div class="intake-grid">
-<label>Nombre completo<input name="name" autocomplete="name" maxlength="140" required></label>
+<fieldset class="intake-contact"><legend>Datos de quien presenta la consulta</legend><div class="intake-grid">
+<label>Nombre completo de contacto<input name="name" autocomplete="name" maxlength="140" required></label>
 <label>Teléfono o WhatsApp<input type="tel" name="phone" autocomplete="tel" maxlength="35" required></label>
 <label>Correo electrónico<input type="email" name="email" autocomplete="email" maxlength="254" required></label>
 <label>Ubicación de la propiedad<input name="location" placeholder="Cantón, distrito y comunidad" maxlength="250" required></label>
 </div></fieldset>
+<fieldset><legend>Datos de la persona propietaria</legend>
+<div class="intake-grid">
+<label>Nombre completo o razón social (opcional)<input name="ownerName" maxlength="140"></label>
+<label>Cédula o identificación (opcional)<input name="ownerIdentification" maxlength="40"></label>
+</div>
+</fieldset>
 <fieldset data-kind="disponibilidad"><legend>Datos de la propiedad</legend>
 <label>Uso previsto<input name="use" maxlength="500" placeholder="Por ejemplo, vivienda, comercio o finca" required></label>
 <label>Operador del servicio, si lo conoce<input name="operator" maxlength="500"></label>
