@@ -1,29 +1,46 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Solicitudes de clientes | Star Water</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/consulta-agua.css"><link rel="stylesheet" href="/star-water.css"><link rel="stylesheet" href="/solicitudes-clientes.css"><script defer src="/solicitudes-clientes.js?v=5"></script></head>
+<title>Solicitudes de clientes | Star Water</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/consulta-agua.css"><link rel="stylesheet" href="/star-water.css"><link rel="stylesheet" href="/solicitudes-clientes.css?v=2"><script defer src="/solicitudes-clientes.js?v=6"></script></head>
 <body class="intake-page">
 <header class="requests-header"><div class="wrap">
   <a href="/" aria-label="Inicio de Star Water"><img src="/assets/logo.png" alt="Star Water Soluciones Innovadoras" width="452" height="128"></a>
   <a class="requests-back" href="/herramientas.html">← Volver a la plataforma</a>
 </div></header>
 <main>
-<section class="section star-platform requests-hero"><div class="wrap">
-<h1>Solicitudes de clientes</h1>
-<p>Revise las consultas de Servicios generales y registre la cita confirmada en Google Calendar. Las horas se muestran en Costa Rica.</p>
-<div class="actions"><a class="button primary" href="https://calendar.app.google/tzqcKoUnyX2Jcktt6" target="_blank" rel="noopener noreferrer">Ver agenda de reservas</a></div>
-</div></section>
 <div class="wrap intake requests-main">
-<p id="status" role="status"></p>
-<div id="requests" class="requests-list"></div>
-<button class="button outline" id="more" type="button" hidden>Ver más solicitudes</button>
+  <div class="requests-page-heading">
+    <div><h1>Solicitudes de clientes</h1><p>Revise las consultas y dé seguimiento a cada caso.</p></div>
+    <a class="button outline" href="https://calendar.app.google/tzqcKoUnyX2Jcktt6" target="_blank" rel="noopener noreferrer">Abrir agenda de reservas <span aria-hidden="true">↗</span></a>
+  </div>
+  <div class="requests-inbox">
+    <aside class="intake-card requests-sidebar" aria-labelledby="inbox-title">
+      <h2 id="inbox-title">Bandeja</h2>
+      <label for="request-search">Buscar en la lista
+        <input id="request-search" type="search" placeholder="Caso, nombre o servicio" autocomplete="off">
+      </label>
+      <p id="status" role="status"></p>
+      <ul id="requests" class="requests-list"></ul>
+      <button class="button outline" id="more" type="button" hidden>Ver más solicitudes</button>
+    </aside>
+    <section id="request-detail" aria-label="Detalle de la solicitud">
+      <p class="intake-card requests-placeholder" id="request-placeholder">Seleccione una solicitud para ver su detalle.</p>
+    </section>
+  </div>
 <template id="request">
 <article class="intake-card requests-card">
-<h2></h2><p data-case></p><dl></dl>
+<header class="requests-detail-heading">
+  <div><p data-case></p><h2 tabindex="-1"></h2></div>
+  <span class="requests-badge" data-detail-status></span>
+</header>
+<section class="requests-detail-section"><h3>Datos de la solicitud</h3><dl></dl></section>
+<div class="requests-documents" hidden><h3>Documentos adjuntos</h3>
 <a data-file hidden>Descargar respuesta del operador</a>
 <a data-plan hidden>Descargar plano</a>
+</div>
 <form>
+<h3>Seguimiento</h3>
 <div class="intake-grid">
 <label>Estado<select name="status"><option>Nuevo</option><option>En revisión</option><option>Pendiente de información</option><option>Cerrado</option></select></label>
-<label>Cita confirmada en Costa Rica<input name="appointment" type="datetime-local"></label>
+<label>Cita confirmada (hora de Costa Rica)<input name="appointment" type="datetime-local"></label>
 </div>
 <button class="button primary" type="submit">Guardar cambios</button>
 <p role="status"></p>

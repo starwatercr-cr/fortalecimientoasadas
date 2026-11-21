@@ -22,3 +22,53 @@
   .requests-card dl { grid-template-columns: 1fr; gap: .2rem; }
   .requests-card dd + dt { margin-top: .4rem; }
 }
+
+.requests-page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.requests-page-heading h1 { margin: 0; font-size: clamp(1.8rem, 4vw, 2.75rem); color: #103e55; }
+.requests-page-heading p { margin: .45rem 0 0; color: #30566a; }
+.requests-inbox { display: grid; grid-template-columns: minmax(235px, .85fr) minmax(0, 1.65fr); gap: 1rem; align-items: start; }
+.requests-sidebar { padding: 1rem; min-width: 0; }
+.requests-sidebar h2, .requests-card h3 { margin: 0; color: #103e55; font-size: 1rem; }
+.requests-sidebar label { margin-block: .8rem; font-size: .9rem; }
+.requests-list { list-style: none; padding: 0; margin: 0; gap: .45rem; }
+.requests-list li { min-width: 0; }
+.requests-entry {
+  display: grid;
+  width: 100%;
+  gap: .22rem;
+  padding: .7rem .8rem;
+  text-align: left;
+  border: 1px solid #d2e3e7;
+  border-radius: .65rem;
+  background: #fff;
+  color: #103e55;
+  font: inherit;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.requests-entry:hover { background: #f2f8f8; }
+.requests-entry[aria-current="true"] { border-color: #388487; background: #e7f5f4; box-shadow: inset 3px 0 #388487; }
+.requests-entry-meta { color: #30566a; font-size: .82rem; }
+.requests-entry .requests-badge { justify-self: start; }
+.requests-badge { display: inline-block; padding: .17rem .5rem; border-radius: 1rem; background: #edf2f5; color: #294e63; font-size: .78rem; font-weight: 650; }
+.requests-badge[data-state="Nuevo"] { background: #d9f3ed; color: #07574f; }
+.requests-badge[data-state="Pendiente de información"] { background: #fff1d7; color: #6b4800; }
+.requests-sidebar #more { margin-top: .8rem; }
+.requests-placeholder { color: #30566a; margin: 0; }
+.requests-detail-heading { display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: .5rem; }
+.requests-detail-heading h2 { font-size: clamp(1.3rem, 3vw, 1.85rem); }
+.requests-detail-heading [data-case] { font-size: .85rem; margin: 0 0 .3rem; }
+.requests-detail-section, .requests-documents { border-top: 1px solid #d2e3e7; margin-top: 1rem; padding-top: 1rem; }
+.requests-detail-section dl { margin: .7rem 0 0; }
+.requests-documents a { display: inline-block; margin: .45rem 1rem 0 0; font-weight: 650; }
+.requests-documents [hidden] { display: none; }
+@media (max-width: 740px) {
+  .requests-inbox { grid-template-columns: 1fr; }
+}
