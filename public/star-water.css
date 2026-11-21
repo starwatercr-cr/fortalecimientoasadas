@@ -156,3 +156,41 @@ a.star-card:hover .star-card-link {
   font-size: clamp(1.25rem, 2.5vw, 1.6rem);
   line-height: 1.2;
 }
+
+#soluciones .star-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.home-card-media {
+  width: 100%;
+  aspect-ratio: 2.35;
+  overflow: hidden;
+  background: #edf3f5;
+}
+
+.home-card-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.home-card-media--fugas { background: #dee5e7; }
+.home-card-media--fugas img { object-fit: contain; }
+.home-card-media--tienda { background: #fff; }
+.home-card-media--tienda img { object-fit: contain; }
+.home-card-media--naciente img { object-position: center 43%; }
+
+.home-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: clamp(1.2rem, 3vw, 2rem);
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .home-card-media img { transition: transform 280ms ease; }
+  #soluciones .star-card:hover .home-card-media img { transform: scale(1.035); }
+}
