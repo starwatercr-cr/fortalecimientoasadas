@@ -176,7 +176,7 @@ a.star-card:hover .star-card-link {
   object-fit: cover;
 }
 
-.home-card-media--fugas { background: #dee5e7; }
+.home-card-media--fugas { background: #fff; }
 .home-card-media--fugas img { object-fit: contain; }
 .home-card-media--tienda { background: #fff; }
 .home-card-media--tienda img { object-fit: contain; }
