@@ -1,4 +1,10 @@
 [[redirects]]
+  from = "https://fortalecimientoasadas.netlify.app/*"
+  to = "https://solucionesstarwater.com/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/contabilidad.html"
   to = "/.netlify/functions/gateway?file=contabilidad.html"
   status = 200
