@@ -84,3 +84,6 @@
 .hero-water .hero-copy>.hero-author{display:flex;flex-direction:column;gap:5px;margin:30px 0 0;padding-top:20px;border-top:1px solid #67a2a580;font-family:Inter,"Avenir Next","Segoe UI",Arial,sans-serif}.hero-author span{font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:#acd6d5}.hero-author strong{font-size:clamp(1.05rem,2vw,1.3rem);font-weight:500;letter-spacing:-.015em;line-height:1.4;color:#fff}
 
 .water-cloud table{width:100%;border-collapse:collapse;text-align:left}.water-cloud caption{text-align:left;font-weight:600;margin:20px 0 12px}.water-cloud th,.water-cloud td{padding:14px 12px;border-bottom:1px solid var(--line);vertical-align:top}.water-cloud th{background:var(--pale)}.water-cloud .water-settings{align-items:end}.water-cloud .actions{margin:20px 0}.water-cloud input,.water-cloud select{max-width:100%}@media print{.water-cloud .actions,.water-cloud button,#water-cloud-asada,#water-cloud-year,#water-cloud-list,#water-cloud-history-list{display:none}.water-cloud input,.water-cloud select{border:0;background:transparent;color:#183341}.water-cloud th{background:#f1f7fa}}
+
+.site-header .nav .workspace-header-nav{display:flex;width:auto;padding:0}
+@media(max-width:480px){.site-header .workspace-header-nav .platform-entry{padding:10px;font-size:.8rem}}
