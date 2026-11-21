@@ -19,7 +19,7 @@ async function updateProgramMenu(dir){
    return menu.replace(/(<a\b[^>]*\bhref=(["'])(?:\/programa|(?:\.\.\/)*programa\.html)\2[^>]*>)Programa<\/a>/i,()=>{
     const platformCurrent=entry.name==='plataforma.html'?' aria-current="page"':'';
     const leaks=menu.includes('/deteccion-de-fugas')?'':'<a href="/deteccion-de-fugas">Detección de fugas</a>';
-    const servicesCurrent=entry.name==='servicios-generales.html'?' aria-current="page"':entry.name==='programa.html'?' aria-current="true"':'';
+    const servicesCurrent=entry.name==='servicios-generales.html'?' aria-current="page"':['programa.html','consulta-agua.html'].includes(entry.name)?' aria-current="true"':'';
     return '<a href="/plataforma"'+platformCurrent+'>Plataforma</a><a href="/servicios-generales"'+servicesCurrent+'>Servicios generales</a>'+leaks;
    });
   });

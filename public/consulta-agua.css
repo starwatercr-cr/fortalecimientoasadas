@@ -1,9 +1,62 @@
-.intake { max-width: 820px; padding-block: 2.5rem; }
+.intake-page { background: #eff5f6; }
+.intake-hero { padding-block: clamp(2rem, 5vw, 3.5rem); }
+.intake-hero h1 { font-size: clamp(2rem, 5vw, 3.65rem); }
+.intake-hero p { margin-bottom: 0; }
+.intake-hero .intake-back {
+  display: inline-block;
+  margin-bottom: .85rem;
+  color: #a5f1e9;
+  font-weight: 700;
+  text-underline-offset: .2em;
+}
+
+.intake { max-width: 880px; padding-block: clamp(1.25rem, 4vw, 2.75rem); }
+.intake-card {
+  padding: clamp(1rem, 4vw, 2rem);
+  background: #fff;
+  border: 1px solid #d2e3e7;
+  border-radius: 1.15rem;
+  box-shadow: 0 12px 30px #1034420e;
+}
 .intake form, .intake fieldset { display: grid; gap: 1rem; }
-.intake-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit,minmax(min(235px,100%),1fr)); }
-.intake label { display: grid; gap: .35rem; }
-.intake fieldset { border: 1px solid #c6dce3; border-radius: .75rem; padding: 1rem; min-width: 0; }
+.intake-grid { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.intake label { display: grid; align-content: start; gap: .4rem; margin: 0; font-weight: 650; color: #123946; }
+.intake fieldset {
+  margin: 0;
+  border: 1px solid #d2e3e7;
+  border-radius: .75rem;
+  padding: .9rem 1rem 1rem;
+  min-width: 0;
+  background: #f5f9fa;
+}
+.intake legend { padding-inline: .4rem; font-weight: 750; color: #075b65; }
+.intake label > :is(input:not([type="checkbox"]), select, textarea) {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 2.85rem;
+  margin: 0;
+  padding: .65rem .75rem;
+  border: 1px solid #9eb9c2;
+  border-radius: .55rem;
+  background: #fff;
+  color: #123946;
+  font: inherit;
+  font-weight: 400;
+}
+.intake label > textarea { resize: vertical; }
+.intake label > :is(input, select, textarea):focus-visible {
+  outline: 2px solid #087b83;
+  outline-offset: 2px;
+}
 .intake [hidden] { display: none; }
-.intake .intake-accept { display: flex; gap: .65rem; align-items: flex-start; }
+.intake .intake-accept { display: flex; gap: .65rem; align-items: flex-start; font-weight: 400; }
+.intake-accept input { margin-top: .3rem; accent-color: #087b83; }
 .intake form .button { justify-self: start; }
 .intake #case { overflow-wrap: anywhere; }
+.intake #message:empty { display: none; }
+.intake #receipt h2 { margin-top: 0; }
+
+@media (max-width: 560px) {
+  .intake-grid { grid-template-columns: 1fr; }
+}
