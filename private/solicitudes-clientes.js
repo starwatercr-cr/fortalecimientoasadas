@@ -1,5 +1,5 @@
-const types={disponibilidad:'Disponibilidad de agua',negativa:'Negativa de agua',proyecto:'Proyecto de agua'};
-const labels={name:'Nombre de contacto',email:'Correo',phone:'Teléfono',location:'Ubicación',ownerName:'Nombre de la persona propietaria',ownerIdentification:'Identificación de la persona propietaria',legacyIdentification:'Identificación registrada anteriormente',description:'Consulta',use:'Uso previsto',operator:'Operador o entidad',responseDate:'Fecha de respuesta',reason:'Motivo',projectType:'Tipo de proyecto',stage:'Etapa',units:'Unidades'};
+const types={disponibilidad:'Disponibilidad de agua',negativa:'Negativa de agua',proyecto:'Proyecto de agua',fuente:'Inscripción de fuente o concesión'};
+const labels={name:'Nombre de contacto',email:'Correo',phone:'Teléfono',location:'Ubicación',ownerName:'Nombre de la persona propietaria',ownerIdentification:'Identificación de la persona propietaria',legacyIdentification:'Identificación registrada anteriormente',description:'Consulta',use:'Uso previsto',operator:'Operador o entidad',responseDate:'Fecha de respuesta',reason:'Motivo',projectType:'Tipo de proyecto',stage:'Etapa',units:'Unidades',sourceProcedure:'Trámite',sourceType:'Tipo de fuente',sourceName:'Nombre de la fuente',sourceLocation:'Coordenadas o enlace de ubicación',sourceUse:'Uso previsto del agua',sourceFlow:'Caudal solicitado (L/s)',hasMeasurements:'Cuenta con aforos',interestedIdentification:'Cédula de la persona interesada',sourceDemand:'Detalle del aprovechamiento'};
 const list=document.getElementById('requests'), notice=document.getElementById('status'), more=document.getElementById('more');
 const requested=new URLSearchParams(location.search).get('caso');
 let offset=0;
@@ -27,7 +27,13 @@ function render(row){
   if(row.attachment_type){
     const file=article.querySelector('[data-file]');
     file.hidden=false;
+    if(row.kind==='fuente') file.textContent='Descargar aforos';
     file.href='/api/client-request-file?id='+encodeURIComponent(row.id);
+  }
+  if(row.source_plan_type){
+    const plan=article.querySelector('[data-plan]');
+    plan.hidden=false;
+    plan.href='/api/client-request-file?document=plano&id='+encodeURIComponent(row.id);
   }
   const form=article.querySelector('form');
   form.elements.status.value=row.status;

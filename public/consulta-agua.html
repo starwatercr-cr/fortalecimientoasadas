@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Consulta sobre agua | Star Water</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/star-water.css"><link rel="stylesheet" href="/consulta-agua.css?v=2"><script defer src="/app.js"></script><script defer src="/consulta-agua.js?v=2"></script></head>
+<title>Consulta sobre agua | Star Water</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/star-water.css"><link rel="stylesheet" href="/consulta-agua.css?v=2"><script defer src="/app.js"></script><script defer src="/consulta-agua.js?v=3"></script></head>
 <body class="intake-page">
 <a class="skip" href="#contenido">Ir al contenido</a>
 <header class="site-header"><div class="wrap nav"><a aria-label='Star Water inicio' class='brand' href='/#inicio'><img src="/assets/logo.png" alt="Star Water Soluciones Innovadoras" width="452" height="128"></a><button class="menu-toggle" aria-expanded="false" aria-controls="nav-links">Menú</button><nav id="nav-links" aria-label="Navegación principal"><a href='/programa'>Programa</a><a href="/deteccion-de-fugas">Detección de fugas</a><a href='/tienda'>Tienda de equipos</a><a class='platform-entry' href='/acceso'><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v3"/></svg><span>Ingresar a la plataforma</span></a></nav></div></header>
@@ -17,6 +17,7 @@
 <label>Tipo de consulta<select name="kind" required>
 <option value="disponibilidad">Solicitar disponibilidad de agua</option>
 <option value="negativa">Consultar por una negativa de agua</option>
+<option value="fuente">Inscripción de fuente o concesión de agua</option>
 <option value="proyecto">Asesoría para un proyecto de agua</option>
 </select></label>
 <fieldset class="intake-contact"><legend>Datos de quien presenta la consulta</legend><div class="intake-grid">
@@ -40,6 +41,22 @@
 <label>Fecha de la respuesta, si la conoce<input type="date" name="responseDate"></label>
 <label>Motivo indicado en la respuesta<input name="reason" maxlength="500"></label>
 <label>Carta o correo de respuesta, opcional (PDF, PNG o JPG de hasta 2 MB)<input type="file" name="file" accept="application/pdf,image/png,image/jpeg"></label>
+</fieldset>
+<fieldset data-kind="fuente" hidden disabled><legend>Información de la fuente y del aprovechamiento</legend>
+<div class="intake-grid">
+<label>Trámite que necesita<select name="sourceProcedure" required><option value="">Seleccione</option><option>Inscripción de fuente</option><option>Concesión de agua</option><option>Orientación para definir el trámite</option></select></label>
+<label>Tipo de fuente<select name="sourceType" required><option value="">Seleccione</option><option>Naciente</option><option>Pozo</option><option>Río o quebrada</option><option>Otra fuente</option></select></label>
+<label>Nombre de la fuente, si lo conoce<input name="sourceName" maxlength="500"></label>
+<label>Coordenadas o enlace de ubicación de la fuente (opcional)<input name="sourceLocation" maxlength="500"></label>
+<label>Uso previsto del agua<input name="sourceUse" maxlength="500" placeholder="Por ejemplo, consumo doméstico, riego o uso comercial" required></label>
+<label>Caudal que necesita (L/s), si lo conoce<input name="sourceFlow" type="number" min="0.001" step="any"></label>
+<label>¿Cuenta con aforos?<select name="hasMeasurements" required><option value="">Seleccione</option><option>Sí</option><option>No</option></select></label>
+<label>Cédula de la persona interesada (opcional)<input name="interestedIdentification" maxlength="40"></label>
+</div>
+<label>Detalle del aprovechamiento<textarea name="sourceDemand" rows="3" maxlength="500" placeholder="Indique a quién abastecerá, cuánto utilizará y con qué frecuencia, según corresponda." required></textarea></label>
+<p>Puede adjuntar los documentos en PDF, PNG o JPG. Máximo 2 MB por archivo y 3 MB en total.</p>
+<label>Informe de aforos (opcional)<input type="file" name="measurementsFile" accept="application/pdf,image/png,image/jpeg"></label>
+<label>Plano catastrado o de ubicación (opcional)<input type="file" name="planFile" accept="application/pdf,image/png,image/jpeg"></label>
 </fieldset>
 <fieldset data-kind="proyecto" hidden disabled><legend>Datos del proyecto</legend>
 <label>Tipo de proyecto<input name="projectType" maxlength="500" required></label>

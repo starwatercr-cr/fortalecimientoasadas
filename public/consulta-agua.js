@@ -20,18 +20,25 @@ form.addEventListener('submit',async event=>{
   message.textContent='Enviando consulta…';
   try {
     const data=new FormData(form);
-    const file=data.get('file');
-    data.delete('file');
+    const attachmentFields=[['file','attachment'],['measurementsFile','attachment'],['planFile','sourcePlan']];
+    const files=[];
+    for(const [field,key] of attachmentFields){
+      const file=data.get(field);
+      data.delete(field);
+      if(file?.size) files.push({file,key});
+    }
+    if(files.some(({file})=>file.size>2097152) || files.reduce((total,{file})=>total+file.size,0)>3145728){
+      throw Error('Adjunte hasta 2 MB por archivo y 3 MB en total.');
+    }
     const input={...Object.fromEntries(data),id,accept:form.elements.accept.checked};
-    if(file?.size){
-      if(file.size>2097152) throw Error('El archivo debe pesar como máximo 2 MB.');
-      input.attachment=await new Promise((resolve,reject)=>{
+    for(const {file,key} of files){
+      input[key]=await new Promise((resolve,reject)=>{
         const reader=new FileReader();
         reader.onload=()=>resolve(String(reader.result).split(',')[1]);
         reader.onerror=()=>reject(Error('No pudimos leer el archivo.'));
         reader.readAsDataURL(file);
       });
-      input.attachmentType=file.type;
+      input[key+'Type']=file.type;
     }
     const response=await fetch('/api/client-request-submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(input)});
     const result=await response.json();
