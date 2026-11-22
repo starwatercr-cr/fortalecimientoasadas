@@ -6,4 +6,4 @@ const source=await readFile(new URL('../private/calidad.js',import.meta.url),'ut
 const code=source
   .replaceAll("from './water-parameters.js'", `from '${new URL('../private/water-parameters.js',import.meta.url).href}'`)
   .replaceAll("from '/quality-import.mjs'", `from '${new URL('../public/quality-import.mjs',import.meta.url).href}'`);
-export const {buildQualityWord,compactQualityResult,filledQualityRows}=await import('data:text/javascript;charset=utf-8,'+encodeURIComponent(code));
+export const {buildQualityWord,compactQualityResult,filledQualityRows,qualityWarningsForContext}=await import('data:text/javascript;charset=utf-8,'+encodeURIComponent(code));

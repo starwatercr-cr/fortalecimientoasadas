@@ -2,6 +2,7 @@ import {QUALITY_PARAMS,qualityReport} from './water-parameters.js';
 import {readWaterAnalysis,extractWaterAnalysis,waterAnalysisType} from '/quality-import.mjs';
 
 export const filledQualityRows=rows=>rows.filter(row=>String(row.value||'').trim());
+export const qualityWarningsForContext=(warnings,stage)=>stage==='unknown'?warnings:warnings.filter(w=>!w.startsWith('No se pudo confirmar si la muestra corresponde a agua tratada o sin tratamiento.')&&!/tipo de agua/i.test(w));
 export function compactQualityResult(r){
  const p=QUALITY_PARAMS.find(p=>p.id===r.id),kind=p?.kind;
  if(r.status==='within')return {title:kind==='range'?'Dentro del rango':kind==='micro'||kind==='detection'?'No detectable reportado':kind==='odor'?'Aceptable':kind==='alert'?'Por debajo de la alerta':'Dentro del máximo',action:'Mantenga el control periódico y conserve el informe.',tone:'within'};
@@ -45,7 +46,7 @@ function initQuality(){
   $('quality-overview').textContent=payload.rows.length+' parámetros reconocidos · '+favorable+' con comparación favorable · '+flag+' requieren atención · '+pending+' por confirmar.';
   $('quality-context').textContent='ASADA: '+asadaName()+' · Muestra: '+(payload.context.date||'Fecha no identificada')+' · '+({treated:'Agua tratada',raw:'Agua sin tratamiento',unknown:'Tipo de agua por confirmar'}[payload.context.stage])+' · '+payload.filename+(payload.ocr?' · Leído mediante reconocimiento de imagen':'');
   $('quality-results').innerHTML=results.map((r,i)=>{const brief=compactQualityResult(r),source=payload.rows[i]?.source;return '<article class="quality-reading '+esc(r.status)+(brief.priority?' immediate':'')+'"><p class="small"><strong>'+esc(r.name)+'</strong> · '+esc(r.reported)+' '+esc(r.unit)+'</p>'+(brief.priority?'<p class="quality-priority">'+esc(brief.priority)+'</p>':'')+'<h3>'+esc(brief.title)+'</h3><p class="small"><strong>Referencia:</strong> '+esc(r.criterion)+'</p><p>'+esc(brief.action)+'</p>'+(source?'<p class="quality-source">Leído del informe: '+esc(source)+'</p>':'')+'</article>';}).join('');
-  const alerts=[...payload.warnings];if(payload.context.stage==='unknown'&&!alerts.some(w=>w.includes('tipo de agua')))alerts.push('No se confirmó el tipo de agua; no se declara cumplimiento.');
+  const alerts=[...qualityWarningsForContext(payload.warnings,payload.context.stage)];if(payload.context.stage==='unknown'&&!alerts.some(w=>w.includes('tipo de agua')))alerts.push('No se confirmó el tipo de agua; no se declara cumplimiento.');
   $('quality-warnings').hidden=!alerts.length;
   $('quality-warnings').innerHTML=alerts.length?'<h3>Datos que requieren confirmar con el informe</h3><ul>'+alerts.map(w=>'<li>'+esc(w)+'</li>').join('')+'</ul>':'';
   const original=$('quality-original');original.hidden=!record;original.href=record?'/api/panel-quality-file?asada='+encodeURIComponent(asada)+'&id='+encodeURIComponent(record.id):'#';
@@ -73,7 +74,7 @@ function initQuality(){
    if(!extracted.rows.length)throw Error('No se identificaron resultados con unidad y valor suficientes para una interpretación segura. Pruebe con un PDF legible o una foto nítida de una sola muestra.');
    if(extracted.rows.length>30)throw Error('El informe tiene demasiados parámetros para una lectura automática. Use el análisis de una sola muestra.');
    const chosen=$('quality-stage').value,context={...extracted.context,name:asadaName(),stage:chosen==='auto'?extracted.context.stage:chosen};
-   const warnings=chosen==='auto'?extracted.warnings:[...extracted.warnings.filter(w=>!w.includes('tipo de agua')), 'Tipo de agua indicado por la persona usuaria; confirme este dato con el informe o la ASADA.'];
+   const warnings=qualityWarningsForContext(extracted.warnings,context.stage);
    const preview={documentId:previous?.payload.documentId||'00000000-0000-0000-0000-000000000000',filename:file.name.slice(0,160),ocr:reading.ocr,context,rows:extracted.rows,warnings};
    if(new TextEncoder().encode(JSON.stringify(preview)).length>9500)throw Error('El documento contiene demasiados datos para guardarlos automáticamente. Use el análisis de una sola muestra.');
    status(previous?'Actualizando los resultados reconocidos…':'Guardando el documento y los resultados reconocidos…');
