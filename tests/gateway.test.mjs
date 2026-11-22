@@ -24,7 +24,7 @@ test('una ASADA suspendida no puede abrir herramientas ni archivos',async()=>{mo
 test('una persona ajena no hereda la membresía de otra ASADA',async()=>{mock({foreign:true});assert.equal((await handler(req('api=me'))).status,403);});
 test('un miembro accede solo a su identidad y ASADA',async()=>{mock();const r=await handler(req('api=me'));assert.equal(r.status,200);const d=await r.json();assert.equal(d.asada.name,'ASADA A');assert.equal(d.admin,false);});
 test('miembros no pueden listar ni modificar permisos administrativos',async()=>{mock();assert.equal((await handler(req('api=admin-list'))).status,403);assert.equal((await handler(req('api=admin-toggle',{kind:'asada',id:memberID,active:false}))).status,403);});
-test('sesión autorizada sirve las herramientas desde el directorio privado',async()=>{mock();const r=await handler(req('file=herramientas.html'));assert.equal(r.status,200);assert((await r.text()).includes('Herramientas para su ASADA'));});
+test('sesión autorizada sirve las herramientas desde el directorio privado',async()=>{mock();const r=await handler(req('file=herramientas.html'));assert.equal(r.status,200);assert((await r.text()).includes('Mi espacio de trabajo'));});
 test('todos los documentos de la biblioteca se entregan con sesión y permanecen privados',async()=>{
  mock({admin:true});
  const source=fs.readFileSync('private/normativa-data.js','utf8');

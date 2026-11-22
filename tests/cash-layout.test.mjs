@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 const source=readFileSync('private/panel-gestion.js','utf8');
 const helpers=source.slice(source.indexOf('function cashMatrix('),source.indexOf('function draw(){'));
-const ctx=vm.createContext({months:Array.from({length:12},(_,i)=>String(i+1)),sum:a=>a.reduce((s,n)=>s+Number(n||0),0),esc:s=>String(s).replaceAll('<','&lt;').replaceAll('>','&gt;'),money:n=>'₡'+n});
+const ctx=vm.createContext({months:Array.from({length:12},(_,i)=>String(i+1)),sum:a=>a.reduce((s,n)=>s+Number(n||0),0),esc:s=>String(s).replaceAll('<','&lt;').replaceAll('>','&gt;'),money:n=>'₡'+n,assemblyLink:new URLSearchParams()});
 vm.runInContext(helpers,ctx);
 test('El flujo horizontal agrupa conceptos, arrastra saldos y no suma saldos en el resumen',()=>{
  const data=[{date:'2026-01-02',type:'in',part:'Agua',concept:'Recaudación',amount:100},{date:'2026-01-03',type:'in',part:'Agua',concept:'Recaudación',amount:50},{date:'2026-02-02',type:'out',part:'Administración',concept:'Salarios',amount:200},{date:'2026-02-03',type:'out',part:'Administración',concept:'Caja chica · Materiales',amount:10}];
