@@ -37,6 +37,8 @@ function unitFor(id,text){
 function valueFor(id,tail,unit){
  let t=tail.replace(/\b(?:NMP|UFC)\s*\/\s*100\s*m[lL]\b/gi,' ').replace(/(?:\bmg|[µμu]g)\s*\/\s*[lL]\b/gi,' ').replace(/\b(?:UNT|NTU|UPC)\b/gi,' ').replace(/\bU\s*[- ]?Pt\s*[- ]?Co\b/gi,' ').replace(/(?:°|º)\s*C\b/gi,' ').replace(/[µμu]S\s*\/\s*cm\b/gi,' ').trim();
  if(id==='odor'){if(/^[:\s(]*no\s+aceptable\b/i.test(t))return 'no aceptable';if(/^[:\s(]*aceptable\b/i.test(t))return 'aceptable';return '';}
+ const uncertain=t.match(/^[:\s(]*(\d+(?:[.,]\d+)?)\s*±\s*(\d+(?:[.,]\d+)?)\s*\)/);
+ if(uncertain)return uncertain[1]+' ± '+uncertain[2];
  // La primera celda tras el parámetro es el resultado; los números posteriores
  // pueden ser el método, el límite de detección o el valor reglamentario.
  const hit=t.match(/^[:\s(]*(no\s+detectable|no\s+detectado|ausencia|ausente|N\.?D\.?|presente|positivo|negativo|(?:<|>|≤|≥)\s*\d+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)(?=\s|$|[;|)])/i);

@@ -33,6 +33,9 @@ function parseQualityValue(text,limit=''){
  if(/^(presente|detectad[oa]|presencia|positivo)$/i.test(s))return {kind:'present'};
  if(/^aceptable$/i.test(s))return {kind:'acceptable'};
  if(/^(no aceptable|inaceptable)$/i.test(s))return {kind:'unacceptable'};
+ const uncertainty=s.match(/^(\d+(?:[.,]\d+)?)\s*±\s*(\d+(?:[.,]\d+)?)$/);
+ if(uncertainty){const center=Number(uncertainty[1].replace(',','.')),error=Number(uncertainty[2].replace(',','.'));
+  return Number.isFinite(center)&&Number.isFinite(error)&&center>=error&&error>=0?{kind:'interval',low:center-error,high:center+error,lowOpen:false,highOpen:false}:{kind:'invalid',reason:'Revise el resultado y su incertidumbre.'};}
  const m=s.match(/^([<>]=?)?\s*(\d+(?:[.,]\d+)?(?:e[+-]?\d+)?)$/i);if(!m)return {kind:'invalid',reason:'Use un número sin separadores de miles, < o > seguido de un número, ND, presente o aceptable según el informe.'};
  const n=Number(m[2].replace(',','.'));if(!Number.isFinite(n)||n<0||(m[1]==='<'&&n===0))return {kind:'invalid',reason:'Revise el valor ingresado; debe representar una medición válida.'};
  return {kind:m[1]?'bound':'number',value:n,op:m[1]||'=',low:m[1]?.startsWith('<')?0:n,high:m[1]?.startsWith('>')?Infinity:n,lowOpen:m[1]==='>',highOpen:m[1]==='<'};
@@ -54,7 +57,7 @@ function evaluateQuality(p,row,context){
   return finish('pending',p.kind==='detection'?'Confirme el resultado químico':'Confirme el resultado microbiológico','Un cero o una expresión «menor que» no se reemplaza automáticamente por «no detectable». Confirme la forma de reporte, método y límite de detección con el laboratorio.');
  }
  if(p.kind==='odor')return v.kind==='acceptable'?finish('within','Aceptable reportado','El olor se reporta aceptable. Es favorable para esta característica, pero no demuestra ausencia de contaminantes.'):v.kind==='unacceptable'?finish('outside','Olor no aceptable','El olor no cumple el criterio de aceptabilidad. Registre e investigue el cambio con el equipo técnico.'):finish('pending','Confirme la descripción del olor','Transcriba «aceptable» o «no aceptable» según el informe.');
- if(!['number','bound','nd'].includes(v.kind))return finish('pending','Falta un valor comparable','Este parámetro necesita un resultado numérico o un reporte ND con límite de detección.');
+ if(!['number','bound','nd','interval'].includes(v.kind))return finish('pending','Falta un valor comparable','Este parámetro necesita un resultado numérico o un reporte ND con límite de detección.');
  const low=v.low*factor,high=v.high*factor;
  let rule={...p};
  if(p.conditional==='combined'&&context.disinfection!=='combined')return finish('pending','Confirme la desinfección','Este rango solo se aplica al residual combinado o al uso de cloramina. Confirme la condición del sistema antes de interpretar este resultado.');
