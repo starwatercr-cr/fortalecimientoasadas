@@ -46,6 +46,15 @@ async function sb(endpoint,{method='GET',body,token,publicKey=false,prefer,count
 async function teamStorage(method,object,bytes,type,bucket='asada-team-private'){
  const c=config(),h={apikey:c.secret};if(!c.secret.startsWith('sb_secret_'))h.Authorization='Bearer '+c.secret;
  const call=(endpoint,options={})=>fetch(c.base+'/storage/v1/'+endpoint,{...options,headers:{...h,...options.headers},signal:AbortSignal.timeout(20000)});
+ if(method==='SIGN_UPLOAD'||method==='SIGN_DOWNLOAD'||method==='INFO'){
+  const endpoint=method==='SIGN_UPLOAD'?'object/upload/sign/':method==='SIGN_DOWNLOAD'?'object/sign/':'object/info/';
+  const res=await call(endpoint+bucket+'/'+object,{method:method==='INFO'?'GET':'POST',headers:method==='INFO'?{}:{'Content-Type':'application/json'},body:method==='SIGN_UPLOAD'?JSON.stringify({}):method==='SIGN_DOWNLOAD'?JSON.stringify({expiresIn:120}):undefined});
+  if(!res.ok)throw new PublicError(502,'No fue posible preparar el archivo privado.');
+  const data=await res.json();
+  if(method==='INFO')return data;
+  if(method==='SIGN_UPLOAD')return {url:c.base+'/storage/v1/object/upload/sign/'+bucket+'/'+object+'?token='+encodeURIComponent(data.token)};
+  return {url:c.base+'/storage/v1'+data.signedURL};
+ }
  if(method==='POST'){
   let b=await call('bucket/'+bucket);
   if(b.status===404||b.status===400){
@@ -110,7 +119,7 @@ async function dispatch(request,authorized=authorizeToken){
    if(api.startsWith('plans-'))return await plansAPI(api,request,{sb,authorized,sessionToken,body:r=>body(r,700000),uuid,json,PublicError,storage:(method,object,bytes,type)=>teamStorage(method,object,bytes,type,'asada-plans-private')});
    if(api.startsWith('anc-'))return await ancAPI(api,request,{sb,authorized,sessionToken,body:r=>body(r,45000),uuid,json,PublicError});
    if(api.startsWith('abonados-'))return await abonadosAPI(api,request,{sb,authorized,sessionToken,body:r=>body(r,5500000),uuid,json,PublicError});
-   if(api.startsWith('profile-')||api==='letterhead-data')return await profileAPI(api,request,{sb,authorized,sessionToken,body:r=>body(r,300000),uuid,json,PublicError,profileStorage:(method,object,bytes,type)=>teamStorage(method,object,bytes,type,'asada-profile-private')});
+   if(api.startsWith('profile-')||api==='letterhead-data')return await profileAPI(api,request,{sb,authorized,sessionToken,body:r=>body(r,300000),uuid,json,PublicError,uploadSecret:config().secret,profileStorage:(method,object,bytes,type)=>teamStorage(method,object,bytes,type,'asada-profile-private')});
    if(api.startsWith('arrears-'))return await arrearsAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError,storage:(method,path,bytes,type)=>teamStorage(method,path,bytes,type,'asada-arrears-private')});
    if(api.startsWith('warehouse-'))return await warehouseAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError});
    if(api.startsWith('flow-'))return await aforosAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError});

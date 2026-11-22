@@ -23,7 +23,28 @@ $('profile-generate').addEventListener('click',()=>{if(!loaded||!canEdit||busy)r
 $('profile-reload').addEventListener('click',()=>{if(!busy&&!contracts.isWorking()&&(!(dirty||contracts.isDirty())||confirm('Hay cambios sin guardar. ¿Desea descartarlos y actualizar?')))load();});
 $('profile-asada').addEventListener('change',()=>{if(contracts.isWorking()){status('Espere a que termine la operación del contrato.');$('profile-asada').value=asada;return;}if((dirty||contracts.isDirty())&&!confirm('Hay cambios sin guardar. ¿Desea descartarlos y cambiar de ASADA?')){$('profile-asada').value=asada;return;}asada=$('profile-asada').value;load();});
 window.addEventListener('beforeunload',e=>{if(dirty||contracts.isDirty()){e.preventDefault();e.returnValue='';}});
-$('profile-upload-form').addEventListener('submit',async e=>{e.preventDefault();if(!loaded||!canEdit||busy)return;const f=new FormData(e.currentTarget),file=f.get('file');if(!file?.size||file.size>5*1024*1024){status('Seleccione un archivo de máximo 5 MB.');return;}const params=new URLSearchParams({asada,name:f.get('name'),category:f.get('category'),start:f.get('start'),end:f.get('end')});lock(true);try{const r=await fetch('/api/profile-upload?'+params,{method:'POST',credentials:'same-origin',headers:{'Content-Type':file.type||'application/octet-stream'},body:file});const d=await r.json();if(!r.ok)throw Error(d.error||'No se pudo adjuntar.');docs.unshift(d.document);e.target.reset();draw();status('Documento adjuntado y guardado en la nube.');}catch(e){status(e.message);}finally{lock(false);contracts.state();}});
+$('profile-upload-form').addEventListener('submit',async e=>{
+ e.preventDefault();if(!loaded||!canEdit||busy)return;
+ const f=new FormData(e.currentTarget),file=f.get('file'),category=f.get('category');
+ const large=['Personería jurídica','Convenio de delegación','Cédula del representante legal','Estudio técnico'].includes(category),limit=(large?40:5)*1024*1024;
+ const feedback=s=>{$('profile-upload-status').textContent=s;status(s);};
+ if(!file?.size||file.size>limit||!['application/pdf','image/jpeg','image/png'].includes(file.type)){feedback('Seleccione un PDF, JPG o PNG de máximo '+(large?40:5)+' MB.');return;}
+ lock(true);feedback('Cargando el documento. Mantenga esta página abierta hasta recibir la confirmación.');
+ try{
+  let d;
+  if(large){
+   const init=await api('profile-upload-init',{asada,name:f.get('name'),category,start:f.get('start'),end:f.get('end'),size:file.size,type:file.type});
+   const uploaded=await fetch(init.url,{method:'PUT',headers:{'Content-Type':file.type},body:file,credentials:'omit'});
+   if(!uploaded.ok)throw Error('No se pudo cargar el archivo. Revise el tamaño y su conexión e intente de nuevo.');
+   d=await api('profile-upload-complete',{asada,receipt:init.receipt});
+  }else{
+   const params=new URLSearchParams({asada,name:f.get('name'),category,start:f.get('start'),end:f.get('end')});
+   const r=await fetch('/api/profile-upload?'+params,{method:'POST',credentials:'same-origin',headers:{'Content-Type':file.type},body:file});
+   d=await r.json();if(!r.ok)throw Error(d.error||'No se pudo adjuntar.');
+  }
+  docs.unshift(d.document);e.target.reset();draw();feedback('Documento adjuntado y guardado en la nube.');
+ }catch(error){feedback(error.message);}finally{lock(false);contracts.state();}
+});
 $('profile-history-button').addEventListener('click',async()=>{lock(true);try{const d=await api('profile-history?asada='+encodeURIComponent(asada));$('profile-history').innerHTML='<h2>Historial de la ficha</h2>'+ (d.changes.length?d.changes.map(c=>'<details><summary>'+esc(new Date(c.changed_at).toLocaleString('es-CR'))+' · versión '+esc(c.current_data.version)+'</summary>'+profileReport(c.current_data.payload,c.changed_at).sections.map(([title,rows])=>'<h3>'+esc(title)+'</h3><dl>'+rows.map(([l,v])=>'<dt><strong>'+esc(l)+'</strong></dt><dd>'+esc(v)+'</dd>').join('')+'</dl>').join('')+'</details>').join(''):'<p>No hay cambios registrados.</p>');$('profile-history').hidden=false;}catch(e){status(e.message);}finally{lock(false);contracts.state();}});
 function report(){if(!loaded||!profile){status('Guarde primero la ficha para poder descargarla.');return null;}if(dirty){status('Guarde los cambios antes de descargar la ficha actualizada.');return null;}return profileReport(profile.payload,profile.updated_at);}
 function download(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);}
