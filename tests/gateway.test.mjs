@@ -35,7 +35,7 @@ test('la presentación queda reservada a la cuenta principal de Star Water',asyn
  mock({admin:true});const r=await handler(req('file=presentacion-plataforma.html'));
  assert.equal(r.status,200);const html=await r.text();
  assert.equal((html.match(/class="slide /g)||[]).length,5);
- assert.match(html,/La gestión del acueducto/);
+ assert.match(html,/Una plataforma para administrar toda la ASADA/);
 });
 test('todos los documentos de la biblioteca se entregan con sesión y permanecen privados',async()=>{
  mock({admin:true});

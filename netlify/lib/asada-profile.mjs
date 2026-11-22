@@ -10,7 +10,9 @@ export function validateLetterhead(value,fail){
  return {enabled:value.enabled,logo};
 }
 import {validateContract} from '../../private/contract-model.js';
-import {randomUUID} from 'node:crypto';
+import {randomUUID,createHmac,timingSafeEqual} from 'node:crypto';
+const LARGE_MAX=40*1024*1024;
+const largeCategories=['Personería jurídica','Convenio de delegación','Cédula del representante legal','Estudio técnico'];
 export function validateProfile(p,fail){
  if(!p||typeof p!=='object'||Array.isArray(p))fail('Revise la ficha de la ASADA.');
  const out={},str=(k,max=160)=>{const v=p[k]??'';if(typeof v!=='string'||v.length>max)fail('Revise el campo '+k+'.');return v.trim();};
@@ -28,7 +30,7 @@ export function validateProfile(p,fail){
  return out;
 }
 const validDate=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&!isNaN(new Date(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;
-export async function profileAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError,profileStorage}){
+export async function profileAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError,profileStorage,uploadSecret}){
  const fail=(m,s=400)=>{throw new PublicError(s,m);},who=await authorized(sessionToken(request)),u=new URL(request.url);
  const input=request.method==='POST'&&api!=='profile-upload'?await body(request):null;
  const requested=input?.asada||u.searchParams.get('asada');let asada=who.asada;
@@ -54,7 +56,35 @@ export async function profileAPI(api,request,{sb,authorized,sessionToken,body,uu
  if(api==='profile-file'&&request.method==='GET'){
   if(!canEdit)fail('Los documentos están disponibles para la Junta y la administración.',403);
   const id=u.searchParams.get('id');if(!uuid(id))fail('Documento inválido.');const r=(await sb('/rest/v1/asada_documents?'+scope+'&id=eq.'+id+'&select=*'))[0];if(!r||!r.path.startsWith(asada.id+'/'))fail('Documento no disponible.',404);
+  if(r.size>5*1024*1024){const signed=await profileStorage('SIGN_DOWNLOAD',r.path);const url=new URL(signed.url);url.searchParams.set('download',r.filename);return new Response(null,{status:302,headers:{Location:url.toString(),'Cache-Control':'no-store, private','Referrer-Policy':'no-referrer'}});}
   return new Response(await profileStorage('GET',r.path),{headers:{'Content-Type':r.type,'Content-Disposition':"attachment; filename*=UTF-8''"+encodeURIComponent(r.filename),'Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY'}});
+ }
+ if((api==='profile-upload-init'||api==='profile-upload-complete')&&request.method==='POST'){
+  if(!canEdit)fail('Los documentos corresponden a la Junta y la administración.',403);
+  if(!uploadSecret)fail('La carga de archivos grandes no está configurada.',503);
+  const mac=s=>createHmac('sha256',uploadSecret).update(s).digest();
+  if(api==='profile-upload-init'){
+   const {name,category,start=null,end=null,size,type}=input||{};
+   if(typeof name!=='string'||!name.trim()||name.length>160||!largeCategories.includes(category)||start&&!validDate(start)||end&&!validDate(end)||start&&end&&end<start||!Number.isInteger(size)||size<1||size>LARGE_MAX||type!=='application/pdf'&&type!=='image/png'&&type!=='image/jpeg')fail('Revise el documento, el tipo y el tamaño máximo de 40 MB.');
+   const ext={'application/pdf':'pdf','image/png':'png','image/jpeg':'jpg'}[type],path=asada.id+'/'+randomUUID()+'.'+ext;
+   const data={path,name:name.trim(),category,start,end,size,type,asada:asada.id,user:who.user.id,expires:Date.now()+15*60*1000};
+   const payload=Buffer.from(JSON.stringify(data)).toString('base64url');
+   const signed=await profileStorage('SIGN_UPLOAD',path);
+   return json({url:signed.url,receipt:payload+'.'+mac(payload).toString('base64url')});
+  }
+  const receipt=input?.receipt;
+  if(typeof receipt!=='string'||receipt.length>1500)fail('La autorización de carga no es válida.');
+  const [payload,signature,...extra]=receipt.split('.');
+  if(extra.length||!payload||!signature)fail('La autorización de carga no es válida.');
+  const actual=Buffer.from(signature,'base64url'),expected=mac(payload);
+  if(actual.length!==expected.length||!timingSafeEqual(actual,expected))fail('La autorización de carga no es válida.');
+  let data;try{data=JSON.parse(Buffer.from(payload,'base64url').toString());}catch{fail('La autorización de carga no es válida.');}
+  if(data.asada!==asada.id||data.user!==who.user.id||!Number.isFinite(data.expires)||data.expires<Date.now()||!data.path?.startsWith(asada.id+'/')||!largeCategories.includes(data.category)||!Number.isInteger(data.size)||data.size>LARGE_MAX)fail('La autorización de carga venció o no corresponde a esta ASADA.',403);
+  const info=await profileStorage('INFO',data.path);
+  if(Number(info.metadata?.size)!==data.size||info.metadata?.mimetype!==data.type)fail('El archivo cargado no coincide con el seleccionado. Vuelva a adjuntarlo.');
+  const ext=data.path.split('.').pop();
+  const rows=await sb('/rest/v1/asada_documents',{method:'POST',body:{asada_id:asada.id,name:data.name,category:data.category,start_date:data.start,end_date:data.end,path:data.path,type:data.type,size:data.size,filename:data.name.replace(/[\\/\r\n]/g,'_')+'.'+ext,created_by:who.user.id},prefer:'return=representation'});
+  return json({document:rows[0]},201);
  }
  if(api==='profile-upload'&&request.method==='POST'){
   if(!canEdit&&!(who.role==='Operación'&&u.searchParams.get('category')==='Evidencia de trabajo'))fail('La Junta, la administración y operación autorizada adjuntan documentos.',403);
