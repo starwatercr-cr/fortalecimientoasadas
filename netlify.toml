@@ -5,6 +5,12 @@
   force = true
 
 [[redirects]]
+  from = "/presentacion-plataforma.html"
+  to = "/.netlify/functions/gateway?file=presentacion-plataforma.html"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/contabilidad.html"
   to = "/.netlify/functions/gateway?file=contabilidad.html"
   status = 200

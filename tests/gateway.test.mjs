@@ -1,7 +1,7 @@
 import {test,afterEach} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import handler from '../netlify/functions/gateway.mjs';
+import handler,{protectedFiles} from '../netlify/functions/gateway.mjs';
 const originalFetch=globalThis.fetch;
 afterEach(()=>{globalThis.fetch=originalFetch;});
 process.env.SUPABASE_URL='https://example.supabase.co';process.env.SUPABASE_ANON_KEY='sb_publishable_test';process.env.SUPABASE_SERVICE_ROLE_KEY='sb_secret_test';
@@ -25,6 +25,18 @@ test('una persona ajena no hereda la membresía de otra ASADA',async()=>{mock({f
 test('un miembro accede solo a su identidad y ASADA',async()=>{mock();const r=await handler(req('api=me'));assert.equal(r.status,200);const d=await r.json();assert.equal(d.asada.name,'ASADA A');assert.equal(d.admin,false);});
 test('miembros no pueden listar ni modificar permisos administrativos',async()=>{mock();assert.equal((await handler(req('api=admin-list'))).status,403);assert.equal((await handler(req('api=admin-toggle',{kind:'asada',id:memberID,active:false}))).status,403);});
 test('sesión autorizada sirve las herramientas desde el directorio privado',async()=>{mock();const r=await handler(req('file=herramientas.html'));assert.equal(r.status,200);assert((await r.text()).includes('Mi espacio de trabajo'));});
+test('la presentación queda reservada a la cuenta principal de Star Water',async()=>{
+ assert(protectedFiles.has('presentacion-plataforma.html'));
+ assert(!fs.existsSync('build/presentacion-plataforma.html'));
+ assert.equal((await handler(req('file=presentacion-plataforma.html',undefined,''))).status,303);
+ for(const role of ['Administración','Junta Directiva','Operación']){
+  mock({role});assert.equal((await handler(req('file=presentacion-plataforma.html'))).status,403);
+ }
+ mock({admin:true});const r=await handler(req('file=presentacion-plataforma.html'));
+ assert.equal(r.status,200);const html=await r.text();
+ assert.equal((html.match(/class="slide /g)||[]).length,5);
+ assert.match(html,/La gestión del acueducto/);
+});
 test('todos los documentos de la biblioteca se entregan con sesión y permanecen privados',async()=>{
  mock({admin:true});
  const source=fs.readFileSync('private/normativa-data.js','utf8');
