@@ -39,12 +39,18 @@ test('tabla de laboratorio con asteriscos e incertidumbre conserva el resultado,
  ].map(text=>({page:1,text}));
  const result=extractWaterAnalysis(lines,QUALITY_PARAMS);
  assert.deepEqual(result.rows.map(({param,value})=>[param,value]),[
-  ['color','5'],['conductivity','76'],['odor','aceptable'],['ph','7,21'],['turbidity','< 0,1'],['temperature','16'],['chlorine','0,40']
+  ['color','5 ± 1'],['conductivity','76 ± 6'],['odor','aceptable'],['ph','7,21 ± 0,06'],['turbidity','< 0,1'],['temperature','16'],['chlorine','0,40']
  ]);
  assert.equal(result.context.stage,'unknown');
  assert.equal(result.context.date,'2025-05-19');
  assert.match(result.context.sample,/Naciente El Congo/);
  assert.ok(qualityReport(result.rows,result.context).results.every(r=>r.status==='pending'));
+ const treated=qualityReport(result.rows,{...result.context,stage:'treated'});
+ const color=treated.results.find(r=>r.id==='color');
+ assert.equal(color.status,'pending');
+ assert.equal(color.label,'Alerta no resuelta por el intervalo');
+ assert.equal(treated.results.find(r=>r.id==='conductivity').status,'within');
+ assert.equal(treated.results.find(r=>r.id==='ph').status,'within');
 });
 
 test('el tipo del PDF se infiere también cuando el navegador informa octet-stream',async()=>{
