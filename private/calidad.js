@@ -8,6 +8,7 @@ export function compactQualityResult(r){
  if(r.status==='context')return {title:'Agua sin tratamiento',action:'Use este dato para evaluar la fuente. Analice también el agua tratada antes de comprobar el cumplimiento.',tone:'context'};
  if(r.status==='pending')return {title:'Por confirmar',action:r.comment,tone:'pending'};
  if(r.status==='urgent')return {title:r.label.startsWith('Detección')?'Detección · atención prioritaria':'Fuera del criterio · atención prioritaria',action:'Comunique de inmediato el hallazgo al responsable técnico y al Área Rectora de Salud. Active el procedimiento de respuesta y coordine las medidas de protección y verificación; no espere a otro análisis para informar.',tone:'urgent',priority:'Atención sanitaria inmediata'};
+ if(r.id==='temperature'&&r.status==='outside')return {title:r.label,action:'Confirme la temperatura y el punto de muestreo con el laboratorio y el responsable técnico. Revise las características de la fuente; este dato por sí solo no indica contaminación.',tone:'outside',priority:'Revisión técnica'};
  let action=r.review||r.action;
  if(r.id==='chlorine')action=r.label==='Por debajo del rango'?'Verifique el cloro ahora con un equipo DPD: puede faltar protección de desinfección. Avise al responsable técnico y revise dosificador, producto y caudal. No aumente la dosis sin verificar.':'Verifique el cloro ahora con un equipo DPD. Avise al responsable técnico y revise dosificación y caudal para corregir el exceso y volver a medir. No ajuste la dosis a ciegas.';
  if(r.id==='ph')action='Repita la medición ahora con el pH-metro calibrado y avise al responsable técnico. Revise fuente y tratamiento y acuerde cómo corregir y verificar; no aplique productos sin valoración.';
@@ -48,6 +49,7 @@ function initQuality(){
   $('quality-warnings').hidden=!alerts.length;
   $('quality-warnings').innerHTML=alerts.length?'<h3>Datos que requieren confirmar con el informe</h3><ul>'+alerts.map(w=>'<li>'+esc(w)+'</li>').join('')+'</ul>':'';
   const original=$('quality-original');original.hidden=!record;original.href=record?'/api/panel-quality-file?asada='+encodeURIComponent(asada)+'&id='+encodeURIComponent(record.id):'#';
+  $('quality-reanalyze').hidden=!record||!canEdit;
   $('quality-download-status').textContent='';
   $('quality-results-title').focus();
  }
@@ -61,31 +63,44 @@ function initQuality(){
   $('quality-read').disabled=!canEdit;
   if(!canEdit)status('Su perfil permite consultar análisis; la administración o la Junta pueden adjuntar nuevos informes.');
  }
- $('quality-asada').addEventListener('change',async e=>{asada=e.target.value;current=null;selected=null;$('quality-output').hidden=true;try{await load();}catch(error){status(error.message);}});
- $('quality-history').addEventListener('click',e=>{const button=e.target.closest('[data-quality-view]');if(!button)return;const r=records.find(x=>x.id===button.dataset.qualityView);if(r){render(r.payload,r);$('quality-output').scrollIntoView({behavior:'smooth',block:'start'});}});
- $('quality-upload-form').addEventListener('submit',async e=>{
-  e.preventDefault();if(busy||!canEdit||!asada)return;
-  const file=$('quality-file').files[0];if(!file)return;
-  busy=true;$('quality-read').disabled=true;status('Leyendo el análisis…');
+ $('quality-asada').addEventListener('change',async e=>{asada=e.target.value;current=null;selected=null;$('quality-output').hidden=true;$('quality-stage').value='auto';try{await load();}catch(error){status(error.message);}});
+ $('quality-history').addEventListener('click',e=>{const button=e.target.closest('[data-quality-view]');if(!button)return;const r=records.find(x=>x.id===button.dataset.qualityView);if(r){render(r.payload,r);$('quality-stage').value='auto';if(canEdit)status('Para actualizar esta lectura, confirme arriba el tipo de agua de la muestra y pulse «Actualizar lectura del PDF».');$('quality-output').scrollIntoView({behavior:'smooth',block:'start'});}});
+ async function analyze(file,previous=null){
+  busy=true;$('quality-read').disabled=true;$('quality-reanalyze').disabled=true;status('Leyendo el análisis…');
   try{
    const reading=await readWaterAnalysis(file,status);
    const extracted=extractWaterAnalysis(reading.lines,QUALITY_PARAMS);
    if(!extracted.rows.length)throw Error('No se identificaron resultados con unidad y valor suficientes para una interpretación segura. Pruebe con un PDF legible o una foto nítida de una sola muestra.');
    if(extracted.rows.length>30)throw Error('El informe tiene demasiados parámetros para una lectura automática. Use el análisis de una sola muestra.');
-   const preview={documentId:'00000000-0000-0000-0000-000000000000',filename:file.name.slice(0,160),ocr:reading.ocr,context:{...extracted.context,name:asadaName()},rows:extracted.rows,warnings:extracted.warnings};
+   const chosen=$('quality-stage').value,context={...extracted.context,name:asadaName(),stage:chosen==='auto'?extracted.context.stage:chosen};
+   const warnings=chosen==='auto'?extracted.warnings:[...extracted.warnings.filter(w=>!w.includes('tipo de agua')), 'Tipo de agua indicado por la persona usuaria; confirme este dato con el informe o la ASADA.'];
+   const preview={documentId:previous?.payload.documentId||'00000000-0000-0000-0000-000000000000',filename:file.name.slice(0,160),ocr:reading.ocr,context,rows:extracted.rows,warnings};
    if(new TextEncoder().encode(JSON.stringify(preview)).length>9500)throw Error('El documento contiene demasiados datos para guardarlos automáticamente. Use el análisis de una sola muestra.');
-   status('Guardando el documento y los resultados reconocidos…');
-   const type=waterAnalysisType(file);
-   const label=('Análisis de agua · '+file.name.replace(/\.[^.]+$/,'')).slice(0,160);
-   const params=new URLSearchParams({asada,name:label,category:'Otro documento'});
-   const response=await fetch('/api/profile-upload?'+params,{method:'POST',credentials:'same-origin',headers:{'Content-Type':type},body:file}),uploaded=await response.json();
-   if(!response.ok)throw Error(uploaded.error||'No se pudo guardar el informe.');
-   const context={...extracted.context,name:asadaName()},payload={documentId:uploaded.document.id,filename:file.name.slice(0,160),ocr:reading.ocr,context,rows:extracted.rows,warnings:extracted.warnings};
-   const year=Number(context.date.slice(0,4))||Number(new Date().toLocaleDateString('en-CA',{timeZone:'America/Costa_Rica'}).slice(0,4));
-   const saved=await api('panel-save',{asada,year,kind:'quality_analysis',payload});
+   status(previous?'Actualizando los resultados reconocidos…':'Guardando el documento y los resultados reconocidos…');
+   let documentId=previous?.payload.documentId;
+   if(!previous){
+    const type=waterAnalysisType(file),label=('Análisis de agua · '+file.name.replace(/\.[^.]+$/,'')).slice(0,160);
+    const params=new URLSearchParams({asada,name:label,category:'Otro documento'});
+    const response=await fetch('/api/profile-upload?'+params,{method:'POST',credentials:'same-origin',headers:{'Content-Type':type},body:file}),uploaded=await response.json();
+    if(!response.ok)throw Error(uploaded.error||'No se pudo guardar el informe.');
+    documentId=uploaded.document.id;
+   }
+   const payload={...preview,documentId},year=previous?.year||Number(context.date.slice(0,4))||Number(new Date().toLocaleDateString('en-CA',{timeZone:'America/Costa_Rica'}).slice(0,4));
+   const saved=await api('panel-save',{asada,year,kind:'quality_analysis',payload,...(previous?{id:previous.id,version:previous.version}:{})});
    await load();render(saved.record.payload,saved.record);$('quality-file').value='';
-   status('Análisis guardado. Revise los parámetros reconocidos y las observaciones de la lectura.');
-  }catch(error){status(error.message);}finally{busy=false;$('quality-read').disabled=!canEdit;}
+   status(previous?'Lectura actualizada. Revise los parámetros y el tipo de agua de la muestra.':'Análisis guardado. Revise los parámetros reconocidos y las observaciones de la lectura.');
+  }catch(error){status(error.message);}finally{busy=false;$('quality-read').disabled=!canEdit;$('quality-reanalyze').disabled=false;}
+ }
+ $('quality-upload-form').addEventListener('submit',async e=>{e.preventDefault();if(busy||!canEdit||!asada)return;const file=$('quality-file').files[0];if(file)await analyze(file);});
+ $('quality-reanalyze').addEventListener('click',async()=>{
+  if(busy||!canEdit||!selected)return;
+  const previous=selected;busy=true;$('quality-reanalyze').disabled=true;status('Recuperando el PDF original…');
+  try{
+   const response=await fetch('/api/panel-quality-file?asada='+encodeURIComponent(asada)+'&id='+encodeURIComponent(previous.id),{credentials:'same-origin'});
+   if(!response.ok)throw Error('No se pudo recuperar el análisis original.');
+   const blob=await response.blob();busy=false;
+   await analyze(new File([blob],previous.payload.filename,{type:blob.type} ),previous);
+  }catch(error){status(error.message);}finally{busy=false;$('quality-reanalyze').disabled=false;}
  });
  $('quality-download').addEventListener('click',async()=>{if(!current)return;const b=$('quality-download');b.disabled=true;$('quality-download-status').textContent='Preparando la interpretación…';try{const blob=await buildQualityWord(current,[]),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Interpretacion_Calidad_Agua_ASADA.docx';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);$('quality-download-status').textContent='Documento preparado.';}catch(error){$('quality-download-status').textContent='No se pudo descargar. Intente nuevamente.';}finally{b.disabled=false;}});
  (async()=>{try{const d=await api('panel-asadas');asadas=d.asadas;canEdit=d.canEdit;$('quality-asada').innerHTML=asadas.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.name)+'</option>').join('');$('quality-asada-label').hidden=asadas.length<=1;asada=asadas[0]?.id||'';if(!asada)throw Error('No hay una ASADA disponible.');await load();if(canEdit)status('Adjunte un informe para iniciar la lectura automática.');}catch(error){status(error.message);$('quality-read').disabled=true;$('quality-history').textContent='No se pudieron cargar los análisis.';}})();

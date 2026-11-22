@@ -36,8 +36,10 @@ function unitFor(id,text){
 }
 function valueFor(id,tail,unit){
  let t=tail.replace(/\b(?:NMP|UFC)\s*\/\s*100\s*m[lL]\b/gi,' ').replace(/(?:\bmg|[µμu]g)\s*\/\s*[lL]\b/gi,' ').replace(/\b(?:UNT|NTU|UPC)\b/gi,' ').replace(/\bU\s*[- ]?Pt\s*[- ]?Co\b/gi,' ').replace(/(?:°|º)\s*C\b/gi,' ').replace(/[µμu]S\s*\/\s*cm\b/gi,' ').trim();
- if(id==='odor'){if(/\bno\s+aceptable\b/i.test(t))return 'no aceptable';if(/\baceptable\b/i.test(t))return 'aceptable';return '';}
- const hit=t.match(/(?:^|\s|[:|;])\s*(no\s+detectable|no\s+detectado|ausencia|ausente|N\.?D\.?|presente|positivo|negativo|(?:<|>|≤|≥)\s*\d+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)(?=\s|$|[;|])/i);
+ if(id==='odor'){if(/^[:\s(]*no\s+aceptable\b/i.test(t))return 'no aceptable';if(/^[:\s(]*aceptable\b/i.test(t))return 'aceptable';return '';}
+ // La primera celda tras el parámetro es el resultado; los números posteriores
+ // pueden ser el método, el límite de detección o el valor reglamentario.
+ const hit=t.match(/^[:\s(]*(no\s+detectable|no\s+detectado|ausencia|ausente|N\.?D\.?|presente|positivo|negativo|(?:<|>|≤|≥)\s*\d+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)(?=\s|$|[;|)])/i);
  if(!hit)return '';
  let v=hit[1].trim();
  if(/^(?:no\s+detect|ausen|N\.?D|negativo)/i.test(v))v='ND';
@@ -46,20 +48,23 @@ function valueFor(id,tail,unit){
 }
 function contextFrom(lines){
  const text=lines.map(l=>l.text).join('\n'),n=normalize(text).toLowerCase();
- const treated=/(?:agua\s+(?:tratada|potable|de\s+red)|red\s+de\s+distribucion|salida\s+del\s+tanque)/.test(n),raw=/(?:agua\s+(?:cruda|sin\s+tratamiento)|naciente\s+sin\s+tratamiento|fuente\s+sin\s+tratamiento)/.test(n);
+ const sampleLine=lines.find(l=>/^\s*(?:punto\s+de\s+muestreo|tipo\s+de\s+(?:agua|muestra))\b/i.test(normalize(l.text)))?.text||'';
+ const sampleContext=lines.filter(l=>/^(?:punto\s+de\s+muestreo|tipo\s+de\s+(?:agua|muestra)|agua\s+(?:tratada|cruda|sin\s+tratamiento|de\s+red)|red\s+de\s+distribucion)\b/i.test(normalize(l.text))).map(l=>normalize(l.text)).join(' ').toLowerCase();
+ const treated=/(?:agua\s+(?:tratada|de\s+red)|red\s+de\s+distribucion)/.test(sampleContext),raw=/(?:agua\s+(?:cruda|sin\s+tratamiento)|naciente\s+sin\s+tratamiento|fuente\s+sin\s+tratamiento)/.test(sampleContext);
  const stage=treated&&!raw?'treated':raw&&!treated?'raw':'unknown';
- const origin=/\b(?:pozo|naciente|subterranea)\b/.test(n)&&!/\b(?:rio|quebrada|superficial)\b/.test(n)?'groundwater':/\b(?:rio|quebrada|superficial)\b/.test(n)&&!/\b(?:pozo|naciente|subterranea)\b/.test(n)?'surface':'unknown';
+ const originText=sampleContext||n;
+ const origin=/\b(?:pozo|naciente|subterranea)\b/.test(originText)&&!/\b(?:rio|quebrada|superficial)\b/.test(originText)?'groundwater':/\b(?:rio|quebrada|superficial)\b/.test(originText)&&!/\b(?:pozo|naciente|subterranea)\b/.test(originText)?'surface':'unknown';
  const dateLine=lines.find(l=>/fecha\s+(?:de\s+)?(?:toma|muestreo|recoleccion)/i.test(normalize(l.text)))?.text||'';
  const dm=dateLine.match(/\b(\d{1,2})[\/\-.](\d{1,2})[\/\-.](20\d{2})\b/),iso=dateLine.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/);
  const date=iso?iso[0]:dm?dm[3]+'-'+dm[2].padStart(2,'0')+'-'+dm[1].padStart(2,'0'):'';
  const report=lines.find(l=>/\b(?:n(?:o|°|º)\.?\s*de\s+)?(?:informe|reporte)\s*(?:n(?:o|°|º))?\b/i.test(l.text))?.text.slice(0,100)||'';
- const lab=lines.find(l=>/\blaboratorio\s*:/i.test(l.text))?.text.slice(0,150)||'';
- return {name:'',sample:'',date,lab,report,stage,origin,disinfection:/(?:cloramina|cloro\s+combinado)/.test(n)?'combined':'unknown',temperature:'',};
+ const lab=lines.find(l=>/^\s*laboratorio\s*:/i.test(l.text))?.text.slice(0,150)||'';
+ return {name:'',sample:sampleLine.replace(/^\s*(?:punto\s+de\s+muestreo|tipo\s+de\s+(?:agua|muestra))\s*:?\s*/i,'').slice(0,200),date,lab,report,stage,origin,disinfection:/(?:cloramina|cloro\s+combinado)/.test(sampleContext)?'combined':'unknown',temperature:'',};
 }
 export function extractWaterAnalysis(lines,params){
  const known=new Set(params.map(p=>p.id)),rows=[],warnings=[],seen=new Map();
  for(const line of lines){
-  const raw=String(line.text||'').replace(/\s+/g,' ').trim(),n=normalize(raw).replace(/^\d+[.)]\s*/,'');if(!raw)continue;
+  const raw=String(line.text||'').replace(/\s+/g,' ').trim(),n=normalize(raw).replace(/^(?:\d+[.)]\s*|[*•]\s*)+/,'');if(!raw)continue;
   const found=aliases.find(([id,re])=>known.has(id)&&re.test(n));
   if(!found)continue;
   const [id,re]=found,tail=n.replace(re,'').trim(),unit=unitFor(id,raw),value=valueFor(id,tail,unit);
