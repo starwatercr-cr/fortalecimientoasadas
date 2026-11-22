@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const ids=['av-asada','profile-asada','pl-asada','anc-asada','flow-asada','ab-asada','team-asada','ops-asada','nf-asada','sw-asada','ar-asada','assembly-asada','wh-asada','water-cloud-asada','lh-asada'];
+const ids=['av-asada','profile-asada','pl-asada','anc-asada','flow-asada','ab-asada','team-asada','ops-asada','nf-asada','sw-asada','ar-asada','assembly-asada','wh-asada','water-cloud-asada','quality-asada','lh-asada'];
 let current=null,scope=null,bootPromise=Promise.resolve();
 const active=()=>ids.map(id=>document.getElementById(id)).find(e=>e)?.value||'';
 async function load(asada){
@@ -22,7 +22,7 @@ function pdf(doc){const p=get();if(!p)return 0;const font=doc.getFont(),size=doc
  doc.setFont('helvetica','normal');doc.setFontSize(8);for(const text of lines(p)){for(const l of doc.splitTextToSize(text,w)){doc.text(l,tx,y);y+=3.7;}}
  y=Math.max(y,38);doc.setDrawColor(180);doc.line(x,y,width+x,y);doc.setFont(font.fontName,font.fontStyle);doc.setFontSize(size);doc.setTextColor(color);return y+9;
 }
-async function word(){const p=await load();if(p.enabled===false)return [];const {Paragraph,TextRun,ImageRun,TabStopType}=window.docx;const out=[];
+async function word(asada){const p=await load(asada);if(p.enabled===false)return [];const {Paragraph,TextRun,ImageRun,TabStopType}=window.docx;const out=[];
  if(p.logo){const im=await new Promise((resolve,reject)=>{const x=new Image();x.onload=()=>resolve(x);x.onerror=()=>reject(Error('No se pudo leer el logo.'));x.src=p.logo;});const scale=Math.min(120/im.width,65/im.height);out.push(new Paragraph({keepNext:true,spacing:{after:120},children:[new ImageRun({type:'png',data:Uint8Array.from(atob(p.logo.split(',')[1]),c=>c.charCodeAt(0)),transformation:{width:Math.round(im.width*scale),height:Math.round(im.height*scale)}})]}));}
  out.push(new Paragraph({keepNext:true,spacing:{after:80},children:[new TextRun({text:p.name||'ASADA',bold:true,font:'Arial',size:26,color:'000000'})]}));
  lines(p).forEach((s,i,a)=>out.push(new Paragraph({keepNext:true,spacing:{after:i===a.length-1?260:60},children:[new TextRun({text:s,font:'Arial',size:18,color:'000000'})]})));return out;
