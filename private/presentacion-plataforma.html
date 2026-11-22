@@ -75,6 +75,28 @@
   .dots button[aria-current="step"]{width:28px;border-radius:20px;background:#087d84}
   @media(max-width:760px){.bar{align-items:flex-start}.brand{font-size:12px}.brand img{width:92px}.deck{aspect-ratio:auto;height:min(78vh,760px)}.slide{padding:26px}.slide h1{font-size:42px}.slide h2{font-size:34px}.split,.close-slide{grid-template-columns:1fr;align-content:start;gap:22px}.statement{font-size:22px}.area-grid{grid-template-columns:1fr 1fr}.area{min-height:0}.area-wide{grid-column:span 2}.flow-steps{grid-template-columns:1fr 1fr;margin-top:20px}.step{min-height:0}.hero-bottom{position:static;margin-top:35px}.hero-logo{margin-bottom:38px}}
   @media(max-width:520px){.area-grid,.flow-steps{grid-template-columns:1fr}.area-wide{grid-column:auto;display:block}.area-wide b{min-width:0}.controls{flex-wrap:wrap}.dots{order:3;width:100%}.close-card{padding:22px}}
+  .shell:fullscreen{max-width:none;width:100vw;height:100vh;height:100dvh;margin:0;padding:12px clamp(12px,1.5vw,26px);display:flex;flex-direction:column;overflow:hidden;background:#eaf3f5}
+  .shell:fullscreen .bar{display:none}
+  .shell:fullscreen .deck{width:100%;height:auto;min-height:0;flex:1 1 auto;aspect-ratio:auto;border-radius:16px}
+  .shell:fullscreen .slide{padding:clamp(24px,3vw,48px)}
+  .shell:fullscreen .slide h1{font-size:clamp(37px,min(4.3vw,8vh),70px)}
+  .shell:fullscreen .slide h2{font-size:clamp(32px,min(3.4vw,6.8vh),54px);margin-bottom:18px}
+  .shell:fullscreen .eyebrow{margin-bottom:14px}
+  .shell:fullscreen .lead{font-size:clamp(18px,min(1.7vw,3.2vh),25px)}
+  .shell:fullscreen .hero-logo{width:clamp(160px,17vw,260px);margin-bottom:clamp(18px,3vh,32px)}
+  .shell:fullscreen .hero-bottom{bottom:clamp(22px,3vw,45px);left:clamp(24px,3vw,48px)}
+  .shell:fullscreen .area-grid{gap:clamp(10px,1vw,18px)}
+  .shell:fullscreen .area{min-height:0;padding:clamp(14px,1.4vw,23px)}
+  .shell:fullscreen .area b{margin-bottom:8px}
+  .shell:fullscreen .flow-steps{margin:20px 0;gap:clamp(10px,1vw,18px)}
+  .shell:fullscreen .step{min-height:0;padding:clamp(14px,1.5vw,25px)}
+  .shell:fullscreen .step b{margin:10px 0 7px}
+  .shell:fullscreen .close-slide{gap:clamp(22px,3vw,50px)}
+  .shell:fullscreen .close-card{padding:clamp(20px,2.4vw,36px)}
+  .shell:fullscreen .close-card h3{margin-bottom:16px}
+  .shell:fullscreen .close-card p{margin-bottom:12px}
+  .shell:fullscreen .controls{flex:0 0 auto;margin-top:10px}
+  @media(max-height:650px){.shell:fullscreen .slide{padding:20px 28px}.shell:fullscreen .slide h1{font-size:clamp(32px,6vh,48px)}.shell:fullscreen .slide h2{font-size:clamp(29px,5.5vh,43px)}.shell:fullscreen .hero-logo{width:170px;margin-bottom:12px}.shell:fullscreen .hero-bottom{bottom:20px;left:28px}.shell:fullscreen .area p,.shell:fullscreen .step p{font-size:15px}.shell:fullscreen .flow-steps{margin:12px 0}}
   @media print{@page{size:landscape;margin:0}body{background:white}.shell{max-width:none;padding:0}.bar,.controls{display:none!important}.deck{aspect-ratio:auto;overflow:visible;border-radius:0;box-shadow:none}.slide,.slide[hidden]{display:block!important;position:relative;width:100vw;height:100vh;break-after:page;overflow:hidden}.slide:last-child{break-after:auto}.hero-bottom{position:absolute}}
 </style>
 </head>
@@ -133,10 +155,12 @@
   const prev=document.getElementById('prev'),next=document.getElementById('next'),counter=document.getElementById('counter');
   let current=0;
   slides.forEach((_,i)=>{const b=document.createElement('button');b.type='button';b.setAttribute('aria-label','Ir a la diapositiva '+(i+1));b.addEventListener('click',()=>show(i));dots.append(b);});
-  function show(i){current=Math.max(0,Math.min(slides.length-1,i));slides.forEach((s,n)=>{s.hidden=n!==current;});[...dots.children].forEach((b,n)=>{if(n===current)b.setAttribute('aria-current','step');else b.removeAttribute('aria-current');});counter.textContent=(current+1)+' / '+slides.length;prev.disabled=current===0;next.disabled=current===slides.length-1;}
+  function show(i){current=Math.max(0,Math.min(slides.length-1,i));slides.forEach((s,n)=>{s.hidden=n!==current;if(n===current)s.scrollTop=0;});[...dots.children].forEach((b,n)=>{if(n===current)b.setAttribute('aria-current','step');else b.removeAttribute('aria-current');});counter.textContent=(current+1)+' / '+slides.length;prev.disabled=current===0;next.disabled=current===slides.length-1;}
   prev.addEventListener('click',()=>show(current-1));next.addEventListener('click',()=>show(current+1));
   document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='PageDown'){e.preventDefault();show(current+1);}if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();show(current-1);}if(e.key==='Home')show(0);if(e.key==='End')show(slides.length-1);});
-  document.getElementById('fullscreen').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen();else document.querySelector('.shell').requestFullscreen?.();});
+  const fullscreenButton=document.getElementById('fullscreen'),shell=document.querySelector('.shell');
+  fullscreenButton.addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen();else shell.requestFullscreen?.();});
+  document.addEventListener('fullscreenchange',()=>{fullscreenButton.textContent=document.fullscreenElement?'Salir de pantalla completa':'Pantalla completa';slides[current].scrollTop=0;});
   show(0);
 </script>
 </body>
