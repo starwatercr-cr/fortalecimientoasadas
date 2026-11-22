@@ -1,5 +1,5 @@
 import {QUALITY_PARAMS,qualityReport} from './water-parameters.js';
-import {readWaterAnalysis,extractWaterAnalysis} from '/quality-import.mjs';
+import {readWaterAnalysis,extractWaterAnalysis,waterAnalysisType} from '/quality-import.mjs';
 
 export const filledQualityRows=rows=>rows.filter(row=>String(row.value||'').trim());
 export function compactQualityResult(r){
@@ -75,7 +75,7 @@ function initQuality(){
    const preview={documentId:'00000000-0000-0000-0000-000000000000',filename:file.name.slice(0,160),ocr:reading.ocr,context:{...extracted.context,name:asadaName()},rows:extracted.rows,warnings:extracted.warnings};
    if(new TextEncoder().encode(JSON.stringify(preview)).length>9500)throw Error('El documento contiene demasiados datos para guardarlos automáticamente. Use el análisis de una sola muestra.');
    status('Guardando el documento y los resultados reconocidos…');
-   const type=file.type||({pdf:'application/pdf',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png'}[file.name.split('.').at(-1).toLowerCase()]||'');
+   const type=waterAnalysisType(file);
    const label=('Análisis de agua · '+file.name.replace(/\.[^.]+$/,'')).slice(0,160);
    const params=new URLSearchParams({asada,name:label,category:'Otro documento'});
    const response=await fetch('/api/profile-upload?'+params,{method:'POST',credentials:'same-origin',headers:{'Content-Type':type},body:file}),uploaded=await response.json();

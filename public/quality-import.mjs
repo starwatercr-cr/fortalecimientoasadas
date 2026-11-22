@@ -83,9 +83,13 @@ async function makeOCR(progress){
  if(!window.Tesseract)await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='/vendor/abonados/tesseract.min.js';script.onload=resolve;script.onerror=()=>reject(Error('No se pudo cargar el lector de imágenes.'));document.head.append(script);});
  return window.Tesseract.createWorker('spa',1,{workerPath:'/vendor/abonados/worker.min.js',corePath:'/vendor/abonados/tesseract-core-lstm.wasm.js',langPath:'/vendor/abonados',gzip:false,workerBlobURL:false,logger:m=>progress('Leyendo imagen · '+Math.round((m.progress||0)*100)+' %')});
 }
+export function waterAnalysisType(file){
+ const inferred={pdf:'application/pdf',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png'}[file.name.split('.').at(-1).toLowerCase()]||'';
+ return !file.type||file.type==='application/octet-stream'?inferred:file.type;
+}
 export async function readWaterAnalysis(file,progress=()=>{}){
- if(!file||file.size>5*1024*1024)throw Error('Use un PDF, JPG o PNG de hasta 5 MB.');
- const type=file.type||({pdf:'application/pdf',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png'}[file.name.split('.').at(-1).toLowerCase()]||''),lines=[];let worker=null,ocr=false;
+ if(!file||!file.size||file.size>5*1024*1024)throw Error('Use un PDF, JPG o PNG de hasta 5 MB.');
+ const type=waterAnalysisType(file),lines=[];let worker=null,ocr=false;
  try{
   if(type==='application/pdf'){
    const pdfjs=await import('/vendor/abonados/pdf.min.mjs');pdfjs.GlobalWorkerOptions.workerSrc='/vendor/abonados/pdf.worker.min.mjs';
@@ -93,7 +97,8 @@ export async function readWaterAnalysis(file,progress=()=>{}){
    try{if(pdf.numPages>12)throw Error('El análisis debe tener como máximo 12 páginas.');
     for(let i=1;i<=pdf.numPages;i++){
      progress('Leyendo página '+i+' de '+pdf.numPages+'…');const page=await pdf.getPage(i),text=await page.getTextContent();
-     if(text.items.filter(x=>x.str?.trim()).length>=5 && pdfLines(text.items,i).some(l=>aliases.some(([,re])=>re.test(normalize(l.text)))))lines.push(...pdfLines(text.items,i));
+     const readable=pdfLines(text.items,i);
+     if(readable.some(l=>aliases.some(([,re])=>re.test(normalize(l.text)))))lines.push(...readable);
      else{
       ocr=true;if(!worker)worker=await makeOCR(progress);
       const viewport=page.getViewport({scale:1.8});if(viewport.width*viewport.height>16e6)throw Error('La imagen del PDF es demasiado grande.');
