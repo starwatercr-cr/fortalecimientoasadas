@@ -82,10 +82,9 @@ c.showPage()
 # Advisory
 base(c, 2)
 heading(c, "Modalidad 01", "Asesoría mensual")
-txt(c, 58, 319, "₡150.000", 43, HexColor("#087A83"), True)
-txt(c, 304, 323, "por mes", 17, MUTED)
+txt(c, 58, 319, "Una visita al mes", 30, HexColor("#087A83"), True)
 rule(c, 296)
-txt(c, 58, 251, "Una visita mensual", 22, INK, True)
+txt(c, 58, 251, "Asesoría para la gestión", 22, INK, True)
 lines(c, 58, 210, [
     "Revisamos las prioridades con la Junta y la administración.",
     "Orientamos la planificación, los procesos y las decisiones.",
@@ -97,10 +96,9 @@ c.showPage()
 # Administration
 base(c, 3)
 heading(c, "Modalidad 02", "Administración de la ASADA")
-txt(c, 58, 321, "₡250.000", 43, HexColor("#087A83"), True)
-txt(c, 304, 325, "por mes", 17, MUTED)
+txt(c, 58, 321, "Una visita semanal", 30, HexColor("#087A83"), True)
 rule(c, 298)
-txt(c, 58, 251, "Una visita semanal", 22, INK, True)
+txt(c, 58, 251, "Gestión administrativa", 22, INK, True)
 lines(c, 58, 209, [
     "Asumimos las tareas administrativas acordadas con la Junta.",
     "Ordenamos pendientes, responsables y fechas de entrega.",
@@ -135,8 +133,8 @@ txt(c, 58, 464, "DOS FORMAS DE TRABAJAR CON SU ASADA", 14, TEAL, True)
 txt(c, 58, 404, "Elija el apoyo que necesita", 35, WHITE, True)
 txt(c, 58, 323, "Asesoría", 25, TEAL, True)
 txt(c, 496, 323, "Administración", 25, TEAL, True)
-lines(c, 58, 277, ["₡150.000 al mes", "Una visita mensual", "Orientación y seguimiento"], 19, 37, WHITE)
-lines(c, 496, 277, ["₡250.000 al mes", "Una visita semanal", "Gestión administrativa acordada"], 19, 37, WHITE)
+lines(c, 58, 277, ["Una visita al mes", "Orientación a la Junta", "Seguimiento de acuerdos"], 19, 37, WHITE)
+lines(c, 496, 277, ["Una visita semanal", "Gestión administrativa", "Informes y coordinación contable"], 19, 37, WHITE)
 c.setStrokeColor(HexColor("#42707B"))
 c.line(58, 135, 902, 135)
 txt(c, 58, 97, "Conversemos sobre el alcance de su ASADA", 18, WHITE, True)
