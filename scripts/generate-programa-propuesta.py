@@ -15,7 +15,7 @@ FONT_DIR = Path("/usr/share/fonts/truetype/dejavu")
 pdfmetrics.registerFont(TTFont("DejaVu", str(FONT_DIR / "DejaVuSans.ttf")))
 pdfmetrics.registerFont(TTFont("DejaVu-Bold", str(FONT_DIR / "DejaVuSans-Bold.ttf")))
 
-W, H = 960, 540
+W, H, TOTAL = 960, 540, 9
 NAVY = HexColor("#0B3541")
 INK = HexColor("#113342")
 TEAL = HexColor("#54D2C9")
@@ -43,7 +43,7 @@ def base(c, n, dark=False):
     c.setFillColor(TEAL)
     c.rect(0, H - 9, W, 9, fill=1, stroke=0)
     txt(c, 58, 31, "STAR WATER  /  GESTIÓN PARA ASADAS", 10, TEAL if dark else MUTED, True)
-    txt(c, 875, 31, f"{n:02d} / 05", 10, TEAL if dark else MUTED)
+    txt(c, 875, 31, f"{n:02d} / {TOTAL:02d}", 10, TEAL if dark else MUTED)
 
 
 def heading(c, eyebrow, title):
@@ -58,7 +58,7 @@ def rule(c, y, x1=58, x2=902):
 
 
 c = canvas.Canvas(str(OUTPUT), pagesize=(W, H), pageCompression=1)
-c.setTitle("Asesoría y administración para ASADAS | Star Water")
+c.setTitle("Gestión ordenada para ASADAS | Star Water")
 c.setAuthor("Star Water")
 
 # Cover
@@ -68,76 +68,133 @@ c.drawImage(photo, 390, 0, width=570, height=540, preserveAspectRatio=False)
 c.setFillColor(NAVY)
 c.rect(0, 0, 470, 531, fill=1, stroke=0)
 c.saveState()
-c.setFillAlpha(0.82)
+c.setFillAlpha(0.73)
 c.setFillColor(NAVY)
 c.rect(420, 0, 540, 531, fill=1, stroke=0)
 c.restoreState()
 c.drawImage(str(ROOT / "public/assets/logo.png"), 58, 426, width=226, height=64, mask="auto")
-txt(c, 58, 337, "Asesoría y", 42, WHITE, True)
-txt(c, 58, 277, "administración", 42, WHITE, True)
-txt(c, 58, 217, "para ASADAS", 42, WHITE, True)
-lines(c, 59, 156, ["Dos modalidades para ordenar la gestión", "y apoyar las decisiones de la Junta."], 17, 29, WHITE)
+txt(c, 58, 330, "Una ASADA que", 42, WHITE, True)
+txt(c, 58, 269, "funciona con orden", 42, WHITE, True)
+lines(c, 59, 155, ["Cómo organizar la administración, el control", "del acueducto y las decisiones de la Junta."], 17, 29, WHITE)
 c.showPage()
 
-# Advisory
+# Roles and responsibilities
 base(c, 2)
-heading(c, "Modalidad 01", "Asesoría mensual")
-txt(c, 58, 319, "Una visita al mes", 30, HexColor("#087A83"), True)
-rule(c, 296)
-txt(c, 58, 251, "Asesoría para la gestión", 22, INK, True)
-lines(c, 58, 210, [
-    "Revisamos las prioridades con la Junta y la administración.",
-    "Orientamos la planificación, los procesos y las decisiones.",
-    "Damos seguimiento a los acuerdos y temas por resolver.",
-], 17, 34)
-txt(c, 58, 72, "El plan de trabajo se acuerda con cada ASADA.", 15, MUTED)
+heading(c, "Organización", "Cómo debe funcionar una ASADA")
+for y, label, detail in [
+    (345, "Junta Directiva", "Define prioridades, aprueba acuerdos y supervisa resultados."),
+    (265, "Administración", "Ejecuta acuerdos, ordena expedientes y coordina al equipo."),
+    (185, "Operación y apoyo contable", "Registran datos técnicos y financieros para decidir con evidencia."),
+]:
+    txt(c, 58, y, label, 21, INK, True)
+    txt(c, 58, y - 30, detail, 16, MUTED)
+    rule(c, y - 53)
+txt(c, 58, 83, "Cada decisión debe tener responsable, fecha y seguimiento.", 17, HexColor("#087A83"), True)
 c.showPage()
 
-# Administration
+# Six management areas
 base(c, 3)
-heading(c, "Modalidad 02", "Administración de la ASADA")
-txt(c, 58, 321, "Una visita semanal", 30, HexColor("#087A83"), True)
-rule(c, 298)
-txt(c, 58, 251, "Gestión administrativa", 22, INK, True)
-lines(c, 58, 209, [
-    "Asumimos las tareas administrativas acordadas con la Junta.",
-    "Ordenamos pendientes, responsables y fechas de entrega.",
-    "Preparamos la información para que la Junta pueda decidir.",
-], 17, 34)
-txt(c, 58, 71, "La Junta define autorizaciones y canales de coordinación.", 15, MUTED)
-c.showPage()
-
-# Workstreams
-base(c, 4)
-heading(c, "Alcance de la administración", "Trabajo que llevamos en orden")
-items = [
-    ("01", "Presupuesto", "Elaboración y seguimiento de ingresos y gastos."),
-    ("02", "Planificación", "Prioridades, cronograma y control de acuerdos."),
-    ("03", "Estados financieros", "Control y coordinación de información con el contador."),
-    ("04", "Informes a la Junta", "Avances, pendientes y datos para la toma de decisiones."),
-    ("05", "Gestión general", "Organización de los procesos administrativos acordados."),
+heading(c, "Mapa de gestión", "Seis frentes bajo control")
+areas = [
+    (58, 340, "Presupuesto", "Ingresos, gastos, inversiones y ejecución."),
+    (58, 239, "Operación", "Bitácoras, mantenimiento, activos y averías."),
+    (58, 138, "Informes", "Resultados y pendientes para Junta y Asamblea."),
+    (493, 340, "Calidad del agua", "Análisis, cloro residual y acciones de mejora."),
+    (493, 239, "Fuentes y caudales", "Aforos, producción y balance de la demanda."),
+    (493, 138, "Información regulatoria", "Datos y evidencias para AyA y ARESEP."),
 ]
-y = 354
-for index, (number, label, detail) in enumerate(items):
-    txt(c, 58, y, number, 14, HexColor("#087A83"), True)
-    txt(c, 111, y, label, 19, INK, True)
-    txt(c, 111, y - 26, detail, 14, MUTED)
-    if index < len(items) - 1:
-        rule(c, y - 49)
-    y -= 69
+for x, y, label, detail in areas:
+    txt(c, x, y, label, 19, HexColor("#087A83"), True)
+    txt(c, x, y - 31, detail, 13.5, INK)
 c.showPage()
 
-# Comparison and CTA
-base(c, 5, True)
-txt(c, 58, 464, "DOS FORMAS DE TRABAJAR CON SU ASADA", 14, TEAL, True)
-txt(c, 58, 404, "Elija el apoyo que necesita", 35, WHITE, True)
-txt(c, 58, 323, "Asesoría", 25, TEAL, True)
-txt(c, 496, 323, "Administración", 25, TEAL, True)
-lines(c, 58, 277, ["Una visita al mes", "Orientación a la Junta", "Seguimiento de acuerdos"], 19, 37, WHITE)
-lines(c, 496, 277, ["Una visita semanal", "Gestión administrativa", "Informes y coordinación contable"], 19, 37, WHITE)
+# Budget, accounting and reports
+base(c, 4)
+heading(c, "Administración y finanzas", "Del presupuesto al informe")
+for y, label, detail in [
+    (346, "Planificar", "Preparar presupuesto, inversiones y metas de trabajo."),
+    (266, "Controlar", "Comparar lo presupuestado con ingresos y gastos reales."),
+    (186, "Rendir cuentas", "Revisar estados financieros con el contador e informar a la Junta."),
+]:
+    txt(c, 58, y, label, 21, INK, True)
+    txt(c, 58, y - 30, detail, 16, MUTED)
+    rule(c, y - 53)
+txt(c, 58, 83, "Así los acuerdos se basan en información actualizada.", 17, HexColor("#087A83"), True)
+c.showPage()
+
+# Water, operations and quality
+base(c, 5)
+heading(c, "Operación y calidad", "Datos que protegen el servicio")
+for y, label, detail in [
+    (347, "Controles operativos", "Registrar cloración, producción, incidentes y mantenimiento."),
+    (269, "Análisis de agua y aforos", "Conservar resultados, medir fuentes y revisar tendencias."),
+    (191, "Sello Regulatorio de Calidad", "Preparar evidencias según los lineamientos de ARESEP."),
+]:
+    txt(c, 58, y, label, 20, INK, True)
+    txt(c, 58, y - 29, detail, 16, MUTED)
+    rule(c, y - 51)
+txt(c, 58, 82, "La frecuencia y los requisitos se revisan según el sistema y la norma vigente.", 12, MUTED)
+txt(c, 58, 61, "Fuentes: Reglamento de ASADAS (42582-S-MINAE) y ARESEP, Sello Regulatorio 2026.", 10, MUTED)
+c.linkURL("https://aresep.go.cr/agua-potable-informacion-regulatoria/sello-de-calidad-del-agua/", (58, 54, 902, 73), relative=0)
+c.showPage()
+
+# How Starlen supports the ASADA
+base(c, 6)
+heading(c, "Mi acompañamiento", "Cómo les puedo ayudar")
+for y, label, detail in [
+    (347, "Diagnóstico de la situación", "Reviso documentos, pendientes y datos disponibles de la ASADA."),
+    (269, "Plan de trabajo", "Ordeno prioridades con responsables, plazos y entregables."),
+    (191, "Seguimiento práctico", "Coordino con operación y contador; preparo información para Junta."),
+]:
+    txt(c, 58, y, label, 20, INK, True)
+    txt(c, 58, y - 29, detail, 16, MUTED)
+    rule(c, y - 51)
+txt(c, 58, 83, "La Junta conserva sus decisiones y conoce el avance de cada tema.", 16, HexColor("#087A83"), True)
+c.showPage()
+
+# Resource mobilization
+base(c, 7)
+heading(c, "Proyectos", "Gestión de recursos")
+txt(c, 58, 347, "Primero, un proyecto bien sustentado", 22, INK, True)
+lines(c, 58, 306, [
+    "Definimos la necesidad y su prioridad para el acueducto.",
+    "Preparamos presupuesto, cronograma y respaldo técnico disponible.",
+    "Organizamos el expediente para presentarlo ante organizaciones.",
+], 17, 37)
+rule(c, 171)
+lines(c, 58, 135, [
+    "Acompaño la gestión ante AyA, municipalidades u otras entidades",
+    "según los requisitos y las oportunidades de cada proyecto.",
+], 16, 28, MUTED)
+c.showPage()
+
+# Working system
+base(c, 8)
+heading(c, "Método de administración", "Una forma de gestionar")
+txt(c, 58, 341, "Acuerdo   /   Responsable   /   Fecha   /   Evidencia   /   Resultado", 19, HexColor("#087A83"), True)
+rule(c, 309)
+for y, label, detail in [
+    (273, "Registro compartido", "Acuerdos, expedientes y datos en un solo lugar de consulta."),
+    (195, "Rutina de seguimiento", "Revisar pendientes y coordinar el trabajo con el equipo."),
+    (117, "Informe para la Junta", "Mostrar avances, alertas y decisiones que requieren acuerdo."),
+]:
+    txt(c, 58, y, label, 20, INK, True)
+    txt(c, 58, y - 29, detail, 16, MUTED)
+    if y > 117:
+        rule(c, y - 51)
+c.showPage()
+
+# Modalities and CTA
+base(c, 9, True)
+txt(c, 58, 465, "DOS MODALIDADES DE APOYO", 14, TEAL, True)
+txt(c, 58, 405, "Avancemos con su ASADA", 36, WHITE, True)
+txt(c, 58, 319, "Asesoría", 25, TEAL, True)
+txt(c, 496, 319, "Administración", 25, TEAL, True)
+lines(c, 58, 274, ["Una visita al mes", "Orientación y seguimiento", "de las prioridades"], 18, 34, WHITE)
+lines(c, 496, 274, ["Una visita semanal", "Gestión de tareas acordadas", "e informes para la Junta"], 18, 34, WHITE)
 c.setStrokeColor(HexColor("#42707B"))
-c.line(58, 135, 902, 135)
-txt(c, 58, 97, "Conversemos sobre el alcance de su ASADA", 18, WHITE, True)
+c.line(58, 137, 902, 137)
+txt(c, 58, 97, "Starlen Hidalgo Castro  ·  Star Water", 18, WHITE, True)
 txt(c, 58, 66, "info@starwater.cr     WhatsApp: 7300-6172", 15, TEAL)
 c.showPage()
 c.save()
