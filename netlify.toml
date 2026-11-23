@@ -603,8 +603,3 @@
   to = "/"
   status = 301
   force = true
-
-[[redirects]]
-  from = "/catalogo-herramientas"
-  to = "/catalogo-herramientas.html"
-  status = 200
