@@ -11,6 +11,12 @@
 }
 
 .intake { max-width: 880px; padding-block: clamp(1.25rem, 4vw, 2.75rem); }
+.intake-guide { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; margin-bottom: 1.25rem; padding: clamp(1.2rem, 3vw, 2rem); background: #fff; border: 1px solid #cce3e6; border-left: 5px solid #39c8be; border-radius: 1.1rem; box-shadow: 0 12px 30px #1034420e; }
+.intake-guide > div { max-width: 36rem; }
+.intake-guide-eyebrow { margin: 0 0 .5rem; color: #067881; font-size: .75rem; font-weight: 800; letter-spacing: .14em; }
+.intake-guide h2 { margin: 0 0 .5rem; color: #103846; font-size: clamp(1.4rem, 2.5vw, 1.9rem); line-height: 1.2; }
+.intake-guide p:last-child { margin: 0; color: #45636d; line-height: 1.55; }
+.intake-guide .button { flex: none; text-align: center; white-space: normal; }
 .intake-card {
   padding: clamp(1rem, 4vw, 2rem);
   background: #fff;
@@ -58,5 +64,6 @@
 .intake #receipt h2 { margin-top: 0; }
 
 @media (max-width: 560px) {
+  .intake-guide { flex-direction: column; align-items: flex-start; }
   .intake-grid { grid-template-columns: 1fr; }
 }
