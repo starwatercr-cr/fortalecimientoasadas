@@ -45,12 +45,12 @@
   function showCategory() {
     const target = document.getElementById(location.hash.slice(1));
     const selected = categories.find(category => target && category.contains(target));
-    for (const category of categories) category.hidden = category !== selected;
+    for (const category of categories) category.hidden = Boolean(selected) && category !== selected;
     for (const link of links) {
       if (selected && link.hash === '#' + selected.id) link.setAttribute('aria-current', 'true');
       else link.removeAttribute('aria-current');
     }
-    prompt.hidden = Boolean(selected);
+    prompt.hidden = true;
     if (selected) target.scrollIntoView({block: 'start'});
   }
 
