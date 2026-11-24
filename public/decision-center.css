@@ -45,3 +45,12 @@
 @media(max-width:360px){.dc-grid,.dc-fin-metrics{grid-template-columns:minmax(0,1fr)}}
 @media(prefers-reduced-motion:reduce){.dc-tile:hover{transform:none}}
 }
+
+/* Compact executive dashboard, desktop only; retain mobile and print layouts. */
+@media screen and (min-width:851px){
+ .dc-head{margin:22px 0 18px}.dc-head h1{font-size:clamp(28px,3vw,38px)}
+ .dc-filter{padding:16px 20px;gap:12px}.dc-profile{padding:22px 28px;margin:18px 0;border-radius:16px}.dc-profile h2{font-size:clamp(24px,2.5vw,32px);margin-bottom:5px}
+ .dc-section-title{margin:22px 0 12px}.dc-section-title h2{font-size:clamp(24px,2.5vw,30px)}
+ .dc-agenda{margin:22px 0}.dc-agenda-layout>.dc-card{padding:20px}.dc-agenda-item{padding:12px 0}.dc-agenda-total strong{font-size:48px}
+ .dc-tile{padding:18px;min-height:0}.dc-tile strong{font-size:clamp(24px,2.4vw,32px)}.dc-tile.pending strong{font-size:clamp(18px,1.8vw,24px)}.dc-tile.money-value strong{font-size:clamp(16px,1.6vw,24px)}
+}
