@@ -42,6 +42,39 @@ el('water-flow-apply').onclick=()=>{
  el('water-sources').replaceChildren();serial=0;rows.forEach(addSource);update();flowImport=null;el('water-flow-options').replaceChildren();el('water-flow-apply').hidden=true;status.textContent='Aforos incorporados al formulario. Revise la comparabilidad de las campañas y guarde el escenario si corresponde.';
 };
 
+
+let demandImport=null;
+const demandStatus=t=>el('water-demand-status').textContent=t;
+function demandScopeValid(scope){return scope&&cloudScope===scope&&!example&&!cloudBusy&&el('water-cloud-asada').value===scope.asada&&Number(el('water-cloud-year').value)===scope.year;}
+el('water-demand-list').onclick=async()=>{
+ const scope=cloudScope;demandImport=null;el('water-demand-apply').hidden=true;el('water-demand-report').replaceChildren(new Option('Seleccione un reporte',''));
+ if(!demandScopeValid(scope)){demandStatus('Consulte primero su ASADA, fuera del ejemplo.');return;}
+ try{const d=await cloudApi('abonados-list?'+new URLSearchParams({asada:scope.asada}));if(!demandScopeValid(scope))return;for(const r of d.imports||[])el('water-demand-report').add(new Option(r.filename+' · '+r.row_count+' registros',r.id));demandStatus('Seleccione un reporte y un mes completo.');}catch(e){demandStatus(e.message);}
+};
+el('water-demand-read').onclick=async()=>{
+ const scope=cloudScope,id=el('water-demand-report').value,period=el('water-demand-period').value;
+ demandImport=null;el('water-demand-apply').hidden=true;
+ if(!demandScopeValid(scope)||!id||!/^\d{4}-(0[1-9]|1[0-2])$/.test(period)){demandStatus('Seleccione ASADA, reporte y mes válidos.');return;}
+ const before=JSON.stringify(snapshot()),record=cloudRecord;
+ try{
+ const d=await cloudApi('abonados-data?'+new URLSearchParams({asada:scope.asada,id}));
+ if(!demandScopeValid(scope)||cloudRecord!==record||JSON.stringify(snapshot())!==before||el('water-demand-report').value!==id||el('water-demand-period').value!==period)return;
+ const rows=(d.import?.payload?.rows||[]).filter(r=>r.period===period), seen=new Set(), subscribers=new Set();let volume=0;
+ if(!rows.length)throw Error('No hay consumos en el mes seleccionado.');
+ for(const r of rows){const key=JSON.stringify([r.subscriber,r.meter]);if(!r.subscriber||seen.has(key)||!Number.isFinite(r.consumption)||r.consumption<0)throw Error('Hay registros repetidos o inválidos. Revise el reporte antes de utilizarlo.');seen.add(key);subscribers.add(r.subscriber);volume+=r.consumption;}
+ const count=subscribers.size,average=Math.round(volume/count*100)/100;
+ if(!Number.isFinite(average)||average<0.01||average>100000||count>1000000)throw Error('El promedio no es compatible con el formulario.');
+ demandImport={scope,record,before,id,period,count,average,volume};el('water-demand-confirm').checked=false;el('water-demand-apply').hidden=false;
+ demandStatus(period+' · '+count+' abonados únicos · '+volume.toFixed(2)+' m³ registrados · '+average.toFixed(2)+' m³ por abonado. Confirme cobertura completa y equivalencia entre abonados y conexiones activas.');
+ }catch(e){demandStatus(e.message);}
+};
+el('water-demand-apply').onclick=()=>{
+ const p=demandImport;if(!p||!demandScopeValid(p.scope)||cloudRecord!==p.record||JSON.stringify(snapshot())!==p.before||el('water-demand-report').value!==p.id||el('water-demand-period').value!==p.period){demandStatus('La selección cambió. Consulte nuevamente.');return;}
+ if(!el('water-demand-confirm').checked){demandStatus('Confirme cobertura y equivalencia antes de incorporar.');return;}
+ if(!confirm('¿Sustituir conexiones y consumo promedio del escenario? No se guardará automáticamente.'))return;
+ el('water-connections').value=p.count;el('water-average').value=p.average;update();demandImport=null;el('water-demand-apply').hidden=true;demandStatus('Datos incorporados. Revise los supuestos y documente el reporte y período antes de guardar.');
+};
+
 function sourceData(){return [...el('water-sources').children].map(row=>{const n=cls=>{const e=row.querySelector('.source-'+cls);return e.value===''||!e.validity.valid?null:Number(e.value);};return {name:row.querySelector('.source-name').value||'Fuente sin nombre',summer:n('summer'),winter:n('winter'),summerDate:row.querySelector('.source-summer-date').value,winterDate:row.querySelector('.source-winter-date').value};});}
 function renderWaterVisuals(d,r,days){
  const vals=[r.supply,r.demand,r.scenarioSupply,r.scenarioDemand];
