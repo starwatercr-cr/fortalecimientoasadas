@@ -71,7 +71,7 @@ para(58,177,'Ruta de revisión y gestión administrativa para su caso.',410,19,2
 txt(58,52,'Presentación informativa  |  Costa Rica',11,white)
 finish()
 
-base(2,'Primero: comprender la negativa')
+base(2,'Comprender la negativa')
 para(56,365,'Una respuesta negativa debe revisarse por escrito. Su fundamento define qué información falta y qué gestión corresponde.',830,21,34,ink)
 tag(58,267,'01','Operador','Identificamos si respondió una ASADA, AyA o una municipalidad.',240)
 tag(353,267,'02','Expediente','Reunimos solicitud, plano, respuesta, fecha de notificación y antecedentes.',240)
@@ -84,7 +84,7 @@ c.setStrokeColor(HexColor('#cce2e5'));c.setLineWidth(1);c.line(342,112,342,385);
 tag(58,366,'ASADA','Junta Directiva','Presentamos la petición o revisión ante la ASADA. Si existe un acto impugnable, valoramos revocatoria ante su Junta Directiva. La apelación técnica u operativa puede corresponder a AyA.',245)
 tag(367,366,'AyA','Unidad competente','Solicitamos el expediente y el criterio que sustenta la negativa. Valoramos los recursos administrativos ante los órganos que correspondan.',245)
 tag(675,366,'MUNICIPALIDAD','Órgano municipal','Pedimos la motivación y aplicamos la ruta de recursos municipales según la autoridad que emitió la decisión.',230)
-para(58,93,'Revisamos recursos y plazos desde la notificación para agotar la vía que corresponda.',835,14,20,navy,True)
+para(58,105,'Realizamos gestiones por correo electrónico ante la ASADA, AyA o municipalidad. Elaboramos todas las notas técnicas necesarias y damos seguimiento para procurar agotar la vía administrativa aplicable.',835,14,20,navy,True)
 txt(58,62,'Fuentes: Reglamento de ASADAS, arts. 100-103 (AyA); LGAP y Código Municipal (PGR).',10,muted)
 finish()
 
@@ -98,7 +98,7 @@ for y,num,title,body in [
 finish()
 
 base(5,'Plazo orientativo y resultado')
-txt(56,368,'Hasta 6 meses',37,navy,True)
+txt(56,368,'Hasta 6 meses aproximadamente',37,navy,True)
 para(56,326,'Estimación de trabajo para un caso que requiere obtener información, revisar el criterio técnico y dar seguimiento. El tiempo real depende del operador, la documentación y las respuestas.',825,19,30,ink)
 c.setStrokeColor(teal);c.setLineWidth(5);c.line(72,176,880,176)
 for x,label,sub in [(72,'Inicio','Expediente'),(339,'Meses 1–2','Información técnica'),(608,'Meses 3–4','Gestiones y recursos'),(880,'Meses 5–6','Seguimiento')]:
@@ -106,20 +106,20 @@ for x,label,sub in [(72,'Inicio','Expediente'),(339,'Meses 1–2','Información 
  width=180
  if x==880:x=770
  txt(x,132,label,17,navy,True);para(x,105,sub,width,13,19,muted)
-para(56,56,'El trámite puede concluir con disponibilidad, una condición para otorgarla o la negativa motivada. No se garantiza un resultado favorable.',840,11,16,muted)
+para(56,56,'Nos comprometemos a trabajar con dedicación, sustentar cada gestión y dar seguimiento al caso. La disponibilidad de agua no está garantizada.',840,11,16,muted)
 finish()
 
 # Last slide
 c.setFillColor(deep);c.rect(0,0,W,H,fill=1,stroke=0)
 c.drawImage(str(ROOT/'public/assets/logo.png'),56,435,width=225,height=64,mask='auto')
 txt(56,365,'Inversión del servicio',31,white,True)
-txt(56,274,'₡32.100',57,mint,True)
+txt(56,274,'₡45.000',57,mint,True)
 txt(56,218,'50 % al iniciar',21,white,True)
 txt(360,218,'50 % al finalizar el proceso',18,white,True)
-txt(56,180,'₡16.050',19,mint,True)
-txt(360,180,'₡16.050',19,mint,True)
+txt(56,180,'₡22.500',19,mint,True)
+txt(360,180,'₡22.500',19,mint,True)
 c.setStrokeColor(HexColor('#386a74'));c.setLineWidth(1);c.line(56,143,904,143)
 txt(56,104,'SINPE Móvil 7300-6172',23,white,True)
 txt(56,70,'A nombre de Star Water',16,mint)
-para(617,105,'Incluye revisión del caso y gestión administrativa. Aforos, estudios técnicos, obras o tasas se presupuestan por separado si el caso los requiere.',285,12,19,white)
+para(617,105,'Incluye revisión, notas técnicas y gestión administrativa. Aforos, estudios técnicos, obras o tasas se presupuestan por separado si el caso los requiere.',285,12,19,white)
 finish();c.save();print(OUT,OUT.stat().st_size)
