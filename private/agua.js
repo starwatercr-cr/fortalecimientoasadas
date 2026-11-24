@@ -4,6 +4,44 @@ const el=id=>document.getElementById(id),fmt=n=>n.toLocaleString('es-CR',{maximu
 let example=false,current=null,priorities=[],serial=0,cloudRecord=null,cloudRecords=[],cloudAsadas=[],cloudScope=null,cloudBusy=false,cloudCanSave=false,cloudBaseline=null;
 function numeric(id){const e=el(id);return e.value.trim()===''||!e.validity.valid?null:Number(e.value);}
 function addSource(s={}){serial++;const row=document.createElement('div');row.className='water-source';row.innerHTML=`<label>Nombre de la fuente<input class="source-name" maxlength="80" value="${safe(s.name||'')}" placeholder="Fuente ${serial}"></label><label>Verano (L/s)<input class="source-summer" type="number" min="0" max="1000000" step="0.001" value="${s.summer??''}"></label><label>Invierno (L/s)<input class="source-winter" type="number" min="0" max="1000000" step="0.001" value="${s.winter??''}"></label><label>Fecha de aforo en verano<input class="source-summer-date" type="date" value="${s.summerDate||''}"></label><label>Fecha de aforo en invierno<input class="source-winter-date" type="date" value="${s.winterDate||''}"></label><button class="button outline source-remove" type="button" aria-label="Eliminar fuente">Eliminar</button>`;row.querySelector('button').onclick=()=>{row.remove();update();};el('water-sources').append(row);}
+
+let flowImport=null;
+el('water-flow-import').onclick=async()=>{
+ const scope=cloudScope, panel=el('water-flow-options'), status=el('water-flow-import-status');
+ flowImport=null;panel.replaceChildren();el('water-flow-apply').hidden=true;
+ if(!scope||example||cloudBusy||el('water-cloud-asada').value!==scope.asada||Number(el('water-cloud-year').value)!==scope.year){status.textContent='Consulte primero un escenario de su ASADA, fuera del ejemplo.';return;}
+ const before=JSON.stringify(snapshot()), record=cloudRecord;
+ try{
+  status.textContent='Consultando aforos…';
+  const data=await cloudApi('flow-data?'+new URLSearchParams({asada:scope.asada}));
+  if(cloudScope!==scope||cloudRecord!==record||example||JSON.stringify(snapshot())!==before)return;
+  const records=data.records||[], sources=records.filter(r=>r.kind==='source'&&r.payload.includeTotal===true);
+  const choices=[];
+  for(const source of sources){
+   const field=document.createElement('fieldset'), legend=document.createElement('legend');legend.textContent=source.payload.name;field.append(legend);
+   const entry={name:source.payload.name};
+   for(const [season,label] of [['summer','Verano'],['winter','Invierno']]){
+    const wrap=document.createElement('label'), select=document.createElement('select');wrap.textContent=label;
+    select.add(new Option('Sin seleccionar',''));
+    const rows=records.filter(r=>r.kind==='measurement'&&r.source_id===source.id&&r.payload.season===label&&typeof r.payload.flow==='number'&&Number.isFinite(r.payload.flow)&&r.payload.flow>=0&&r.payload.flow<=1000000&&/^\d{4}-\d{2}-\d{2}$/.test(r.payload.date)).sort((a,b)=>b.payload.date.localeCompare(a.payload.date));
+    rows.forEach((r,i)=>select.add(new Option(r.payload.date+' · '+r.payload.flow+' L/s · '+(r.payload.campaign||'Sin campaña'),String(i))));
+    wrap.append(select);field.append(wrap);entry[season]={select,rows};
+   }
+   panel.append(field);choices.push(entry);
+  }
+  flowImport={scope,record,before,choices};el('water-flow-apply').hidden=!choices.length;
+  status.textContent=choices.length?'Seleccione las mediciones de cada época. Solo se muestran fuentes independientes incluidas en el total.':'No hay fuentes independientes registradas.';
+ }catch(error){status.textContent=error.message;}
+};
+el('water-flow-apply').onclick=()=>{
+ const p=flowImport,status=el('water-flow-import-status');
+ if(!p||cloudBusy||example||cloudScope!==p.scope||cloudRecord!==p.record||el('water-cloud-asada').value!==p.scope.asada||Number(el('water-cloud-year').value)!==p.scope.year||JSON.stringify(snapshot())!==p.before){status.textContent='El escenario cambió. Consulte los aforos nuevamente.';return;}
+ const rows=p.choices.map(c=>{const s={name:c.name};for(const k of ['summer','winter']){const {select,rows}=c[k],r=select.value===''?null:rows[Number(select.value)];s[k]=r?.payload.flow??null;s[k+'Date']=r?.payload.date||'';}return s;});
+ if(!rows.some(r=>r.summer!==null||r.winter!==null)){status.textContent='Seleccione al menos un aforo.';return;}
+ if(!confirm('Se sustituirán las fuentes del escenario por las fuentes consultadas, incluidas las que quedan sin medición. Revise fechas y campañas antes de guardar. ¿Continuar?'))return;
+ el('water-sources').replaceChildren();serial=0;rows.forEach(addSource);update();flowImport=null;el('water-flow-options').replaceChildren();el('water-flow-apply').hidden=true;status.textContent='Aforos incorporados al formulario. Revise la comparabilidad de las campañas y guarde el escenario si corresponde.';
+};
+
 function sourceData(){return [...el('water-sources').children].map(row=>{const n=cls=>{const e=row.querySelector('.source-'+cls);return e.value===''||!e.validity.valid?null:Number(e.value);};return {name:row.querySelector('.source-name').value||'Fuente sin nombre',summer:n('summer'),winter:n('winter'),summerDate:row.querySelector('.source-summer-date').value,winterDate:row.querySelector('.source-winter-date').value};});}
 function renderWaterVisuals(d,r,days){
  const vals=[r.supply,r.demand,r.scenarioSupply,r.scenarioDemand];
