@@ -80,3 +80,11 @@ body.sw-app{margin:0;background:#f2f7f8}#sw-tools{border-radius:0;font-size:15px
 @media(min-width:901px){#sw-tools .sw-side{position:sticky;top:0;align-self:start;max-height:100dvh;overflow-y:auto}}
 @media(max-width:900px){#sw-tools .sw-shell{grid-template-columns:190px minmax(0,1fr)}}
 @media(max-width:620px){#sw-tools .sw-shell{grid-template-columns:minmax(0,1fr)}#sw-tools .sw-side{padding:14px;gap:15px}#sw-tools .sw-work{padding:20px 14px}#sw-tools .sw-top,#sw-tools .sw-session{padding-inline:14px}#sw-tools .sw-tool{padding:16px}#sw-tools .sw-tabs{gap:12px;flex-wrap:wrap}#sw-tools .sw-area-grid{gap:12px}}
+
+/* Keep the desktop rail continuous and allow sticky navigation to follow page scroll. */
+@media(min-width:621px){
+ #sw-tools{overflow:visible}
+ #sw-tools .sw-shell{--sw-rail-width:244px;min-height:100vh;min-height:100dvh;background:linear-gradient(to right,var(--sw-side) 0,var(--sw-side) var(--sw-rail-width),var(--sw-bg) var(--sw-rail-width),var(--sw-bg) 100%)}
+ #sw-tools .sw-side{position:sticky;top:0;align-self:start;height:100vh;height:100dvh;min-height:0;max-height:100dvh;overflow-y:auto;overscroll-behavior-y:contain}
+}
+@media(min-width:621px) and (max-width:900px){#sw-tools .sw-shell{--sw-rail-width:190px}}
