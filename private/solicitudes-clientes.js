@@ -66,7 +66,16 @@ function render(entry){
   article.querySelector('[data-case]').textContent='Caso 6009-'+row.case_number+' · '+new Date(row.created_at).toLocaleString('es-CR',{timeZone:'America/Costa_Rica'});
   const badge=article.querySelector('[data-detail-status]');
   setBadge(badge,row.status);
-  article.querySelector('.requests-documents').hidden=!row.attachment_type&&!row.source_plan_type;
+  const documents=article.querySelector('.requests-documents');
+  const documentTypes=row.negative_document_types || [];
+  documents.hidden=!row.attachment_type&&!row.source_plan_type&&!documentTypes.length;
+  documentTypes.forEach((_,index)=>{
+    const number=index+1;
+    const link=document.createElement('a');
+    link.href='/api/client-request-file?document=negativa-'+number+'&id='+encodeURIComponent(row.id);
+    link.textContent='Descargar documento '+number;
+    documents.append(link);
+  });
   const details=article.querySelector('dl');
   const values={...row.details,legacyIdentification:row.identification};
   for (const [key,label] of Object.entries(labels)){
