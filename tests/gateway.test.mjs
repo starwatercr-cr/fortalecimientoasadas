@@ -92,3 +92,16 @@ test('adjuntos preparan y verifican el archivo privado antes de subir, incluso s
 });
 
 test('los tres roles acceden a la bitácora privada y la plantilla Excel requiere sesión',async()=>{for(const role of ['Administración','Operación','Junta Directiva']){mock({role});for(const file of ['operacion.html','operacion.js','operation-excel.js','assets/operation-template.xlsx'])assert.equal((await handler(req('file='+file))).status,200);}assert.equal((await handler(req('file=assets/operation-template.xlsx',undefined,''))).status,401);});
+
+test('integraciones nuevas no permiten consultar otra ASADA ni sin sesión',async()=>{
+ const foreign='22222222-2222-4222-8222-222222222222';
+ for(const api of ['flow-data','abonados-list','abonados-data','anc-data','plans-data','panel-data']){
+  mock();
+  const route='api='+api+'&asada='+foreign+'&id='+foreign+'&year=2026';
+  assert.equal((await handler(req(route))).status,403,api+' otra ASADA');
+  assert.equal((await handler(req(route,undefined,''))).status,401,api+' sin sesión');
+ }
+});
+test('ningún archivo registrado como protegido se copia a la compilación pública',()=>{
+ for(const file of protectedFiles)assert(!fs.existsSync('build/'+file),file);
+});
