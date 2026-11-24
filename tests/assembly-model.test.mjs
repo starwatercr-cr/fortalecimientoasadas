@@ -9,3 +9,18 @@ test('Asamblea: presupuesto de pagos excluye ingresos y separa servicios y grupo
  const c={service:'Acueducto',group:'Operativos',part:'Sueldos',budgetType:'expense'};
  const data=[rec('budget',{...c,amount:100}),rec('budget',{...c,group:'Administrativos',amount:200}),rec('budget',{...c,budgetType:'income',group:'Ingresos',amount:999}),rec('movement',{...c,date:'2026-02-01',type:'out',amount:10}),rec('petty',{...c,group:'Administrativos',date:'2026-02-02',amount:20})];const s=ctx.assemblyPanelSnapshot(data,base.start,base.end,2026);assert.equal(s.budget.total,300);assert.equal(s.budget.paid,30);assert.equal(s.budget.parts.length,2);assert.equal(s.budget.parts.find(p=>p.part.includes('Administrativos')).paid,20);
 });
+
+test('Asamblea excluye cifras de una consulta de otro período incluso con corte contable coincidente',()=>{
+ const s=ctx.assemblyPanelSnapshot(records,'2026-01-01',base.end,2026);
+ const r=ctx.buildAssemblyReport('tesoreria',{...base,source:s,financeConfirmed:true});
+ assert.ok(r.numbers.every(x=>x[1]===null));
+ assert.ok(!r.sections.some(x=>x.title==='Flujo de efectivo registrado'));
+ assert.ok(r.checks.some(x=>x.includes('otro período')));
+});
+test('Asamblea advierte descuadre contable y conserva versión de fuente',()=>{
+ const s=ctx.assemblyPanelSnapshot(records,base.start,base.end,2026);
+ s.statement.equity=600;
+ const r=ctx.buildAssemblyReport('presidencia',{...base,source:s,financeConfirmed:true});
+ assert.ok(r.checks.some(x=>x.includes('ecuación contable')));
+ assert.ok(r.sections.some(x=>x.title==='Fuentes y alcance de la información automática'&&x.text.includes('versión 1')));
+});

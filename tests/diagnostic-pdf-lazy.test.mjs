@@ -1,0 +1,24 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import {readFileSync} from 'node:fs';
+test('diagnóstico carga PDF y fuentes solo al exportar, sin duplicados y con reintento',async()=>{
+ const html=readFileSync('private/diagnostico.html','utf8');
+ assert(!/<script[^>]+src=["'][^"']*assets\/(?:jspdf\.umd\.min|diagnostic-fonts)\.js/.test(html));
+ const scripts=[],window={};
+ vm.runInNewContext(readFileSync('private/diagnostic-pdf.js','utf8'),{window,document:{createElement:()=>({remove(){}}),head:{appendChild:s=>scripts.push(s)}}});
+ assert.equal(scripts.length,0);
+ const first=window.prepareDiagnosticPDF(),second=window.prepareDiagnosticPDF();
+ assert.equal(scripts.length,2);
+ window.jspdf={jsPDF:class{}};
+ scripts[0].onload();
+ scripts[1].onerror();
+ await Promise.all([assert.rejects(first,/No se pudo preparar/),assert.rejects(second,/No se pudo preparar/)]);
+ const retry=window.prepareDiagnosticPDF();
+ assert.equal(scripts.length,3);
+ window.AsadaDiagnosticFonts={};
+ scripts[2].onload();
+ await retry;
+ await window.prepareDiagnosticPDF();
+ assert.equal(scripts.length,3);
+});

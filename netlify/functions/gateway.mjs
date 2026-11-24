@@ -98,7 +98,15 @@ async function body(request,limit=maxBody){if(Number(request.headers.get('conten
 const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 const text=(v,max)=>typeof v==='string'?v.trim().slice(0,max):'';
 async function owner(request,auth=authorizeToken){const who=await auth(sessionToken(request));if(!who.admin)throw new PublicError(403,'Esta acción corresponde a Star Water.');return who;}
-async function dispatch(request,authorized=authorizeToken){
+// Reuse authorization only within this request, never across users or requests.
+function requestAuthorization(authorize){
+ const pending=new Map();
+ return token=>{
+  if(!pending.has(token))pending.set(token,Promise.resolve().then(()=>authorize(token)));
+  return pending.get(token);
+ };
+}
+async function dispatch(request,authorized=requestAuthorization(authorizeToken)){
  const url=new URL(request.url);const api=url.pathname.startsWith('/api/')?url.pathname.slice(5):url.searchParams.get('api');
  try{
   if(request.method!=='GET'&&request.method!=='POST')return json({error:'Método no permitido.'},405);

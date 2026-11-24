@@ -9,6 +9,25 @@ function libraryTokens(query){return [...new Set(libraryFold(query).match(/[a-z0
 const libraryStem=t=>t.length>4?t.replace(/(?:ces|es|s)$/,''):t;
 const libraryTerms=text=>new Set((libraryFold(text).match(/[a-z0-9]+/g)||[]).map(libraryStem));
 const libraryContains=(text,words,term)=>term.includes(' ')?text.includes(term):words.has(libraryStem(term));
+// Cache derived search terms by original record; uploaded documents are indexed on demand.
+const libraryChunkIndex=new WeakMap(),libraryTitleIndex=new WeakMap();
+function libraryIndexedChunk(c){
+ let entry=libraryChunkIndex.get(c);
+ if(!entry||entry.original!==c.text){
+  const norm=libraryFold(c.text),lead=norm.slice(0,200);
+  entry={original:c.text,norm,terms:libraryTerms(norm),lead,leadTerms:libraryTerms(lead)};
+  libraryChunkIndex.set(c,entry);
+ }
+ return entry;
+}
+function libraryIndexedTitle(d){
+ let entry=libraryTitleIndex.get(d);
+ if(!entry||entry.original!==d.title){
+  entry={original:d.title,title:libraryFold(d.title),titleTerms:libraryTerms(d.title)};
+  libraryTitleIndex.set(d,entry);
+ }
+ return entry;
+}
 function librarySearch(data,query,{documentId='',article=''}={}){
  const tokens=libraryTokens(query),n=article===''?null:Number(article);
  if(!tokens.length&&n===null)return [];
@@ -17,8 +36,7 @@ function librarySearch(data,query,{documentId='',article=''}={}){
  return data.chunks.flatMap(c=>{
   const d=docs.get(c.doc);
   if(!d||d.historical||(documentId&&c.doc!==documentId)||(n!==null&&c.article!==n))return [];
-  const norm=libraryFold(c.text),title=libraryFold(d.title),terms=libraryTerms(norm),titleTerms=libraryTerms(title);
-  const lead=norm.slice(0,200),leadTerms=libraryTerms(lead);
+  const {norm,terms,lead,leadTerms}=libraryIndexedChunk(c),{title,titleTerms}=libraryIndexedTitle(d);
   let score=0,matches=0;
   tokens.forEach((t,i)=>{const direct=libraryContains(norm,terms,t),alias=!direct&&groups[i].some(x=>libraryContains(norm,terms,x));
    if(direct||alias){matches++;score+=direct?4:1;if(libraryContains(lead,leadTerms,t)||groups[i].some(x=>libraryContains(lead,leadTerms,x)))score+=1.5;}

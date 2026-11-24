@@ -59,3 +59,32 @@ body.sw-app{margin:0;background:#f2f7f8}#sw-tools{border-radius:0;font-size:15px
 
 /* Menú y campos táctiles en iPhone y Android */
 @media(max-width:620px){#sw-tools .sw-side.sw-expanded .sw-help{display:block;margin-top:0}#sw-tools .sw-mobile{font-size:14px}#sw-tools .sw-search input,#sw-tools .portal-session input,#sw-tools select,#sw-tools textarea{font-size:16px}}
+
+/* Workspace refinement: titanium palette, accessible controls and responsive layout. */
+#sw-tools{--sw-bg:light-dark(#f4f6f8,#151d25);--sw-panel:light-dark(#fff,#202b35);--sw-ink:light-dark(#203344,#e7edf3);--sw-muted:light-dark(#526575,#b4c4d1);--sw-line:light-dark(#dce3e9,#3b4b59);--sw-soft:light-dark(#e8f1f4,#293f4b);--sw-teal:light-dark(#176579,#8ed9e4);--sw-side:#202e3c}
+#sw-tools .sw-shell{grid-template-columns:244px minmax(0,1fr)}
+#sw-tools .sw-side{padding:28px 16px;gap:28px}
+#sw-tools .sw-nav[aria-pressed=true]{background:#3b5365;color:#fff;box-shadow:inset 3px 0 #8ed9e4}
+#sw-tools .sw-nav:hover{background:#304555}
+#sw-tools .sw-work{max-width:1440px;margin-inline:auto;padding:32px clamp(20px,3vw,44px)}
+#sw-tools .sw-top,#sw-tools .sw-session{padding-inline:clamp(20px,3vw,44px)}
+#sw-tools h1{font-size:clamp(24px,3vw,32px);letter-spacing:-.035em}
+#sw-tools .sw-decision{background:linear-gradient(120deg,#243747,#36596b);border-radius:16px}
+#sw-tools .sw-tool{padding:20px;min-height:180px;box-shadow:0 2px 8px #142b4010}
+#sw-tools .sw-area-grid{gap:16px}
+#sw-tools .sw-star,#sw-tools .sw-open{min-height:44px}
+#sw-tools .sw-star{min-width:44px}
+#sw-tools a:focus-visible,#sw-tools input:focus-visible{outline:2px solid var(--sw-teal);outline-offset:3px}
+#sw-tools .sw-side a:focus-visible,#sw-tools .sw-side button:focus-visible{outline-color:#8ed9e4}
+#sw-tools .sw-search:focus-within{border-color:var(--sw-teal)}
+@media(min-width:901px){#sw-tools .sw-side{position:sticky;top:0;align-self:start;max-height:100dvh;overflow-y:auto}}
+@media(max-width:900px){#sw-tools .sw-shell{grid-template-columns:190px minmax(0,1fr)}}
+@media(max-width:620px){#sw-tools .sw-shell{grid-template-columns:minmax(0,1fr)}#sw-tools .sw-side{padding:14px;gap:15px}#sw-tools .sw-work{padding:20px 14px}#sw-tools .sw-top,#sw-tools .sw-session{padding-inline:14px}#sw-tools .sw-tool{padding:16px}#sw-tools .sw-tabs{gap:12px;flex-wrap:wrap}#sw-tools .sw-area-grid{gap:12px}}
+
+/* Keep the desktop rail continuous and allow sticky navigation to follow page scroll. */
+@media(min-width:621px){
+ #sw-tools{overflow:visible}
+ #sw-tools .sw-shell{--sw-rail-width:244px;min-height:100vh;min-height:100dvh;background:linear-gradient(to right,var(--sw-side) 0,var(--sw-side) var(--sw-rail-width),var(--sw-bg) var(--sw-rail-width),var(--sw-bg) 100%)}
+ #sw-tools .sw-side{position:sticky;top:0;align-self:start;height:100vh;height:100dvh;min-height:0;max-height:100dvh;overflow-y:auto;overscroll-behavior-y:contain}
+}
+@media(min-width:621px) and (max-width:900px){#sw-tools .sw-shell{--sw-rail-width:190px}}

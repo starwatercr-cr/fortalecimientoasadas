@@ -12,9 +12,19 @@ export function buildSubscriberPDF({name,scope,filenames,threshold,increase,cate
  text('Informe de abonados',22,true);text(name,12,true);text(scope,9,false,grey);
  const m=analysis.metrics;
  if(m){
-  room(31);
   const cards=[['Abonados con registro',num(m.subscribers)],['Consumo del mes',num(m.consumption)+' m³'],['Monto facturado',m.billedCount?money(m.billed):'Sin dato'],['Aumentos para revisar',num(analysis.rising.length)]];
-  cards.forEach(([label,value],i)=>{const x=20+i*44;doc.setFillColor(234,246,247);doc.roundedRect(x,y,42,20,2,2,'F');font(7.3,false,grey);doc.text(label,x+3,y+6);font(10,true);doc.text(value,x+3,y+14);});y+=27;
+  const cardLines=cards.map(([label,value])=>{
+   font(7.3,false,grey);const labels=doc.splitTextToSize(label,36);
+   font(10,true);const values=doc.splitTextToSize(value,36);
+   return {labels,values};
+  });
+  const cardHeight=Math.max(20,...cardLines.map(c=>6+c.labels.length*4+c.values.length*5));
+  room(cardHeight+7);
+  cardLines.forEach(({labels,values},i)=>{
+   const x=20+i*44;doc.setFillColor(234,246,247);doc.roundedRect(x,y,42,cardHeight,2,2,'F');
+   font(7.3,false,grey);labels.forEach((l,j)=>doc.text(l,x+3,y+5+j*4));
+   font(10,true);values.forEach((v,j)=>doc.text(v,x+3,y+6+labels.length*4+j*5));
+  });y+=cardHeight+7;
  }
  const measures={consumption:'Consumo mensual (m³)',billed:'Facturación mensual (₡)',paid:'Monto pagado registrado (₡)'};
  const months=analysis.months.filter(m=>metric==='consumption'||m[metric+'Count']).slice(-12);

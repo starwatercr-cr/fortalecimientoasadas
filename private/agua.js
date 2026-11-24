@@ -1,9 +1,108 @@
 import {computeWater} from './water-model.js';
+import {computeANC} from './anc-model.js?v=38';
 if(typeof document!=='undefined'){
 const el=id=>document.getElementById(id),fmt=n=>n.toLocaleString('es-CR',{maximumFractionDigits:1}),safe=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let example=false,current=null,priorities=[],serial=0,cloudRecord=null,cloudRecords=[],cloudAsadas=[],cloudScope=null,cloudBusy=false,cloudCanSave=false,cloudBaseline=null;
 function numeric(id){const e=el(id);return e.value.trim()===''||!e.validity.valid?null:Number(e.value);}
 function addSource(s={}){serial++;const row=document.createElement('div');row.className='water-source';row.innerHTML=`<label>Nombre de la fuente<input class="source-name" maxlength="80" value="${safe(s.name||'')}" placeholder="Fuente ${serial}"></label><label>Verano (L/s)<input class="source-summer" type="number" min="0" max="1000000" step="0.001" value="${s.summer??''}"></label><label>Invierno (L/s)<input class="source-winter" type="number" min="0" max="1000000" step="0.001" value="${s.winter??''}"></label><label>Fecha de aforo en verano<input class="source-summer-date" type="date" value="${s.summerDate||''}"></label><label>Fecha de aforo en invierno<input class="source-winter-date" type="date" value="${s.winterDate||''}"></label><button class="button outline source-remove" type="button" aria-label="Eliminar fuente">Eliminar</button>`;row.querySelector('button').onclick=()=>{row.remove();update();};el('water-sources').append(row);}
+
+let flowImport=null;
+el('water-flow-import').onclick=async()=>{
+ const scope=cloudScope, panel=el('water-flow-options'), status=el('water-flow-import-status');
+ flowImport=null;panel.replaceChildren();el('water-flow-apply').hidden=true;
+ if(!scope||example||cloudBusy||el('water-cloud-asada').value!==scope.asada||Number(el('water-cloud-year').value)!==scope.year){status.textContent='Pulse Ingresar los datos de mi ASADA al inicio de la página y luego Consultar escenarios. No necesita guardar un escenario para consultar aforos.';return;}
+ const before=JSON.stringify(snapshot()), record=cloudRecord;
+ try{
+  status.textContent='Consultando aforos…';
+  const data=await cloudApi('flow-data?'+new URLSearchParams({asada:scope.asada}));
+  if(cloudScope!==scope||cloudRecord!==record||example||JSON.stringify(snapshot())!==before)return;
+  const records=data.records||[], sources=records.filter(r=>r.kind==='source'&&r.payload.includeTotal===true);
+  const choices=[];
+  for(const source of sources){
+   const field=document.createElement('fieldset'), legend=document.createElement('legend');legend.textContent=source.payload.name;field.append(legend);
+   const entry={name:source.payload.name};
+   for(const [season,label] of [['summer','Verano'],['winter','Invierno']]){
+    const wrap=document.createElement('label'), select=document.createElement('select');wrap.textContent=label;
+    select.add(new Option('Sin seleccionar',''));
+    const rows=records.filter(r=>r.kind==='measurement'&&r.source_id===source.id&&r.payload.season===label&&typeof r.payload.flow==='number'&&Number.isFinite(r.payload.flow)&&r.payload.flow>=0&&r.payload.flow<=1000000&&/^\d{4}-\d{2}-\d{2}$/.test(r.payload.date)).sort((a,b)=>b.payload.date.localeCompare(a.payload.date));
+    rows.forEach((r,i)=>select.add(new Option(r.payload.date+' · '+r.payload.flow+' L/s · '+(r.payload.campaign||'Sin campaña'),String(i))));
+    wrap.append(select);field.append(wrap);entry[season]={select,rows};
+   }
+   panel.append(field);choices.push(entry);
+  }
+  flowImport={scope,record,before,choices};el('water-flow-apply').hidden=!choices.length;
+  status.textContent=choices.length?'Seleccione las mediciones de cada época. Solo se muestran fuentes independientes incluidas en el total.':records.some(r=>r.kind==='source')?'Hay fuentes registradas, pero ninguna está incluida como fuente independiente en el total. Revise su clasificación en Aforos; no incluya puntos de medición duplicados.':'No hay fuentes registradas. Agregue una fuente en Aforos antes de consultar.';
+ }catch(error){status.textContent=error.message;}
+};
+el('water-flow-apply').onclick=()=>{
+ const p=flowImport,status=el('water-flow-import-status');
+ if(!p||cloudBusy||example||cloudScope!==p.scope||cloudRecord!==p.record||el('water-cloud-asada').value!==p.scope.asada||Number(el('water-cloud-year').value)!==p.scope.year||JSON.stringify(snapshot())!==p.before){status.textContent='El escenario cambió. Consulte los aforos nuevamente.';return;}
+ const rows=p.choices.map(c=>{const s={name:c.name};for(const k of ['summer','winter']){const {select,rows}=c[k],r=select.value===''?null:rows[Number(select.value)];s[k]=r?.payload.flow??null;s[k+'Date']=r?.payload.date||'';}return s;});
+ if(!rows.some(r=>r.summer!==null||r.winter!==null)){status.textContent='Seleccione al menos un aforo.';return;}
+ if(!confirm('Se sustituirán las fuentes del escenario por las fuentes consultadas, incluidas las que quedan sin medición. Revise fechas y campañas antes de guardar. ¿Continuar?'))return;
+ el('water-sources').replaceChildren();serial=0;rows.forEach(addSource);update();flowImport=null;el('water-flow-options').replaceChildren();el('water-flow-apply').hidden=true;status.textContent='Aforos incorporados al formulario. Revise la comparabilidad de las campañas y guarde el escenario si corresponde.';
+};
+
+
+let demandImport=null;
+const demandStatus=t=>el('water-demand-status').textContent=t;
+function demandScopeValid(scope){return scope&&cloudScope===scope&&!example&&!cloudBusy&&el('water-cloud-asada').value===scope.asada&&Number(el('water-cloud-year').value)===scope.year;}
+el('water-demand-list').onclick=async()=>{
+ const scope=cloudScope;demandImport=null;el('water-demand-apply').hidden=true;el('water-demand-report').replaceChildren(new Option('Seleccione un reporte',''));
+ if(!demandScopeValid(scope)){demandStatus('Consulte primero su ASADA, fuera del ejemplo.');return;}
+ try{const d=await cloudApi('abonados-list?'+new URLSearchParams({asada:scope.asada}));if(!demandScopeValid(scope))return;for(const r of d.imports||[])el('water-demand-report').add(new Option(r.filename+' · '+r.row_count+' registros',r.id));demandStatus('Seleccione un reporte y un mes completo.');}catch(e){demandStatus(e.message);}
+};
+el('water-demand-read').onclick=async()=>{
+ const scope=cloudScope,id=el('water-demand-report').value,period=el('water-demand-period').value;
+ demandImport=null;el('water-demand-apply').hidden=true;
+ if(!demandScopeValid(scope)||!id||!/^\d{4}-(0[1-9]|1[0-2])$/.test(period)){demandStatus('Seleccione ASADA, reporte y mes válidos.');return;}
+ const before=JSON.stringify(snapshot()),record=cloudRecord;
+ try{
+ const d=await cloudApi('abonados-data?'+new URLSearchParams({asada:scope.asada,id}));
+ if(!demandScopeValid(scope)||cloudRecord!==record||JSON.stringify(snapshot())!==before||el('water-demand-report').value!==id||el('water-demand-period').value!==period)return;
+ const rows=(d.import?.payload?.rows||[]).filter(r=>r.period===period), seen=new Set(), subscribers=new Set();let volume=0;
+ if(!rows.length)throw Error('No hay consumos en el mes seleccionado.');
+ for(const r of rows){const key=JSON.stringify([r.subscriber,r.meter]);if(!r.subscriber||seen.has(key)||!Number.isFinite(r.consumption)||r.consumption<0)throw Error('Hay registros repetidos o inválidos. Revise el reporte antes de utilizarlo.');seen.add(key);subscribers.add(r.subscriber);volume+=r.consumption;}
+ const count=subscribers.size,average=Math.round(volume/count*100)/100;
+ if(!Number.isFinite(average)||average<0.01||average>100000||count>1000000)throw Error('El promedio no es compatible con el formulario.');
+ demandImport={scope,record,before,id,period,count,average,volume};el('water-demand-confirm').checked=false;el('water-demand-apply').hidden=false;
+ demandStatus(period+' · '+count+' abonados únicos · '+volume.toFixed(2)+' m³ registrados · '+average.toFixed(2)+' m³ por abonado. Confirme cobertura completa y equivalencia entre abonados y conexiones activas.');
+ }catch(e){demandStatus(e.message);}
+};
+el('water-demand-apply').onclick=()=>{
+ const p=demandImport;if(!p||!demandScopeValid(p.scope)||cloudRecord!==p.record||JSON.stringify(snapshot())!==p.before||el('water-demand-report').value!==p.id||el('water-demand-period').value!==p.period){demandStatus('La selección cambió. Consulte nuevamente.');return;}
+ if(!el('water-demand-confirm').checked){demandStatus('Confirme cobertura y equivalencia antes de incorporar.');return;}
+ if(!confirm('¿Sustituir conexiones y consumo promedio del escenario? No se guardará automáticamente.'))return;
+ el('water-connections').value=p.count;el('water-average').value=p.average;update();demandImport=null;el('water-demand-apply').hidden=true;demandStatus('Datos incorporados. Revise los supuestos y documente el reporte y período antes de guardar.');
+};
+
+
+let ancReference=null;
+const ancStatus=t=>el('water-anc-status').textContent=t;
+el('water-anc-list').onclick=async()=>{
+ const scope=cloudScope, select=el('water-anc-record');ancReference=null;select.replaceChildren(new Option('Seleccione un balance',''));el('water-anc-apply').hidden=true;
+ if(!demandScopeValid(scope)){ancStatus('Consulte primero su ASADA, fuera del ejemplo.');return;}
+ try{const d=await cloudApi('anc-data?'+new URLSearchParams({asada:scope.asada}));if(!demandScopeValid(scope))return;
+ ancReference={scope,records:d.records||[]};for(const r of ancReference.records)select.add(new Option(r.period+' · versión '+r.version,r.id));ancStatus('Seleccione un balance guardado para revisar sus volúmenes.');
+ }catch(e){ancStatus(e.message);}
+};
+el('water-anc-record').onchange=()=>{
+ el('water-anc-apply').hidden=true;
+ const p=ancReference;if(!p||!demandScopeValid(p.scope))return;
+ const row=p.records.find(r=>r.id===el('water-anc-record').value);if(!row)return;
+ const r=computeANC(row.payload);if(!r.valid){ancStatus(r.error);return;}
+ const days=(Date.parse(r.payload.end)-Date.parse(r.payload.start))/86400000;
+ ancStatus(r.payload.start+' al '+r.payload.end+' · '+days+' días · ingreso neto '+r.available.toFixed(2)+' m³ · consumo facturado '+r.billed.toFixed(2)+' m³ · ANC '+r.pct.toFixed(2)+' % · '+r.status+'. '+r.warnings.join(' '));
+ p.selection={row,r,days,before:JSON.stringify(snapshot()),record:cloudRecord};
+ el('water-anc-apply').hidden=r.status!=='Resultado revisado'||r.available>1e9||r.payload.micro>1e9||days!==numeric('water-days')||r.exit!==0||r.storageDelta!==0;
+};
+el('water-anc-apply').onclick=()=>{
+ const p=ancReference,s=p?.selection;
+ if(!s||!demandScopeValid(p.scope)||cloudRecord!==s.record||JSON.stringify(snapshot())!==s.before||el('water-anc-record').value!==s.row.id||s.days!==numeric('water-days')||s.r.status!=='Resultado revisado'||s.r.exit!==0||s.r.storageDelta!==0||s.r.available>1e9||s.r.payload.micro>1e9){ancStatus('La selección no es compatible o cambió. Consulte nuevamente.');return;}
+ if(!confirm('Confirme que el escenario corresponde a las mismas fechas y alcance del balance ANC. Se sustituirán únicamente los volúmenes ingresado y micromedido, sin guardar.'))return;
+ el('water-input').value=s.r.available;el('water-recorded').value=s.r.payload.micro;update();el('water-anc-apply').hidden=true;ancStatus('Volúmenes incorporados. Documente el período y versión del ANC en las observaciones. El supuesto de proporción no registrada permanece intacto.');
+};
+
 function sourceData(){return [...el('water-sources').children].map(row=>{const n=cls=>{const e=row.querySelector('.source-'+cls);return e.value===''||!e.validity.valid?null:Number(e.value);};return {name:row.querySelector('.source-name').value||'Fuente sin nombre',summer:n('summer'),winter:n('winter'),summerDate:row.querySelector('.source-summer-date').value,winterDate:row.querySelector('.source-winter-date').value};});}
 function renderWaterVisuals(d,r,days){
  const vals=[r.supply,r.demand,r.scenarioSupply,r.scenarioDemand];
