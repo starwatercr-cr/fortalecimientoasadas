@@ -10,7 +10,7 @@ let flowImport=null;
 el('water-flow-import').onclick=async()=>{
  const scope=cloudScope, panel=el('water-flow-options'), status=el('water-flow-import-status');
  flowImport=null;panel.replaceChildren();el('water-flow-apply').hidden=true;
- if(!scope||example||cloudBusy||el('water-cloud-asada').value!==scope.asada||Number(el('water-cloud-year').value)!==scope.year){status.textContent='Consulte primero un escenario de su ASADA, fuera del ejemplo.';return;}
+ if(!scope||example||cloudBusy||el('water-cloud-asada').value!==scope.asada||Number(el('water-cloud-year').value)!==scope.year){status.textContent='Pulse Ingresar los datos de mi ASADA al inicio de la página y luego Consultar escenarios. No necesita guardar un escenario para consultar aforos.';return;}
  const before=JSON.stringify(snapshot()), record=cloudRecord;
  try{
   status.textContent='Consultando aforos…';
@@ -31,7 +31,7 @@ el('water-flow-import').onclick=async()=>{
    panel.append(field);choices.push(entry);
   }
   flowImport={scope,record,before,choices};el('water-flow-apply').hidden=!choices.length;
-  status.textContent=choices.length?'Seleccione las mediciones de cada época. Solo se muestran fuentes independientes incluidas en el total.':'No hay fuentes independientes registradas.';
+  status.textContent=choices.length?'Seleccione las mediciones de cada época. Solo se muestran fuentes independientes incluidas en el total.':records.some(r=>r.kind==='source')?'Hay fuentes registradas, pero ninguna está incluida como fuente independiente en el total. Revise su clasificación en Aforos; no incluya puntos de medición duplicados.':'No hay fuentes registradas. Agregue una fuente en Aforos antes de consultar.';
  }catch(error){status.textContent=error.message;}
 };
 el('water-flow-apply').onclick=()=>{
