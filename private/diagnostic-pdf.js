@@ -25,7 +25,7 @@ window.buildDiagnosticPDF=function({meta,result:r,notes={},signature=null}){
  for(const [style,key] of [['normal','regular'],['bold','bold']]){const name='Diagnostic-'+style+'.ttf';doc.addFileToVFS(name,window.AsadaDiagnosticFonts[key]);doc.addFont(name,'Diagnostic',style);}
  doc.setProperties({title:'Diagnóstico de la ASADA - '+meta.asada,author:meta.evaluator,subject:'Evaluación orientativa de prácticas de gestión'});
  const C={ink:[23,52,68],muted:[87,108,121],teal:[8,111,135],pale:[235,246,248],line:[214,229,235],warn:[156,92,43]},x=18,w=174,bottom=271;let y=30;
- const clean=t=>String(t??'').replace(/[\u2010-\u2015]/g,'-').replace(/[^\x20-\x7e\xa0-\xff\n]/g,'');
+ const clean=t=>String(t??'').normalize('NFC').replace(/[\u2010-\u2015]/g,'-').replace(/[\u2018\u2019]/g,"'").replace(/[\u201c\u201d]/g,'"').replace(/\u2026/g,'...').replace(/[\x00-\x09\x0b-\x1f\x7f]/g,'');
  const header=()=>{if(doc.getNumberOfPages()===1&&window.SWLetterhead?.get())return;doc.setFillColor(...C.teal);doc.rect(0,0,210,16,'F');doc.setFont('Diagnostic','bold');doc.setFontSize(10);doc.setTextColor(255,255,255);doc.text('DIAGNÓSTICO DE LA ASADA',x,10);doc.setTextColor(...C.muted);doc.setFont('Diagnostic','normal');doc.setFontSize(8);const label=clean(meta.asada);doc.text(doc.splitTextToSize(label,w)[0],x,23);};
  header();y=Math.max(y,window.SWLetterhead?.pdf(doc)||0);
  const page=()=>{doc.addPage();header();y=32;};

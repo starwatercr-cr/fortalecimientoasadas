@@ -14,7 +14,7 @@ export async function createWarehouseWorkbook(data,templateBuffer){
   const f=data.filter||{},scope='Consulta: '+data.loadedAt+' · Buscar: '+(f.search||'Todos')+' · Categoría: '+(f.category||'Todas')+' · Estado: '+(f.state||'Todos')+' · Movimientos: '+(f.start||'Sin inicio')+' a '+(f.end||'Sin final');
   let body='<x:sheetData><x:row r="2">'+cell(names[i]+' · '+data.name,'A2',style('A2'))+'</x:row><x:row r="3">'+cell(scope,'A3',style('A3'))+'</x:row>'+headers;
   data.rows[i].forEach((row,j)=>{const n=j+5;body+='<x:row r="'+n+'" ht="44" customHeight="1">'+row.map((v,k)=>cell(v,letter(k)+n,style(letter(k)+'5'))).join('')+'</x:row>';});body+='</x:sheetData>';
-  const last=Math.max(5,data.rows[i].length+4);source=source.replace(/<x:sheetData>[\s\S]*?<\/x:sheetData>/,body).replace(/<x:autoFilter[^>]*\/>/g,'').replace(/<x:conditionalFormatting sqref="[^"]*"/g,'<x:conditionalFormatting sqref="A5:M'+last+'"');source=source.replace('</x:sheetData>','</x:sheetData><x:autoFilter ref="A4:'+letter(columns-1)+Math.max(4,data.rows[i].length+4)+'" />');file[1]=encoder.encode(source);
+  const last=Math.max(5,data.rows[i].length+4);source=source.replace(/<x:dimension\b[^>]*\/>/g,'<x:dimension ref="A1:'+letter(columns-1)+last+'" />').replace(/<x:sheetData>[\s\S]*?<\/x:sheetData>/,body).replace(/<x:autoFilter[^>]*\/>/g,'').replace(/<x:conditionalFormatting sqref="[^"]*"/g,'<x:conditionalFormatting sqref="A5:M'+last+'"');source=source.replace('</x:sheetData>','</x:sheetData><x:autoFilter ref="A4:'+letter(columns-1)+Math.max(4,data.rows[i].length+4)+'" />');file[1]=encoder.encode(source);
  }
  return zip(files);
 }

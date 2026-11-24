@@ -31,7 +31,7 @@ export async function createOperationWorkbook(data,templateBuffer,{includeLetter
  const rows=sheetRows(data),styles=[11,12,8,14,14,8,8,8,8,8,8,11];
  const row=(values,n,style)=>'<x:row r="'+n+'">'+values.map((v,i)=>cell(v,letter(i)+n,style(i))).join('')+'</x:row>';
  const body='<x:sheetData>'+row(['Control operativo · '+data.name],2,()=>2)+row([data.start+' al '+data.end],3,()=>1)+row(headers,4,()=>5)+rows.map((r,i)=>row(r,i+5,j=>styles[j])).join('')+'</x:sheetData>';
- modify(keep,s=>s.replace(/<x:sheetData>[\s\S]*?<\/x:sheetData>/,body+'<x:autoFilter ref="A4:L'+(rows.length+4)+'" />'));
+ modify(keep,s=>s.replace(/<x:dimension\b[^>]*\/>/g,'<x:dimension ref="A1:L'+Math.max(4,rows.length+4)+'" />').replace(/<x:autoFilter\b[^>]*\/>/g,'').replace(/<x:sheetData>[\s\S]*?<\/x:sheetData>/,body+'<x:autoFilter ref="A4:L'+(rows.length+4)+'" />'));
  return zip(files,includeLetterhead);
 }
 // Blank workbook layout; contains no ASADA records.
