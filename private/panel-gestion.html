@@ -47,6 +47,16 @@
 #sw-asadas-demo .sw-table-wrap{overscroll-behavior-x:contain}
 @media(max-width:650px){#sw-asadas-demo .sw-actions label{min-width:0;max-width:100%}#sw-asadas-demo :is(input,select,textarea){font-size:16px}#sw-asadas-demo .sw-simple-grid{grid-template-columns:minmax(0,1fr)}#sw-asadas-demo .sw-home-result strong{font-size:clamp(18px,5vw,24px)}}
 }
+
+@media screen{
+#sw-asadas-demo .sw-future-cut{background:#fff4e5;color:#75430e;border-left:3px solid #c18137;padding:10px 14px;border-radius:6px;margin-top:12px}
+#sw-asadas-demo .sw-home-result.is-deficit{background:#fbecec;color:#963c40}
+#sw-asadas-demo .sw-home-result.is-surplus{background:#e7f3ec;color:#236449}
+#sw-asadas-demo .sw-simple-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto}
+#sw-asadas-demo .sw-simple-card{display:flex;flex-direction:column;align-items:flex-start}
+#sw-asadas-demo .sw-simple-card>span{min-height:2.7em}
+@media(min-width:851px){#sw-asadas-demo .sw-simple-card{padding:16px}#sw-asadas-demo .sw-simple-card strong{margin:8px 0;font-size:22px}#sw-asadas-demo .sw-simple-card p{margin-bottom:10px}#sw-asadas-demo .sw-home-track{height:22px}#sw-asadas-demo .sw-home-bar{padding:10px 0}}
+}
 </style>
 <header class="sw-top"><a id="sw-return-assembly" class="sw-btn" href="asamblea.html" hidden>Volver al informe de Asamblea</a><div class="sw-logo"><span class="sw-emblem">SW</span><div><b>Gestión ASADAS</b><small>Star Water · Consultoría</small></div></div><span class="sw-tag">Datos de su ASADA · Guardado en la nube</span></header>
 
@@ -57,5 +67,5 @@
 // Show the selected tool as soon as the page arrives, before any deferred scripts or account requests.
 (()=>{const names={home:'Resumen financiero',statements:'Estados financieros',budget:'Presupuesto de la ASADA',cash:'Flujo de efectivo',petty:'Caja chica',assets:'Auxiliar de activos',board:'Acuerdos de Junta Directiva',workplan:'Plan de trabajo',payments:'Acuerdos de pago para Junta Directiva',properties:'Consulta de propiedades','finance-summary':'Resumen financiero',orders:'Órdenes de trabajo',calendar:'Calendario de obligaciones',outages:'Interrupciones del servicio',network:'Mapa del acueducto',monthly:'Informe mensual para la Junta',projects:'Portafolio de proyectos'};const key=new URLSearchParams(location.search).get('module');document.getElementById('sw-title').textContent=names[key]||'Panel de gestión';document.getElementById('sw-year').value=new Date().getFullYear();})();
 </script>
-<script defer src="finance-word.js"></script><script defer src="finanzas.js"></script><script defer src="financial-home-model.js?v=52"></script><script defer src="panel-gestion.js?v=88"></script>
+<script defer src="finance-word.js"></script><script defer src="finanzas.js"></script><script defer src="financial-home-model.js?v=52"></script><script defer src="panel-gestion.js?v=89"></script>
 </div></div></main></body></html>
