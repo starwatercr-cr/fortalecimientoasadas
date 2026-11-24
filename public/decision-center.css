@@ -24,3 +24,24 @@
 @media(max-width:850px){.dc-agenda-layout,.dc-layout>div{grid-template-columns:1fr}.dc-agenda-insight{grid-row:1}.dc-agenda-total{margin:10px 0}.dc-priority-legend{margin-bottom:6px}}
 @media(max-width:480px){.dc-agenda-actions [data-review-key]{margin-left:0}.dc-tile.money-value strong{white-space:normal;overflow-wrap:anywhere}}
 @media print{.dc-agenda-actions,.dc-agenda-tools,.dc-agenda-list [data-agenda-more]{display:none!important}.dc-agenda-layout,.dc-layout>div{display:block}.dc-agenda-item{break-inside:avoid}.dc-agenda-list{break-inside:auto}}
+
+/* Titanium workspace identity; preserve semantic priority colors and print layout. */
+@media screen{
+.dc-page{--dc-deep:#203344;--dc-muted:#526575;--dc-accent:#176579;background:#f4f6f8;color:var(--dc-deep)}
+.dc-head h1{font-size:clamp(28px,4vw,46px);line-height:1.12;letter-spacing:-.035em}
+.dc-head .eyebrow,.dc-section-title p,.dc-agenda-eyebrow{color:var(--dc-accent)}
+.dc-filter,.dc-card,.dc-tile{border-color:#dce3e9;box-shadow:0 2px 8px #142b4010}
+.dc-profile{background:linear-gradient(120deg,#243747,#36596b);border-radius:18px}
+.dc-tile,.dc-card{color:var(--dc-deep)}
+.dc-tile small,.dc-card>p,.dc-state,.dc-head p{color:var(--dc-muted)}
+.dc-filter input,.dc-filter select,.dc-agenda-tools select{min-height:44px;border-color:#b9c7d1;color:var(--dc-deep)}
+.dc-filter button,.dc-chips button,.dc-agenda-actions button,.dc-agenda-actions a{min-height:44px}
+.dc-page main :is(a,button,input,select,summary):focus-visible{outline:2px solid #176579;outline-offset:3px}
+.dc-fin-metrics strong,.dc-tile.money-value strong{white-space:normal;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.dc-agenda-insight{background:linear-gradient(160deg,#fff,#edf3f6)}
+.dc-chips button[aria-pressed=true]{background:#304b5e;border-color:#304b5e}
+.dc-links a{background:#e8f1f4;border-color:#dce3e9;color:#176579}
+@media(max-width:650px){.dc-filter label{min-width:0;flex:1 1 120px}.dc-filter label:first-child{min-width:0;flex-basis:100%}.dc-filter input,.dc-filter select{width:100%;font-size:16px}.dc-filter>button{width:100%}.dc-card{padding:16px}.dc-fin-metrics{gap:8px}.dc-fin-metrics button{padding:12px 9px}}
+@media(max-width:360px){.dc-grid,.dc-fin-metrics{grid-template-columns:minmax(0,1fr)}}
+@media(prefers-reduced-motion:reduce){.dc-tile:hover{transform:none}}
+}
