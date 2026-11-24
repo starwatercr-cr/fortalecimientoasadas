@@ -1,5 +1,23 @@
 (()=>{
 'use strict';
+const pending=new Map();
+function loadPDFResource(src,ready){
+ if(ready())return Promise.resolve();
+ if(!pending.has(src)){
+  const promise=new Promise((resolve,reject)=>{
+   const script=document.createElement('script');script.src=src;
+   const fail=()=>{script.remove();reject(Error('No se pudo preparar el PDF. Revise su conexión e intente nuevamente.'));};
+   script.onload=()=>ready()?resolve():fail();script.onerror=fail;
+   document.head.appendChild(script);
+  }).catch(error=>{pending.delete(src);throw error;});
+  pending.set(src,promise);
+ }
+ return pending.get(src);
+}
+window.prepareDiagnosticPDF=()=>Promise.all([
+ loadPDFResource('/assets/jspdf.umd.min.js',()=>Boolean(window.jspdf?.jsPDF)),
+ loadPDFResource('/assets/diagnostic-fonts.js',()=>Boolean(window.AsadaDiagnosticFonts))
+]);
 window.buildDiagnosticPDF=function({meta,result:r,notes={},signature=null}){
  if(!window.jspdf?.jsPDF)throw Error('No se pudo cargar el generador PDF. Actualice la página e intente nuevamente.');
  const doc=new window.jspdf.jsPDF({unit:'mm',format:'a4',compress:true,putOnlyUsedFonts:true});
