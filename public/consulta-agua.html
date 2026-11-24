@@ -10,8 +10,8 @@
   <div class="wrap intake-hero-layout">
     <div class="intake-hero-copy">
       <a class="intake-back" href="/servicios-generales">← Servicios generales</a>
-      <h1>Consulta sobre agua</h1>
-      <p>Cuéntenos qué necesita y cómo podemos contactarle. También puede elegir directamente un horario para conversar sobre su caso.</p>
+      <h1>Servicios de asesoría en agua potable</h1>
+      <p>Conozca nuestros servicios especializados y registre su consulta. Le orientamos para identificar la ruta técnica y administrativa adecuada.</p>
     </div>
     <aside class="intake-calendar" aria-label="Agendar una cita">
       <span class="intake-calendar-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 15l2.5 2.5L16 12"/></svg></span>
@@ -23,12 +23,12 @@
   </div>
 </section>
 <div class="wrap intake">
-<section class="intake-guide" aria-labelledby="negative-guide-title">
+<section aria-label="Nuestros servicios" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:1.5rem"><a class="intake-card" href="?tipo=disponibilidad#intake"><strong>Disponibilidad de agua potable</strong><p>Asesoría para viviendas y propiedades.</p></a><a class="intake-card" href="?tipo=fuente#intake"><strong>Concesiones e inscripción de fuentes</strong><p>Orientación sobre trámites para agua potable.</p></a><a class="intake-card" href="?tipo=proyecto#intake"><strong>Estudios técnicos y proyectos</strong><p>Asesoría hidráulica y planificación.</p></a></section><section class="intake-guide" aria-labelledby="negative-guide-title">
   <div>
     <h2 id="negative-guide-title">¿Le negaron la disponibilidad de agua?</h2>
-    <p>Conozca cómo revisamos la respuesta de la ASADA, AyA o municipalidad, qué información técnica puede requerirse y los pasos del trámite. Incluye plazo orientativo y costo del acompañamiento.</p>
+    <p>Revisamos la negativa y los documentos aportados, analizamos su situación y le explicamos la ruta de gestión ante la ASADA, AyA o Dirección Jurídica, según corresponda.</p><p><strong style="font-size:2rem">₡45.000</strong> · Análisis y gestión ordinaria del caso.</p><p>Los casos más complejos se valorarán en una reunión y se cotizarán por separado. El servicio no garantiza una resolución favorable.</p><p><a class="button primary" href="?tipo=negativa#intake">Registrar mi caso</a> <a href="https://calendar.app.google/69bRRGWX3wrN6GZz7" target="_blank" rel="noopener noreferrer">Agendar una cita</a></p>
   </div>
-  <a class="button primary" href="/assets/presentacion-negativa-disponibilidad-agua-star-water.pdf" download="Star-Water-Negativas-de-Agua.pdf" type="application/pdf">Descargar presentación en PDF</a>
+  
 </section>
 <form id="intake" class="intake-card">
 <label>Tipo de consulta<select name="kind" required>
@@ -80,7 +80,7 @@
 <label>Etapa del proyecto<input name="stage" maxlength="500"></label>
 <label>Cantidad de viviendas, lotes o unidades, si aplica<input name="units" maxlength="500"></label>
 </fieldset>
-<label>¿En qué podemos ayudarle?<textarea name="description" rows="4" maxlength="3000" required></textarea></label>
+<label>Explíquenos el problema que está viviendo<textarea name="description" rows="4" maxlength="3000" required></textarea></label>
 <div hidden><label>Sitio web<input name="website" autocomplete="off" tabindex="-1"></label></div>
 <label class="intake-accept"><input type="checkbox" name="accept" required> Autorizo a Star Water a utilizar los datos y documentos que envío para revisar esta consulta y contactarme.</label>
 <button class="button primary" id="submit" type="submit" disabled>Enviar consulta</button>
