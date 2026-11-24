@@ -1,0 +1,21 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import {readFileSync} from 'node:fs';
+test('índice normativo conserva filtros, orden y documentos incorporados',()=>{
+ const c=vm.createContext({});
+ vm.runInContext(readFileSync('private/biblioteca.js','utf8'),c);
+ const d={documents:[{id:'a',title:'Agua potable'},{id:'b',title:'Histórico',historical:true}],chunks:[{doc:'a',article:1,page:1,text:'Cloración y desinfección del agua.'},{doc:'b',article:1,page:1,text:'Cloración del agua.'}]};
+ const search=(q,opts)=>JSON.parse(JSON.stringify(c.librarySearch(d,q,opts)));
+ const first=search('cloro');
+ assert.equal(first.length,1);
+ assert.deepEqual(search('cloro'),first);
+ assert.equal(search('cloro',{article:'2'}).length,0);
+ d.documents.push({id:'c',title:'Documento nuevo'});
+ d.chunks.push({doc:'c',article:2,page:2,text:'Cloro residual.'});
+ assert.equal(search('cloro').length,2);
+ assert.equal(search('cloro',{documentId:'c'})[0].doc,'c');
+ d.chunks[2].text='Tarifas y cobros.';
+ assert.equal(search('cloro',{documentId:'c'}).length,0);
+ assert.equal(search('tarifa',{documentId:'c'}).length,1);
+});
