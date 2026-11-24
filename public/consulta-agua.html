@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Negativa de disponibilidad de agua | Star Water</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/star-water.css"><link rel="stylesheet" href="/consulta-agua.css?v=5"><script defer src="/app.js"></script><script defer src="/consulta-agua.js?v=3"></script><script defer src="/hero-water.js"></script></head>
+<title>Negativa de disponibilidad de agua | Star Water</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/star-water.css"><link rel="stylesheet" href="/consulta-agua.css?v=5"><script defer src="/app.js"></script><script defer src="/consulta-agua.js?v=5"></script><script defer src="/hero-water.js"></script></head>
 <body class="intake-page">
 <a class="skip" href="#contenido">Ir al contenido</a>
 <header class="site-header"><div class="wrap nav"><a aria-label='Star Water inicio' class='brand' href='/#inicio'><img src="/assets/logo.png" alt="Star Water Soluciones Innovadoras" width="452" height="128"></a><button class="menu-toggle" aria-expanded="false" aria-controls="nav-links">Menú</button><nav id="nav-links" aria-label="Navegación principal"><a href='/programa'>Programa</a><a href="/deteccion-de-fugas">Detección de fugas</a><a href='/tienda'>Tienda de equipos</a><a class='platform-entry' href='/acceso'><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v3"/></svg><span>Ingresar a la plataforma</span></a></nav></div></header>
@@ -33,7 +33,6 @@
         <p>Sí. Atendemos casos de todo Costa Rica. Puede enviar su solicitud y adjuntar la respuesta que recibió desde el formulario.</p>
       </details>
     </div>
-    <a href="/consulta-agua?tipo=negativa#intake">Iniciar solicitud por negativa de agua</a>
   </div>
   <a class="button primary" href="/assets/presentacion-negativa-disponibilidad-agua-star-water.pdf" download="Star-Water-Negativas-de-Agua.pdf" type="application/pdf">Descargar presentación en PDF</a>
 </section>
@@ -55,7 +54,10 @@
 <label>Entidad que respondió<select name="operator" required><option value="">Seleccione</option><option>ASADA</option><option>AyA</option><option>Municipalidad</option><option>Otra entidad</option></select></label>
 <label>Fecha de la respuesta, si la conoce<input type="date" name="responseDate"></label>
 <label>Motivo indicado en la respuesta<input name="reason" maxlength="500"></label>
-<label>Carta o correo de respuesta, opcional (PDF, PNG o JPG de hasta 2 MB)<input type="file" name="file" accept="application/pdf,image/png,image/jpeg"></label>
+<p>Puede adjuntar hasta tres documentos opcionales en PDF, PNG o JPG, de hasta 2 MB por archivo y 3 MB en total.</p>
+<label>Carta o correo de negativa<input type="file" name="negativeResponse" accept="application/pdf,image/png,image/jpeg"></label>
+<label>Solicitud original de disponibilidad<input type="file" name="originalRequest" accept="application/pdf,image/png,image/jpeg"></label>
+<label>Plano catastrado u otro respaldo<input type="file" name="supportingDocument" accept="application/pdf,image/png,image/jpeg"></label>
 </fieldset>
 <label>¿En qué podemos ayudarle?<textarea name="description" rows="4" maxlength="3000" required></textarea></label>
 <div hidden><label>Sitio web<input name="website" autocomplete="off" tabindex="-1"></label></div>
