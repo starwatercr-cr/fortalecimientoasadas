@@ -21,24 +21,35 @@ form.addEventListener('submit',async event=>{
   try {
     const data=new FormData(form);
     const attachmentFields=[['file','attachment'],['measurementsFile','attachment'],['planFile','sourcePlan']];
+    const negativeFields=['negativeResponse','originalRequest','supportingDocument'];
+    const documents=negativeFields.flatMap((field,index)=>{
+      const file=data.get(field);
+      data.delete(field);
+      return file?.size ? [{file,slot:index+1}] : [];
+    });
     const files=[];
     for(const [field,key] of attachmentFields){
       const file=data.get(field);
       data.delete(field);
       if(file?.size) files.push({file,key});
     }
-    if(files.some(({file})=>file.size>2097152) || files.reduce((total,{file})=>total+file.size,0)>3145728){
+    const allFiles=[...files,...documents];
+    if(allFiles.some(({file})=>file.size>2097152) || allFiles.reduce((total,{file})=>total+file.size,0)>3145728){
       throw Error('Adjunte hasta 2 MB por archivo y 3 MB en total.');
     }
     const input={...Object.fromEntries(data),id,accept:form.elements.accept.checked};
-    for(const {file,key} of files){
-      input[key]=await new Promise((resolve,reject)=>{
-        const reader=new FileReader();
-        reader.onload=()=>resolve(String(reader.result).split(',')[1]);
-        reader.onerror=()=>reject(Error('No pudimos leer el archivo.'));
-        reader.readAsDataURL(file);
-      });
+    const readFile=file=>new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>resolve(String(reader.result).split(',')[1]);
+      reader.onerror=()=>reject(Error('No pudimos leer el archivo.'));
+      reader.readAsDataURL(file);
+    });
+    for (const {file,key} of files) {
+      input[key]=await readFile(file);
       input[key+'Type']=file.type;
+    }
+    if (documents.length) {
+      input.documents=await Promise.all(documents.map(async ({file,slot})=>({slot,value:await readFile(file),type:file.type})));
     }
     const response=await fetch('/api/client-request-submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(input)});
     const result=await response.json();

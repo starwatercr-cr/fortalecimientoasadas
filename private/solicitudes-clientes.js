@@ -76,7 +76,16 @@ function render(entry){
     description.textContent=values[key];
     details.append(term,description);
   }
-  if(row.attachment_type){
+  if(row.attachment_type==='star-water/negative-documents'){
+    const documents=article.querySelector('.requests-documents');
+    const labels=['Descargar negativa','Descargar solicitud original','Descargar documento de respaldo'];
+    for (const slot of row.details?.documentSlots || []) {
+      const link=document.createElement('a');
+      link.href='/api/client-request-file?document=negativa-'+slot+'&id='+encodeURIComponent(row.id);
+      link.textContent=labels[slot-1];
+      documents.append(link);
+    }
+  }else if(row.attachment_type){
     const file=article.querySelector('[data-file]');
     file.hidden=false;
     if(row.kind==='fuente') file.textContent='Descargar aforos';
