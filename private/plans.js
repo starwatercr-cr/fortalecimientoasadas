@@ -1,5 +1,5 @@
 import {PLAN_TYPES,PLAN_EXAMPLES,META,ACTION_COLUMNS,normalizePlan,planReview,planDocument,advance} from './plans-model.js?v=71';
-import {buildPlanPDF,buildPlanWord,preparePlanPDF} from './plans-export.js?v=72';
+import {buildPlanPDF,buildPlanWord,preparePlanPDF} from './plans-export.js?v=73';
 const $=s=>document.getElementById('pl-'+s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),today=()=>new Date().toLocaleDateString('en-CA',{timeZone:'America/Costa_Rica'}),message=(s,error=false)=>{for(const id of ['status','action-status']){const e=$(id);e.textContent=s;e.hidden=false;e.classList.toggle('pl-error',error);}};
 let busy=false,canEdit=false,records=[],meta={},current=null,files=[],step=0,dirty=false,mode='guided',activeAsada='';
 const mark=()=>{dirty=true;$('dirty').hidden=false;$('preview-box').hidden=true;};
