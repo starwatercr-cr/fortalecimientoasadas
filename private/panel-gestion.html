@@ -34,6 +34,19 @@
 #sw-asadas-demo .sw-sub,#sw-asadas-demo .sw-stat span,#sw-asadas-demo .sw-stat small,#sw-asadas-demo .sw-note,#sw-asadas-demo .sw-legend,#sw-asadas-demo .sw-simple-card p,#sw-asadas-demo label,#sw-asadas-demo th{font-size:13px}
 #sw-asadas-demo table,#sw-asadas-demo .sw-row-top{font-size:14px}
 @media(max-width:620px){#sw-asadas-demo input,#sw-asadas-demo select,#sw-asadas-demo textarea{font-size:16px}}
+
+/* Identidad titanio del espacio de trabajo: presentación, sin cambios contables. */
+@media screen{
+#sw-asadas-demo{--sw-bg:#f4f6f8;--sw-panel:#fff;--sw-text:#203344;--sw-muted:#526575;--sw-line:#dce3e9;--sw-brand:#176579;--sw-soft:#e8f1f4;--sw-income:#176579;--sw-expense:#8495a5}
+#sw-asadas-demo h1{font-size:clamp(24px,3vw,32px);font-weight:650;letter-spacing:-.035em}
+#sw-asadas-demo h2{font-weight:650;letter-spacing:-.015em}
+#sw-asadas-demo :is(.sw-panel,.sw-stat,.sw-fin-card,.sw-simple-card){border-radius:14px;box-shadow:0 2px 8px #142b4010}
+#sw-asadas-demo :is(.sw-stat,.sw-fin-card,.sw-simple-card,.sw-home-result) strong{font-variant-numeric:tabular-nums;overflow-wrap:anywhere;font-weight:650}
+#sw-asadas-demo :is(button,a,input,select,textarea,summary):focus-visible{outline:2px solid var(--sw-brand);outline-offset:3px}
+#sw-asadas-demo :is(.sw-btn,input:not([type=checkbox]):not([type=radio]),select){min-height:44px}
+#sw-asadas-demo .sw-table-wrap{overscroll-behavior-x:contain}
+@media(max-width:650px){#sw-asadas-demo .sw-actions label{min-width:0;max-width:100%}#sw-asadas-demo :is(input,select,textarea){font-size:16px}#sw-asadas-demo .sw-simple-grid{grid-template-columns:minmax(0,1fr)}#sw-asadas-demo .sw-home-result strong{font-size:clamp(18px,5vw,24px)}}
+}
 </style>
 <header class="sw-top"><a id="sw-return-assembly" class="sw-btn" href="asamblea.html" hidden>Volver al informe de Asamblea</a><div class="sw-logo"><span class="sw-emblem">SW</span><div><b>Gestión ASADAS</b><small>Star Water · Consultoría</small></div></div><span class="sw-tag">Datos de su ASADA · Guardado en la nube</span></header>
 
