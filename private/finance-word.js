@@ -18,7 +18,22 @@ function financeObservations(report){
  out.push('El siguiente paso es conversar sobre estas observaciones entre la Junta Directiva, la administración y el contador, acordar las prioridades y dejar responsables y fechas de seguimiento. Revisar los números con regularidad permite tomar decisiones con más claridad y cuidar los recursos de la comunidad.');
  return out;
 }
+let financeWordLibraryPending;
+function ensureFinanceWordLibrary(){
+ if(typeof docx!=='undefined')return Promise.resolve();
+ if(!financeWordLibraryPending){
+  financeWordLibraryPending=new Promise((resolve,reject)=>{
+   const script=document.createElement('script');
+   script.src='/assets/docx.js';
+   script.onload=()=>{if(typeof docx!=='undefined')resolve();else{script.remove();reject(Error('No se pudo preparar Word. Intente nuevamente.'));}};
+   script.onerror=()=>{script.remove();reject(Error('No se pudo cargar Word. Revise su conexión e intente nuevamente.'));};
+   document.head.appendChild(script);
+  }).catch(error=>{financeWordLibraryPending=undefined;throw error;});
+ }
+ return financeWordLibraryPending;
+}
 async function buildFinanceWord(report,images=[]){
+ await ensureFinanceWordLibrary();
  const {Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,WidthType,HeadingLevel,ImageRun,AlignmentType,BorderStyle,VerticalAlign}=docx;
  const paragraph=(text,heading)=>new Paragraph({text,heading,spacing:{before:60,after:140},keepNext:!!heading});
  const money=n=>Number.isFinite(n)?new Intl.NumberFormat('es-CR',{style:'currency',currency:'CRC',maximumFractionDigits:2}).format(n):'Pendiente de información';
