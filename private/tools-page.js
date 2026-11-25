@@ -13,7 +13,24 @@ function withReturnArea(href){
  url.searchParams.set('volverArea',area);
  return url.pathname+url.search+url.hash;
 }
-const card=t=>'<article class="sw-tool" data-tone="'+t.areas[0]+'"><div class="sw-tool-icon">'+icon(t.icon)+'</div><button class="sw-star" type="button" data-star="'+t.id+'" aria-label="'+(prefs.favorites.includes(t.id)?'Quitar de':'Agregar a')+' favoritas: '+safe(t.name)+'" aria-pressed="'+prefs.favorites.includes(t.id)+'">'+(prefs.favorites.includes(t.id)?'★':'☆')+'</button><h3>'+safe(t.name)+'</h3><p>'+safe(t.desc)+'</p><a class="sw-open" data-visit="'+t.id+'" href="'+safe(t.external?toolHref(t):withReturnArea(toolHref(t)))+'"'+(t.external?' target="_blank" rel="noopener noreferrer"':'')+' aria-label="Abrir '+safe(t.name)+(t.external?' (sitio externo, nueva pestaña)':'')+'">'+(t.external?'Consultar sitio externo':'Abrir herramienta')+'<span aria-hidden="true">↗</span></a></article>';
+function card(tool) {
+ const favorite=prefs.favorites.includes(tool.id);
+ const href=toolHref(tool);
+ const destination=' data-visit="'+tool.id+'" href="'+safe(tool.external?href:withReturnArea(href))+'"'+
+  (tool.external?' target="_blank" rel="noopener noreferrer"':'');
+ const name=safe(tool.name);
+ const externalLabel=tool.external?' (sitio externo, nueva pestaña)':'';
+ return '<article class="sw-tool" data-tone="'+tool.areas[0]+'">'+
+  '<a class="sw-tool-title"'+destination+(tool.external?' aria-label="'+name+externalLabel+'"':'')+'>'+
+   '<span class="sw-tool-icon" aria-hidden="true">'+icon(tool.icon)+'</span><h3>'+name+'</h3>'+
+  '</a>'+
+  '<button class="sw-star" type="button" data-star="'+tool.id+'" aria-label="'+(favorite?'Quitar de':'Agregar a')+
+   ' favoritas: '+name+'" aria-pressed="'+favorite+'">'+(favorite?'★':'☆')+'</button>'+
+  '<p>'+safe(tool.desc)+'</p>'+
+  '<a class="sw-open"'+destination+' aria-label="Abrir '+name+externalLabel+'">'+
+   (tool.external?'Consultar sitio externo':'Abrir herramienta')+'<span aria-hidden="true">↗</span></a>'+
+  '</article>';
+}
 function render(){if(!who)return;const decision=$('decision-center-entry');if(decision)decision.href=withReturnArea('decision-center.html');const list=filterTools(who,{area,tab,search,prefs});$('sw-area-title').textContent=AREAS.find(a=>a.id===area)?.name||'Herramientas de su ASADA';$('sw-count').textContent=list.length+(list.length===1?' herramienta':' herramientas');
 const grouped=area==='all'&&tab!=='recent';
 $('sw-grid').innerHTML=list.length?(grouped?AREAS.map(a=>{const subset=list.filter(t=>t.areas[0]===a.id);return subset.length?'<section class="sw-area-group" data-tone="'+a.id+'"><h3><span class="sw-area-icon">'+icon(a.icon)+'</span>'+safe(a.name)+'</h3><div class="sw-area-grid">'+subset.map(card).join('')+'</div></section>':'';}).join(''):list.map(card).join('')):'<p class="sw-empty">'+(tab==='favorites'?'Marque una herramienta con la estrella para tenerla aquí.':tab==='recent'?'Las herramientas que utilice aparecerán aquí.':'No hay herramientas autorizadas que coincidan con la búsqueda.')+'</p>';}
