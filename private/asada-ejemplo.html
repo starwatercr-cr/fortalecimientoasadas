@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ASADA Ejemplo | Star Water</title>
+  <link rel="stylesheet" href="/style.css">
+  <script defer src="/assets/jspdf.umd.min.js"></script>
+  <script type="module" src="/asada-ejemplo.js"></script>
+  <style>
+    .example { max-width: 76rem; margin: auto; padding: 1.5rem clamp(1rem, 4vw, 3rem) 3rem; }
+    .example header { margin-bottom: 1.75rem; }
+    .example h1 { margin: .75rem 0 .25rem; }
+    .example h2 { margin: 0 0 .6rem; font-size: 1.35rem; }
+    .example nav { display: flex; gap: .65rem 1.2rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .example section { padding: 1rem 0 1.6rem; border-top: 1px solid #8daeb466; scroll-margin-top: 1rem; }
+    .example label { display: inline-grid; gap: .35rem; margin: 0 1rem .5rem 0; }
+    .example select { min-width: 11rem; padding: .4rem; font: inherit; }
+    .example .table-scroll { overflow-x: auto; }
+    .example table { border-collapse: collapse; width: 100%; }
+    .example th, .example td { text-align: left; padding: .55rem .75rem; border-bottom: 1px solid #8daeb466; }
+    .example .summary { font-weight: 650; margin: .55rem 0; }
+    .example li { margin-bottom: .65rem; }
+  </style>
+</head>
+<body>
+  <main class="example">
+    <header>
+      <a href="/herramientas.html">← Volver a mis herramientas</a>
+      <h1>ASADA Ejemplo</h1>
+      <p>Datos ficticios de un acueducto comunitario. Use los filtros y descargue documentos de muestra. Las acciones de esta página se realizan en su navegador.</p>
+    </header>
+    <nav aria-label="Secciones de ASADA Ejemplo">
+      <a href="#finanzas">Finanzas</a>
+      <a href="#aforos">Aforos</a>
+      <a href="#morosidad">Morosidad</a>
+      <a href="#bodega">Bodega y proveedores</a>
+      <a href="#documentos">Documentos</a>
+    </nav>
+    <section id="finanzas">
+      <h2>Finanzas</h2>
+      <label>Período <select id="periodo"></select></label>
+      <p class="summary" id="resumen-finanzas" aria-live="polite"></p>
+      <div class="table-scroll" id="tabla-finanzas"></div>
+    </section>
+    <section id="aforos">
+      <h2>Aforos</h2>
+      <label>Fuente <select id="fuente"></select></label>
+      <p class="summary" id="resumen-aforos" aria-live="polite"></p>
+      <div class="table-scroll" id="tabla-aforos"></div>
+    </section>
+    <section id="morosidad">
+      <h2>Morosidad</h2>
+      <p>Corte del 30 de setiembre de 2026.</p>
+      <label>Antigüedad <select id="antiguedad"></select></label>
+      <p class="summary" id="resumen-morosidad" aria-live="polite"></p>
+      <div class="table-scroll" id="tabla-morosidad"></div>
+    </section>
+    <section id="bodega">
+      <h2>Bodega y proveedores</h2>
+      <label>Existencias <select id="existencias">
+        <option value="">Todos los materiales</option>
+        <option value="attention">Requieren reposición</option>
+        <option value="ok">Disponibles</option>
+      </select></label>
+      <div class="table-scroll" id="tabla-materiales"></div>
+      <h3>Proveedores</h3>
+      <div class="table-scroll" id="tabla-proveedores"></div>
+    </section>
+    <section id="documentos">
+      <h2>Documentos ficticios</h2>
+      <ul id="lista-documentos"></ul>
+      <p id="estado-documento" role="status"></p>
+    </section>
+    <noscript>Active JavaScript para explorar los datos de ejemplo.</noscript>
+  </main>
+</body>
+</html>

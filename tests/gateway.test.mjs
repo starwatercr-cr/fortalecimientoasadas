@@ -92,3 +92,41 @@ test('adjuntos preparan y verifican el archivo privado antes de subir, incluso s
 });
 
 test('los tres roles acceden a la bitácora privada y la plantilla Excel requiere sesión',async()=>{for(const role of ['Administración','Operación','Junta Directiva']){mock({role});for(const file of ['operacion.html','operacion.js','operation-excel.js','assets/operation-template.xlsx'])assert.equal((await handler(req('file='+file))).status,200);}assert.equal((await handler(req('file=assets/operation-template.xlsx',undefined,''))).status,401);});
+
+test('ASADA Ejemplo se entrega a todas las pruebas activas aceptadas y a Star Water',async()=>{
+ const files=['asada-ejemplo.html','asada-ejemplo.js'];
+ assert.equal((await handler(req('file='+files[0],undefined,''))).status,303);
+ mock({admin:true});
+ for(const file of files){
+  assert.equal((await handler(req('file='+file))).status,200);
+  assert(!fs.existsSync('build/'+file));
+ }
+ mock();
+ for(const file of files)assert.equal((await handler(req('file='+file))).status,403);
+
+ let external=false,accepted=true,trialId='asada-a',expired=false;
+ globalThis.fetch=async(url,options)=>{
+  const {pathname}=new URL(url);
+  assert.equal(options.method,'GET');
+  if(pathname==='/auth/v1/user')return Response.json({id:memberID,email:'demo@example.test'});
+  if(pathname==='/rest/v1/platform_admins')return Response.json([]);
+  if(pathname==='/rest/v1/memberships')return Response.json([{role:'Administración',external,asadas:{
+   id:trialId,active:true,access_kind:'trial',trial_ends_at:new Date(Date.now()+(expired?-1:1)*86400000).toISOString()
+  }}]);
+  if(pathname==='/rest/v1/trial_terms_acceptances')return Response.json(accepted?[{user_id:memberID}]:[]);
+  throw Error('Consulta inesperada: '+pathname);
+ };
+ for(const id of ['asada-a','asada-b']){
+  trialId=id;
+  for(const file of [...files,'aforos-model.js','morosidad-model.js','warehouse-model.js','financial-home-model.js','assets/jspdf.umd.min.js']){
+   assert.equal((await handler(req('file='+file))).status,200,file);
+  }
+ }
+ external=true;
+ assert.equal((await handler(req('file='+files[1]))).status,403);
+ external=false;
+ accepted=false;
+ assert.equal((await handler(req('file='+files[0]))).headers.get('location'),'/condiciones-prueba.html');
+ expired=true;
+ assert.equal((await handler(req('file='+files[1]))).status,402);
+});

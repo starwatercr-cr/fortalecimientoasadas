@@ -603,3 +603,15 @@
   to = "/"
   status = 301
   force = true
+
+[[redirects]]
+  from = "/asada-ejemplo.html"
+  to = "/.netlify/functions/gateway?file=asada-ejemplo.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/asada-ejemplo.js"
+  to = "/.netlify/functions/gateway?file=asada-ejemplo.js"
+  status = 200
+  force = true
