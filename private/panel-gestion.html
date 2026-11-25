@@ -34,6 +34,34 @@
 #sw-asadas-demo .sw-sub,#sw-asadas-demo .sw-stat span,#sw-asadas-demo .sw-stat small,#sw-asadas-demo .sw-note,#sw-asadas-demo .sw-legend,#sw-asadas-demo .sw-simple-card p,#sw-asadas-demo label,#sw-asadas-demo th{font-size:13px}
 #sw-asadas-demo table,#sw-asadas-demo .sw-row-top{font-size:14px}
 @media(max-width:620px){#sw-asadas-demo input,#sw-asadas-demo select,#sw-asadas-demo textarea{font-size:16px}}
+
+#sw-asadas-demo .sw-plan{padding:clamp(14px,2.5vw,24px)}
+.sw-plan-task-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px 18px}
+.sw-plan-task-top h2,.sw-plan-task-top h3,.sw-plan-task-top p{margin:0}
+.sw-plan-task-top h3{font-size:1.05rem;font-weight:700;overflow-wrap:anywhere}
+.sw-plan-task-top p{margin-top:4px;overflow-wrap:anywhere}
+.sw-plan-task-top > div{min-width:0;flex:1 1 220px}
+.sw-plan-stats{margin-top:18px}
+#sw-asadas-demo .sw-plan-stats .sw-stat{padding:10px 12px}
+#sw-asadas-demo .sw-plan-stats .sw-stat strong{margin:3px 0}
+#sw-asadas-demo .sw-plan-stats small:empty{display:none}
+#sw-asadas-demo .sw-plan-filters{gap:10px;margin:14px 0}
+.sw-plan-filters label{flex:1 1 145px;min-width:0;margin:0}
+.sw-plan-filters label:first-child{flex:2 1 220px}
+.sw-plan-filters input,.sw-plan-filters select{width:100%;min-width:0}
+.sw-plan-count,.sw-plan-empty{margin:12px 0;color:var(--sw-muted)}
+.sw-plan-task{border:1px solid var(--sw-line);border-radius:12px;padding:14px;margin:10px 0}
+.sw-plan-progress{display:flex;align-items:center;gap:8px;margin-top:10px}
+.sw-plan-progress progress{width:125px;height:9px;accent-color:var(--sw-brand)}
+.sw-plan-actions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+#sw-asadas-demo .sw-plan-actions .sw-btn,#sw-asadas-demo .sw-plan-task-top .sw-btn{margin:0}
+.sw-plan-detail{margin-top:12px;padding-top:9px;border-top:1px solid var(--sw-line)}
+.sw-plan-detail summary,.sw-plan-optional summary{cursor:pointer;font-weight:600}
+.sw-plan-detail dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,205px),1fr));gap:12px;margin:12px 0}
+.sw-plan-detail dt{font-size:.84rem;font-weight:600}
+.sw-plan-detail dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.sw-plan-optional{border:1px solid var(--sw-line);border-radius:8px;padding:12px}
+.sw-plan-optional .sw-form{margin-top:12px}
 </style>
 <header class="sw-top"><a id="sw-return-assembly" class="sw-btn" href="asamblea.html" hidden>Volver al informe de Asamblea</a><div class="sw-logo"><span class="sw-emblem">SW</span><div><b>Gestión ASADAS</b><small>Star Water · Consultoría</small></div></div><span class="sw-tag">Datos de su ASADA · Guardado en la nube</span></header>
 
@@ -44,5 +72,5 @@
 // Show the selected tool as soon as the page arrives, before any deferred scripts or account requests.
 (()=>{const names={home:'Resumen financiero',statements:'Estados financieros',budget:'Presupuesto de la ASADA',cash:'Flujo de efectivo',petty:'Caja chica',assets:'Auxiliar de activos',board:'Acuerdos de Junta Directiva',workplan:'Plan de trabajo',payments:'Acuerdos de pago para Junta Directiva',properties:'Consulta de propiedades','finance-summary':'Resumen financiero',orders:'Órdenes de trabajo',calendar:'Calendario de obligaciones',outages:'Interrupciones del servicio',network:'Mapa del acueducto',monthly:'Informe mensual para la Junta',projects:'Portafolio de proyectos'};const key=new URLSearchParams(location.search).get('module');document.getElementById('sw-title').textContent=names[key]||'Panel de gestión';document.getElementById('sw-year').value=new Date().getFullYear();})();
 </script>
-<script defer src="assets/docx.js"></script><script defer src="finance-word.js"></script><script defer src="finanzas.js"></script><script defer src="financial-home-model.js?v=52"></script><script defer src="panel-gestion.js?v=88"></script>
+<script defer src="assets/docx.js"></script><script defer src="finance-word.js"></script><script defer src="finanzas.js"></script><script defer src="financial-home-model.js?v=52"></script><script defer src="panel-gestion.js?v=89"></script>
 </div></div></main></body></html>

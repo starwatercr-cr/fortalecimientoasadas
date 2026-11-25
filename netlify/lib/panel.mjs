@@ -243,7 +243,7 @@ function validate(kind,p,y,fail){
   const start=date('date'),due=date('due');if(due<start)fail('La fecha final no puede ser anterior al inicio.');
   const approvalDate=p.approvalDate?date('approvalDate','any'):'',agreement=str('agreement',160,false);
   if(p.approval==='Aprobado'&&(!approvalDate||!agreement))fail('Registre la fecha y referencia del acuerdo que aprueba esta actividad.');
-  return {objective:str('objective',500),title:str('title',500),indicator:str('indicator',300),target:str('target',300),area:p.area,responsible:str('responsible'),date:start,due,budget:num('budget'),part:str('part',160,false),progress,state:p.state,approval:p.approval,approvalDate,agreement,note:str('note',1500,false)};
+  return {objective:str('objective',500,false),title:str('title',500),indicator:str('indicator',300,false),target:str('target',300,false),area:p.area,responsible:str('responsible'),date:start,due,budget:num('budget'),part:str('part',160,false),progress,state:p.state,approval:p.approval,approvalDate,agreement,note:str('note',1500,false)};
  }
  if(kind==='water'){
   const numeric=(obj,key,max,integer=false,nullable=true)=>{const n=obj[key];if(nullable&&n===null)return null;if(typeof n!=='number'||!Number.isFinite(n)||n<0||n>max||integer&&!Number.isInteger(n))fail('Revise el dato '+key+' del balance hídrico.');return n;};

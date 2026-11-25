@@ -20,3 +20,19 @@ test('tenant isolation, role limits and optimistic updates',async()=>{const h=ha
 test('validates water dates, precision, bounds, example data and missing fields',async()=>{const h=harness();for(const changes of [{days:0},{date:'2026-02-30'},{loss:96},{connections:1.5},{example:true},{sources:Array(21).fill(water.sources[0])},{season:'x'},{reduction:101},{input:-1},{sources:[{...water.sources[0],summerDate:'2026-02-30'}]}])await assert.rejects(h.call('panel-save',{kind:'water',payload:{...water,...changes}}),rejectStatus(400));const p=(await h.call('panel-save',{kind:'water',payload:{...water,connections:null,average:null}})).data.record.payload;assert.equal(p.results.scenarioMargin,null);assert.equal(p.sources[0].summer,2);});
 test('validates annual plan approval, deadlines and completion state',async()=>{const h=harness('Junta Directiva');for(const changes of [{due:'2025-12-31'},{due:'2026-01-01'},{approval:'Aprobado'},{progress:100},{state:'Cumplido',progress:50}])await assert.rejects(h.call('panel-save',{kind:'workplan',payload:{...plan,...changes}}),rejectStatus(400));const r=(await h.call('panel-save',{kind:'workplan',payload:{...plan,approval:'Aprobado',approvalDate:'2026-01-01',agreement:'Acta 01, acuerdo 4',progress:100,state:'Cumplido'}})).data.record;assert.equal(r.payload.budget,50000);});
 test('decision center respects cutoff and excludes cancelled/completed deadlines',()=>{const rows=[{id:'past',kind:'water',payload:water,updated_at:'2026-02-01'},{id:'future',kind:'water',payload:{...water,date:'2026-03-01'},updated_at:'2026-03-01'},{kind:'workplan',payload:plan},{kind:'workplan',payload:{...plan,state:'Cancelado'}},{kind:'workplan',payload:{...plan,state:'Cumplido',progress:100}}];const s=decisionSummary({panel:{records:[]},planning:{records:rows},year:2026,month:2,today:'2026-03-01'});assert.equal(s.water.id,'past');assert.equal(s.planLate.length,1);assert.equal(s.expense,null);assert.equal(s.annual,null);assert.equal(s.waterResults.scenarioMargin,computeWater({...water,flows:[2]}).scenarioMargin);const empty=decisionSummary({year:2026,month:1,today:'2026-01-01',planning:{records:rows}});assert.equal(empty.water,null);assert.equal(empty.plans.length,0);});
+
+test('el plan admite tareas rápidas y conserva el seguimiento y la aprobación cuando se agregan',async()=>{
+ const h=harness();
+ const quick={...plan,objective:'',target:'',indicator:'',part:'',budget:0};
+ const {data:{record}}=await h.call('panel-save',{kind:'workplan',payload:quick});
+ assert.deepEqual(record.payload,quick);
+ const started=(await h.call('panel-save',{kind:'workplan',id:record.id,version:record.version,
+  payload:{...record.payload,state:'En proceso',approval:'Aprobado',approvalDate:'2026-02-01',agreement:'Acta 01-2026'}})).data.record;
+ const completed=(await h.call('panel-save',{kind:'workplan',id:started.id,version:started.version,
+  payload:{...started.payload,state:'Cumplido',progress:100,note:'Trabajo verificado'}})).data.record;
+ assert.equal(completed.payload.progress,100);
+ assert.equal(completed.payload.note,'Trabajo verificado');
+ assert.equal(completed.payload.due,quick.due);
+ assert.equal(completed.payload.approval,'Aprobado');
+ assert.equal(completed.payload.agreement,'Acta 01-2026');
+});
