@@ -5,7 +5,7 @@
  <meta name="viewport" content="width=device-width,initial-scale=1">
  <title>Facturación de agua | Plataforma ASADAS</title>
  <link rel="stylesheet" href="/style.css">
- <script type="module" src="/facturacion.js"></script>
+ <script type="module" src="/facturacion.js?v=2"></script>
  <style>
   body{background:var(--pale)}
   .billing{max-width:960px;margin:0 auto;padding:32px 18px 56px}
@@ -14,7 +14,7 @@
   .billing .water-panel{margin:16px 0;padding:clamp(14px,3vw,24px);background:#fff}
   .billing .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:12px}
   .billing label{display:grid;gap:5px;font-weight:600}
-  .billing input,.billing textarea{width:100%;min-width:0;padding:9px;border:1px solid #abbdc7;border-radius:6px;font:inherit;background:#fff;color:var(--ink)}
+  .billing input,.billing textarea,.billing select{width:100%;min-width:0;padding:9px;border:1px solid #abbdc7;border-radius:6px;font:inherit;background:#fff;color:var(--ink)}
   .billing .actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
   .billing .tiers>div{margin:8px 0;align-items:end}
   .billing .issues{color:#8b341c}
@@ -23,6 +23,7 @@
   .billing th,.billing td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
   .billing th:first-child,.billing td:first-child{text-align:left}
   .billing th{background:var(--pale)}
+  .billing .billing-focused{background:#e2f4f0;font-weight:600}
   .billing [hidden]{display:none!important}
  </style>
 </head>
@@ -30,13 +31,23 @@
  <main class="billing">
   <a href="/herramientas.html?area=cobros">← Volver a Abonados y cobros</a>
   <h1>Facturación de agua</h1>
-  <p class="water-notice"><strong>Simulador de lote.</strong> Calcula cargo fijo y consumo por tramos. El resultado es un borrador sin impuestos ni otros cargos. Las lecturas se procesan en este navegador.</p>
-  <div class="actions"><button class="button outline" type="button" id="billing-example">Cargar ejemplo ficticio</button></div>
+  <p class="water-notice"><strong>Simulador de lote.</strong> Calcula cargo fijo y consumo por tramos. El resultado es un borrador sin impuestos ni otros cargos. Guarde el lote para revisarlo, aprobarlo internamente y registrar pagos verificados.</p>
+  <section class="water-panel" aria-labelledby="billing-cloud-title">
+   <h2 id="billing-cloud-title">Lote mensual</h2>
+   <div class="fields"><label>ASADA<select id="billing-asada" disabled></select></label></div>
+   <div class="actions">
+    <button class="button outline" type="button" id="billing-load" disabled>Cargar mes seleccionado</button>
+    <button class="button outline" type="button" id="billing-example">Cargar ejemplo ficticio</button>
+   </div>
+   <p id="billing-cloud-status" role="status">Consultando acceso…</p>
+   <button class="button primary" type="button" id="billing-approve" hidden>Confirmar puesta al cobro interna</button>
+  </section>
   <form id="billing-form">
    <section class="water-panel">
     <h2>Período y tarifa de cálculo</h2>
     <div class="fields">
      <label>Mes de facturación<input name="period" type="month" required></label>
+     <label>Vencimiento (para guardar)<input name="due" type="date"></label>
      <label>Cargo fijo por abonado (₡)<input name="fixed" inputmode="decimal" required></label>
      <label>Precio final por m³ (₡)<input name="overflow" inputmode="decimal" required aria-describedby="billing-tier-help"></label>
     </div>
@@ -66,7 +77,30 @@
      <tbody id="billing-rows"></tbody>
     </table>
    </div>
-   <div class="actions"><button class="button outline" id="billing-export" type="button">Descargar borrador CSV</button></div>
+   <div class="actions">
+    <button class="button outline" id="billing-export" type="button">Descargar borrador CSV</button>
+    <button class="button primary" id="billing-save" type="button" disabled>Guardar borrador del lote</button>
+   </div>
+  </section>
+  <section class="water-panel" id="billing-accounts" hidden>
+   <h2>Saldos del lote aprobado</h2>
+   <p id="billing-accounts-summary"></p>
+   <div class="table-scroll">
+    <table aria-label="Saldos por abonado">
+     <thead><tr><th scope="col">Abonado</th><th scope="col">Monto ₡</th><th scope="col">Pagado ₡</th><th scope="col">Saldo ₡</th><th scope="col">Estado</th></tr></thead>
+     <tbody id="billing-accounts-rows"></tbody>
+    </table>
+   </div>
+   <form id="billing-payment" hidden>
+    <h3>Registrar pago verificado</h3>
+    <div class="fields">
+     <label>Abonado<select name="subscriber" required></select></label>
+     <label>Monto pagado (₡)<input name="amount" inputmode="decimal" required></label>
+     <label>Referencia bancaria<input name="reference" maxlength="100" required></label>
+    </div>
+    <div class="actions"><button class="button primary" type="submit">Aplicar pago al saldo</button></div>
+    <p id="billing-payment-status" role="status"></p>
+   </form>
   </section>
  </main>
 </body>

@@ -14,6 +14,8 @@ function decimal(value,digits,max,label){
  return scaled;
 }
 
+export const paymentCents=value=>decimal(value,2,1010000000000,'Monto del pago');
+
 export function buildRate({fixed,tiers,overflow}){
  if(!Array.isArray(tiers)||tiers.length>10)throw Error('Use hasta 10 tramos antes de la tarifa final.');
  let previous=0;

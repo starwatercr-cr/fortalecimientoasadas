@@ -44,3 +44,37 @@ test('la facturación aparece únicamente para la administración y Star Water',
  assert(!has({role:'Operación'}));
  assert(!has({external:true,role:'Administración',modules:['abonados']}));
 });
+
+test('el servidor recalcula el lote, respeta su versión y conserva el límite de cada ASADA',async()=>{
+ const {billingAPI}=await import('../netlify/lib/billing.mjs');
+ class PublicError extends Error { constructor(status,message){super(message);this.status=status;} }
+ const tenant='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+ const base={asada:tenant,period,readings:header+'001;10;12',fixed:'1000',tiers:[],overflow:'100',due:'2026-12-15'};
+ const who={role:'Administración',asada:{id:tenant},user:{id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'}};
+ let saved;
+ const db=async(path,options)=>{
+  if(path.startsWith('/rest/v1/billing_batches?')&&!options){
+   assert(path.includes('asada_id=eq.'+tenant));
+   return saved?[saved]:[];
+  }
+  if(path.startsWith('/rest/v1/billing_batches')&&options){
+   saved={id:'batch',status:'draft',version:1,...saved,...options.body};
+   return [saved];
+  }
+  throw Error(path);
+ };
+ const call=(api,input,profile=who)=>billingAPI(api,new Request('https://example.test/api/'+api,{
+  method:'POST',body:JSON.stringify(input),
+ }),{who:profile,sb:db,body:r=>r.json(),uuid:()=>true,json:data=>data,PublicError});
+ await assert.rejects(call('billing-save',{...base,asada:'otra'}),e=>e.status===403);
+ await assert.rejects(call('billing-save',base,{...who,external:true}),e=>e.status===403);
+ await call('billing-save',{...base,report:[{totalCents:1}]});
+ assert.equal(saved.report[0].totalCents,120000);
+ await assert.rejects(call('billing-save',base),e=>e.status===409);
+ await assert.rejects(call('billing-approve',{...base,version:2}),e=>e.status===409);
+ await call('billing-approve',{...base,version:1});
+ assert.equal(saved.status,'approved');
+ assert.equal(saved.version,2);
+ assert.deepEqual(await call('billing-approve',{...base,version:1}),{ok:true});
+ await assert.rejects(call('billing-save',{...base,version:2}),e=>e.status===409);
+});

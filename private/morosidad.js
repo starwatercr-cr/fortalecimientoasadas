@@ -71,6 +71,7 @@ function detail(r,confirmation=''){
  (p.phone||p.email?'<p>'+esc([p.phone,p.email].filter(Boolean).join(' · '))+'</p>':'')+
  (p.reason||p.note?'<p>'+esc([p.reason,p.note].filter(Boolean).join(' · '))+'</p>':'')+
  '<div class="actions">'+(canEdit?button('Registrar seguimiento','contact',r.id)+button('Adjuntar notificación enviada','notice-upload',r.id)+button('Editar ficha','edit',r.id):'')+'<button id="ar-cancel" class="button outline">Cerrar expediente</button></div>'+
+ (document.getElementById('billing-access')?'<p><a class="button outline" href="/facturacion.html?'+esc(new URLSearchParams({asada,subscriber:p.code}).toString())+'">Consultar saldo de facturación</a></p>':'')+
  '<div id="ar-sent-inline"></div><h3>Historial del expediente</h3><div class="scroll">'+timeline+'</div>'+
  '<details><summary>Oficios guardados y compromisos</summary><div class="actions">'+(canEdit?button('Preparar oficio','notice',r.id)+button('Agregar compromiso','promise',r.id):'')+'</div><div class="scroll">'+savedNotices(r)+'</div></details>';
  editor.scrollIntoView({behavior:'smooth',block:'start'});
