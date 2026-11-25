@@ -50,6 +50,7 @@
    const team=members.get(x.id)||[];
    return `<article class="water-panel">
     <div class="portal-access-row"><div><h3>${safe(x.name)}</h3><p>${on?'Activa':'Inactiva'} · ${safe(detail)}</p></div>${accessSwitch(x.id,'asada',on,x.name)}</div>
+    ${trial?`<form data-extend-trial style="margin:12px 0"><input type="hidden" name="id" value="${safe(x.id)}"><label>Ampliar período de prueba · fecha de vencimiento<input type="date" name="date" required></label><button class="button outline" type="submit">Guardar nueva fecha</button><p role="status"></p></form>`:""}
     <details data-asada="${safe(x.id)}"${open.has(x.id)?' open':''}>
      <summary><strong>Usuarios (${team.length})</strong></summary>
      ${team.length?'<ul>'+team.map(m=>`<li><strong>${safe(m.full_name||m.email)}</strong> · ${safe(m.role)} · ${safe(m.email)}${m.active?'':' · Suspendida'}</li>`).join('')+'</ul>':'<p>Todavía no hay usuarios.</p>'}
@@ -83,6 +84,8 @@
   finally{accessSaving=false;}
  });
  adminList?.addEventListener('submit',async e=>{
+  const extend=e.target.closest('form[data-extend-trial]');
+  if(extend){e.preventDefault();if(accessSaving)return;const data=fields(extend),btn=extend.querySelector('button'),status=extend.querySelector('[role=status]');if(!confirm('¿Ampliar la prueba hasta el '+data.date+' inclusive y activar el acceso?'))return;accessSaving=true;btn.disabled=true;try{await api('admin-trial-extend',data);await loadAdmin(data.id);notify('Período de prueba ampliado correctamente.');}catch(err){status.textContent=err.message;}finally{accessSaving=false;btn.disabled=false;}return;}
   const f=e.target.closest('form[data-add-user]');if(!f)return;
   e.preventDefault();if(accessSaving)return;
   const btn=f.querySelector('button[type=submit]'),status=f.querySelector('[role=status]'),data=fields(f);
