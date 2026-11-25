@@ -19,6 +19,7 @@ export const TOOLS=[
 {id:'monthly',name:'Informe mensual para la Junta',desc:'Reúna finanzas, trabajos, servicio y calidad en un PDF.',href:'panel-gestion.html',view:'monthly',icon:'file',areas:['junta'],module:'panel'},
 {id:'minae',name:'Mapa de fuentes · MINAE',desc:'Consulte información geográfica del agua.',href:'https://mapas.da.go.cr/mapnew.php',icon:'map',areas:['agua'],external:true,module:'agua'},
 {id:'abonados',name:'Análisis e Información de Abonados',desc:'Transforme datos de consumo en decisiones.',href:'abonados.html',icon:'users',areas:['cobros'],module:'abonados'},
+{id:'facturacion',name:'Facturación de agua',desc:'Calcule un borrador del lote a partir de lecturas y tarifas.',href:'facturacion.html',icon:'file',areas:['cobros'],administration:true},
 {id:'morosidad',name:'Seguimiento de morosidad',desc:'Organice gestiones de cobro y compromisos.',href:'morosidad.html',icon:'clock',areas:['cobros'],module:'morosidad'},
 {id:'pagos',name:'Acuerdos de pago',desc:'Revise los compromisos de pago para la Junta Directiva.',href:'panel-gestion.html',view:'payments',icon:'wallet',areas:['cobros'],module:'panel'},
 {id:'diagnostico',name:'Diagnóstico de la ASADA',desc:'Identifique fortalezas y prioridades de mejora.',href:'diagnostico.html',icon:'target',areas:['junta'],module:'diagnostico'},

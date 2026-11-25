@@ -615,3 +615,21 @@
   to = "/.netlify/functions/gateway?file=asada-ejemplo.js"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/facturacion.html"
+  to = "/.netlify/functions/gateway?file=facturacion.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/facturacion.js"
+  to = "/.netlify/functions/gateway?file=facturacion.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/facturacion-model.js"
+  to = "/.netlify/functions/gateway?file=facturacion-model.js"
+  status = 200
+  force = true

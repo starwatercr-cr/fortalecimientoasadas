@@ -140,3 +140,20 @@ test('ASADA Ejemplo se entrega a todas las pruebas activas aceptadas y a Star Wa
  expired=true;
  assert.equal((await handler(req('file='+files[1]))).status,402);
 });
+
+test('el borrador de facturación y sus scripts se sirven solo a administración y Star Water',async()=>{
+ const files=['facturacion.html','facturacion.js','facturacion-model.js'];
+ for(const file of files){
+  assert(protectedFiles.has(file));
+  assert(!fs.existsSync('build/'+file));
+  assert.equal((await handler(req('file='+file,undefined,''))).status,file.endsWith('.html')?303:401);
+  mock({role:'Administración'});
+  assert.equal((await handler(req('file='+file))).status,200);
+  mock({admin:true});
+  assert.equal((await handler(req('file='+file))).status,200);
+  for(const role of ['Junta Directiva','Operación']){
+   mock({role});
+   assert.equal((await handler(req('file='+file))).status,403);
+  }
+ }
+});
