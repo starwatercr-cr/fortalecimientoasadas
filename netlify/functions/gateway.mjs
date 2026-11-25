@@ -142,6 +142,21 @@ async function dispatch(request,authorized=authorizeToken){
     await authorized(input.token);
     return withCookies(json({ok:true}),[cookie(cookieName,input.token,3600),cookie(refreshName,'',0)]);
    }
+   if(api==='admin-trial-extend'&&request.method==='POST'){
+    await owner(request,authorized);const input=await body(request);
+    if(!uuid(input.id)||typeof input.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(input.date))throw new PublicError(400,'Seleccione una fecha válida.');
+    const end=Date.parse(input.date+'T23:59:59.999-06:00'),now=Date.now();
+    if(!Number.isFinite(end)||new Date(end-21600000).toISOString().slice(0,10)!==input.date||end<=now)throw new PublicError(400,'Seleccione una fecha futura.');
+    const route='/rest/v1/asadas?id=eq.'+encodeURIComponent(input.id)+'&access_kind=eq.trial';
+    const [asada]=await sb(route+'&select=id,trial_ends_at');
+    if(!asada)throw new PublicError(409,'Esta ASADA no tiene una prueba.');
+    const previous=Date.parse(asada.trial_ends_at);
+    if(Number.isFinite(previous)&&end<=previous)throw new PublicError(400,'La nueva fecha debe ser posterior al vencimiento actual.');
+    const guard=asada.trial_ends_at==null?'&trial_ends_at=is.null':'&trial_ends_at=eq.'+encodeURIComponent(asada.trial_ends_at);
+    const updated=await sb(route+guard,{method:'PATCH',body:{trial_ends_at:new Date(end).toISOString(),active:true},prefer:'return=representation'});
+    if(!updated?.length)throw new PublicError(409,'El acceso cambió. Recargue el listado.');
+    return json({ok:true,expires:new Date(end).toISOString()});
+   }
    if(api==='admin-trial-convert'&&request.method==='POST'){
     await owner(request,authorized);const input=await body(request);if(!uuid(input.id)||input.confirm!==true)throw new PublicError(400,'Confirme la contratación antes de activar el acceso.');
     const found=await sb('/rest/v1/asadas?id=eq.'+input.id+'&access_kind=eq.trial&select=id');if(!found?.length)throw new PublicError(409,'Esta ASADA no tiene un acceso de prueba.');
