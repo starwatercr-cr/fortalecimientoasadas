@@ -86,3 +86,24 @@ if(typeof document!=='undefined'){
   document.getElementById('library-clear').addEventListener('click',()=>{form.reset();hits=[];shown=0;results.innerHTML='';more.hidden=true;status.textContent='Escriba un tema o indique un artículo para comenzar.';query.focus();});
  });
 }
+
+if (typeof document !== 'undefined') {
+ document.addEventListener('DOMContentLoaded', async () => {
+  if (!document.getElementById('example-return')) return;
+  const panel = document.getElementById('library-example');
+  try {
+   const script = document.createElement('script');
+   script.src = '/assets/jspdf.umd.min.js';
+   const ready = new Promise((resolve, reject) => {
+    script.onload = resolve;
+    script.onerror = reject;
+   });
+   document.head.append(script);
+   const [{showExampleDocuments}] = await Promise.all([import('./asada-ejemplo.js?v=2'), ready]);
+   showExampleDocuments(panel);
+  } catch {
+   panel.append('No se pudieron cargar los documentos del ejemplo.');
+   panel.hidden = false;
+  }
+ });
+}

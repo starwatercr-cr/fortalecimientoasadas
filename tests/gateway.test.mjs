@@ -95,14 +95,17 @@ test('los tres roles acceden a la bitácora privada y la plantilla Excel requier
 
 test('ASADA Ejemplo se entrega a todas las pruebas activas aceptadas y a Star Water',async()=>{
  const files=['asada-ejemplo.html','asada-ejemplo.js'];
+ const modules=['aforos.html','bodega.html','morosidad.html','nuestras-finanzas.html','biblioteca.html'];
+ const page=async(file,query='')=>(await handler(req('file='+file+query))).text();
  assert.equal((await handler(req('file='+files[0],undefined,''))).status,303);
  mock({admin:true});
- for(const file of files){
-  assert.equal((await handler(req('file='+file))).status,200);
-  assert(!fs.existsSync('build/'+file));
- }
+ assert.equal((await handler(req('file='+files[0]))).headers.get('location'),'/herramientas.html');
+ assert.equal((await handler(req('file='+files[1]))).status,200);
+ for(const file of files)assert(!fs.existsSync('build/'+file));
+ for(const file of modules)assert.match(await page(file),/Explorar un ejemplo/);
  mock();
  for(const file of files)assert.equal((await handler(req('file='+file))).status,403);
+ for(const file of modules)assert.doesNotMatch(await page(file,'&ejemplo=1'),/example-return|Explorar un ejemplo/);
 
  let external=false,accepted=true,trialId='asada-a',expired=false;
  globalThis.fetch=async(url,options)=>{
@@ -118,7 +121,14 @@ test('ASADA Ejemplo se entrega a todas las pruebas activas aceptadas y a Star Wa
  };
  for(const id of ['asada-a','asada-b']){
   trialId=id;
-  for(const file of [...files,'aforos-model.js','morosidad-model.js','warehouse-model.js','financial-home-model.js','assets/jspdf.umd.min.js']){
+  for(const file of modules){
+   const normal=await page(file),example=await page(file,'&ejemplo=1');
+   assert.match(normal,/href="[^"]+\?ejemplo=1">Explorar un ejemplo/);
+   assert.doesNotMatch(normal,/id="example-return"/);
+   assert.match(example,/id="example-return"/);
+   assert.match(example,/Datos ficticios para explorar esta herramienta/);
+  }
+  for(const file of [files[1],'aforos-model.js','morosidad-model.js','warehouse-model.js','financial-home-model.js','assets/jspdf.umd.min.js']){
    assert.equal((await handler(req('file='+file))).status,200,file);
   }
  }

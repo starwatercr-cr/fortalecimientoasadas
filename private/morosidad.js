@@ -1,9 +1,15 @@
 import {followupView,caseStates} from './morosidad-model.js';
 import {createArrearsWorkbook} from './morosidad-excel.js';
 const root=document.getElementById('arrears'),$=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const today=()=>new Date().toLocaleDateString('en-CA',{timeZone:'America/Costa_Rica'}),money=n=>n===null||n===undefined?'Sin monto registrado':'₡'+Number(n).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const today=()=>exploring?'2026-09-30':new Date().toLocaleDateString('en-CA',{timeZone:'America/Costa_Rica'}),money=n=>n===null||n===undefined?'Sin monto registrado':'₡'+Number(n).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const exploring=Boolean(document.getElementById('example-return'));
+if(exploring){
+ document.getElementById('ar-asada').closest('label').hidden=true;
+ for(const id of ['ar-export', 'ar-pdf', 'ar-history'])document.getElementById(id).hidden=true;
+}
+
 let asada='',name='',records=[],canEdit=false,busy=false,tab='cases',editing=null,parent='';const status=s=>$('ar-status').textContent=s;
-async function api(route,input){const r=await fetch('/api/'+route,{method:input?'POST':'GET',credentials:'same-origin',headers:input?{'Content-Type':'application/json'}:{},body:input?JSON.stringify(input):undefined});let d;try{d=await r.json();}catch{throw Error('No se pudo leer la respuesta de la plataforma.');}if(!r.ok)throw Error(d.error||'No se pudo completar la operación.');return d;}
+async function api(route,input){if(exploring){if(input)throw Error('El ejemplo es de consulta.');return (await import('./asada-ejemplo.js?v=2')).exampleData(route);}const r=await fetch('/api/'+route,{method:input?'POST':'GET',credentials:'same-origin',headers:input?{'Content-Type':'application/json'}:{},body:input?JSON.stringify(input):undefined});let d;try{d=await r.json();}catch{throw Error('No se pudo leer la respuesta de la plataforma.');}if(!r.ok)throw Error(d.error||'No se pudo completar la operación.');return d;}
 function lock(on){busy=on;root.querySelectorAll('button,input,select,textarea').forEach(el=>el.disabled=on);}
 const button=(label,action,id)=>'<button class="button outline" type="button" data-action="'+action+'" data-id="'+id+'">'+label+'</button>';
 const table=(heads,rows)=>'<table><thead><tr>'+heads.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+(rows.length?rows.map(r=>'<tr>'+r.map(c=>'<td>'+c+'</td>').join('')+'</tr>').join(''):'<tr><td colspan="'+heads.length+'">No hay registros con estos filtros.</td></tr>')+'</tbody></table>';
@@ -21,12 +27,12 @@ function content(v){
  }));
 }
 function draw(){
- $('ar-return').href='panel-gestion.html?asada='+encodeURIComponent(asada);
+ $('ar-return').href=exploring?'panel-gestion.html':'panel-gestion.html?asada='+encodeURIComponent(asada);
  root.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.tab===tab)));
  $('ar-new').hidden=!canEdit||!asada||tab==='sent';$('ar-content').innerHTML=content(view());
 }
 function close(){editing=null;parent='';$('ar-editor').hidden=true;$('ar-editor').innerHTML='';}
-async function load(){lock(true);try{close();records=[];canEdit=false;if(!asada){draw();status('Seleccione una ASADA.');return;}const d=await api('arrears-data?asada='+encodeURIComponent(asada));records=d.records;name=d.asada.name;canEdit=d.canEdit;$('ar-role').textContent=canEdit?'Administración: completa los expedientes y registra el seguimiento.':'Junta Directiva: consulta, seguimiento y descargas.';draw();status('Información cargada desde la nube.');}catch(e){records=[];canEdit=false;draw();status(e.message);}finally{lock(false);}}
+async function load(){lock(true);try{close();records=[];canEdit=false;if(!asada){draw();status('Seleccione una ASADA.');return;}const d=await api('arrears-data?asada='+encodeURIComponent(asada));records=d.records;name=d.asada.name;canEdit=d.canEdit;$('ar-role').textContent=canEdit?'Administración: completa los expedientes y registra el seguimiento.':'Junta Directiva: consulta, seguimiento y descargas.';draw();status(exploring?'Expedientes ficticios al 30 de setiembre de 2026.':'Información cargada desde la nube.');}catch(e){records=[];canEdit=false;draw();status(e.message);}finally{lock(false);}}
 const field=(k,label,value='',type='text',required=false,readonly=false)=>'<label>'+label+'<input name="'+k+'" type="'+type+'" value="'+esc(value)+'" '+(required?'required':'')+' '+(readonly?'readonly':'')+' '+(type==='number'?'min="0.01" max="1000000000000" step="0.01"':'maxlength="'+({code:80,name:160,phone:50,email:254,sector:160,responsible:160,reference:160}[k]||254)+'"')+'></label>';
 const text=(k,label,value='')=>'<label>'+label+'<textarea name="'+k+'" maxlength="'+(k==='next'?1000:1500)+'" rows="3">'+esc(value)+'</textarea></label>';
 const select=(k,label,choices,val)=>'<label>'+label+'<select name="'+k+'">'+choices.map(c=>'<option value="'+esc(c)+'" '+(c===val?'selected':'')+'>'+esc(c)+'</option>').join('')+'</select></label>';
