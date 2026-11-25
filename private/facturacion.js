@@ -1,9 +1,15 @@
-import {buildRate, previewBills, previewCsv, readingHeaders} from './facturacion-model.js';
+import {buildRate, categories, normalizeTariff, previewBills, previewCsv, readingHeaders, validMonth} from './facturacion-model.js?v=2';
 
 const byId=id=>document.getElementById(id);
 const form=byId('billing-form');
 const tiers=byId('billing-tiers');
 const add=byId('billing-add-tier');
+const profileForm=byId('billing-profile');
+const resourceTiers=byId('billing-resource-tiers');
+const addResource=byId('billing-add-resource');
+const profileStatus=byId('billing-rate-status');
+const profileSave=byId('billing-save-rate');
+let profiles=[], profileRequest=0;
 const status=byId('billing-status');
 const result=byId('billing-result');
 const fileInput=byId('billing-file');
@@ -21,8 +27,9 @@ const inboundSubscriber=inbound.get('subscriber')||'';
 const context=()=>({asada:asadaSelect.value,period:form.elements.period.value});
 const buttons=()=>{
  saveButton.disabled=busy||!dirty||example||!asadaSelect.value||!preview?.bills.length||preview.issues.length>0||saved?.status==='approved';
- approveButton.hidden=!saved||saved.status!=='draft'||dirty;
+ approveButton.hidden=!saved||saved.status!=='draft'||dirty||!saved.source.profiles?.length;
  byId('billing-load').disabled=busy||!asadaSelect.value;
+ profileSave.disabled=busy||!asadaSelect.value;
 };
 
 function invalidate(){
@@ -33,25 +40,31 @@ function invalidate(){
  buttons();
 }
 
-function addTier(limit='',price=''){
- if(tiers.children.length>=10)return;
+function addTier(limit='',price='',resource=false){
+ const container=resource?resourceTiers:tiers,button=resource?addResource:add;
+ if(container.children.length>=10)return;
  const row=document.createElement('div');
  row.className='fields';
- row.innerHTML='<label>Hasta (m³ acumulados)<input name="limit" inputmode="decimal" required></label>'+
-  '<label>Precio por m³ (₡)<input name="price" inputmode="decimal" required></label>'+
+ row.innerHTML='<label>Hasta (m³ acumulados)<input inputmode="decimal" required></label>'+
+  '<label>Precio por m³ (₡)<input inputmode="decimal" required></label>'+
   '<button type="button" class="button outline">Quitar tramo</button>';
- row.querySelector('[name="limit"]').value=limit;
- row.querySelector('[name="price"]').value=price;
- row.querySelector('button').onclick=()=>{
-  row.remove();
-  add.disabled=false;
-  invalidate();
-  add.focus();
- };
- tiers.append(row);
- add.disabled=tiers.children.length>=10;
- invalidate();
+ const [cap,rate]=row.querySelectorAll('input');
+ cap.value=limit;
+ rate.value=price;
+ row.querySelector('button').onclick=()=>{row.remove();button.disabled=false;button.focus();};
+ container.append(row);
+ button.disabled=container.children.length>=10;
  return row;
+}
+const profileTiers=container=>[...container.children].map(row=>{
+ const [cap,rate]=row.querySelectorAll('input');
+ return {limit:cap.value,price:rate.value};
+});
+function setTiers(values,resource=false){
+ const container=resource?resourceTiers:tiers;
+ (resource?addResource:add).disabled=false;
+ container.replaceChildren();
+ for(const tier of values)addTier(tier.limit,tier.price,resource);
 }
 
 function download(text,filename){
@@ -70,7 +83,7 @@ function display(report){
  for(const bill of report.bills){
   const row=document.createElement('tr');
   for(const value of [bill.subscriber,...[bill.previous,bill.current,bill.consumption].map(n=>volume.format(n)),
-   ...[bill.fixedCents,bill.variableCents,bill.totalCents].map(n=>money.format(n/100))]){
+   categories[bill.category]||'—',...[bill.fixedCents,bill.variableCents,bill.hydrantsCents||0,bill.resourceCents||0,bill.totalCents].map(n=>money.format(n/100))]){
    row.insertCell().textContent=value;
   }
   table.append(row);
@@ -92,25 +105,22 @@ function display(report){
 const month=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Costa_Rica',year:'numeric',month:'2-digit'}).format(new Date());
 form.elements.period.value=month;
 form.addEventListener('input',event=>{
- if(event.target===form.elements.period){saved=null;clearAccounts();cloudStatus.textContent='Cargue el lote de este mes si ya lo guardó.';}
+ if(event.target===form.elements.period){saved=null;clearAccounts();cloudStatus.textContent='Cargue el lote de este mes si ya lo guardó.';refreshProfiles();}
  if(event.target===form.elements.readings){fileRead++;calculate.disabled=false;example=false;}
  invalidate();
 });
-add.onclick=()=>addTier()?.querySelector('input').focus();
+const sampleBills=buildRate({fixed:'2800',tiers:[{limit:'15',price:'245'},{limit:'30',price:'283'},{limit:'60',price:'331'}],overflow:'368',
+ hydrants:'650',resource:{tiers:[{limit:'15',price:'40'},{limit:'30',price:'43'},{limit:'60',price:'48'}],overflow:'54'}});
 byId('billing-example').onclick=()=>{
  fileRead++;
  example=true;
  fileInput.value='';
  calculate.disabled=false;
- tiers.replaceChildren();
- form.elements.fixed.value='2200';
- form.elements.overflow.value='240';
- addTier('10','90');
- addTier('20','150');
- form.elements.readings.value=readingHeaders.join(';')+'\n'+'EJ-001;120;132\nEJ-002;75;75\nEJ-003;201;229';
- status.textContent='Ejemplo cargado con tarifas y lecturas ficticias.';
+ invalidate();
+ form.elements.readings.value=[readingHeaders.join(';')+';categoria','EJ-001;640;665;residencial','EJ-002;75;75;residencial'].join('\n');
+ status.textContent='Ejemplo histórico cargado para practicar. Pulse Calcular borrador.';
 };
-byId('billing-template').onclick=()=>download('\uFEFF'+readingHeaders.join(';')+'\r\n','plantilla-lecturas.csv');
+byId('billing-template').onclick=()=>download('\uFEFF'+[...readingHeaders,'categoria'].join(';')+'\r\n','plantilla-lecturas.csv');
 fileInput.addEventListener('change',async()=>{
  const ticket=++fileRead;
  const file=fileInput.files[0];
@@ -134,27 +144,24 @@ fileInput.addEventListener('change',async()=>{
 });
 form.addEventListener('submit',event=>{
  event.preventDefault();
- if(calculate.disabled)return;
+ if(calculate.disabled||busy)return;
  invalidate();
- try{
-  const data=new FormData(form);
-  const rate=buildRate(sourceFields(data));
-  preview=previewBills({period:data.get('period'),readings:data.get('readings'),rate});
+ const calculatePreview=(configured)=>{
+  if(!example&&!configured?.length)throw Error('Configure la tarifa de la ASADA antes de calcular el lote.');
+  const {period,readings,defaultCategory}=form.elements;
+  preview=previewBills({period:period.value,readings:readings.value,rate:sampleBills,profiles:configured,defaultCategory:defaultCategory.value});
+  preview.profileIds=configured?.filter(p=>preview.bills.some(b=>b.category===p.category)).map(p=>p.id)||[];
   display(preview);
   status.textContent=preview.issues.length?'Corrija las lecturas señaladas para descargar el lote.':'Borrador calculado.';
- }catch(error){
-  status.textContent=error.message;
- }
+ };
+ if(example){
+  try{calculatePreview(null);}catch(error){status.textContent=error.message;}
+ }else if(!asadaSelect.value)status.textContent='Seleccione una ASADA.';
+ else run(async()=>{const data=await api('tariffs');calculatePreview(data.profiles);},status);
 });
 byId('billing-export').onclick=()=>{
  if(preview)download(previewCsv(preview),'borrador-facturacion-'+preview.period+'.csv');
 };
-
-function sourceFields(data=new FormData(form)){
- const prices=data.getAll('price');
- return {fixed:data.get('fixed'),overflow:data.get('overflow'),readings:data.get('readings'),
-  tiers:data.getAll('limit').map((limit,i)=>({limit,price:prices[i]}))};
-}
 
 async function api(name,input){
  const target='/api/billing-'+name+(input?'':'?'+new URLSearchParams(context()));
@@ -174,16 +181,12 @@ function showSaved(batch,paid=[]){
  if(!batch){dirty=false;cloudStatus.textContent='Este mes todavía no tiene lote guardado.';buttons();return;}
  if(batch.status==='draft'){
   example=false;
-  form.elements.fixed.value=batch.source.fixed;
-  form.elements.overflow.value=batch.source.overflow;
   form.elements.due.value=batch.due_date;
   form.elements.readings.value=batch.source.readings;
-  tiers.replaceChildren();
-  add.disabled=false;
-  for(const tier of batch.source.tiers)addTier(tier.limit,tier.price);
+  form.elements.defaultCategory.value=batch.source.defaultCategory||'';
   preview={period:batch.period.slice(0,7),bills:batch.report,issues:[],totalCents:batch.report.reduce((total,r)=>total+r.totalCents,0)};
   display(preview);
-  cloudStatus.textContent='Borrador guardado · '+batch.report.length+' recibos · versión '+batch.version+'.';
+  cloudStatus.textContent=batch.source.profiles?.length?'Borrador guardado · '+batch.report.length+' recibos · versión '+batch.version+'.':'Borrador anterior. Configure las tarifas y vuelva a calcularlo antes de aprobar.';
  }else{
   cloudStatus.textContent='Lote aprobado para cobro interno · '+batch.report.length+' recibos.';
   const payments=new Map(paid.map(p=>[p.subscriber,Number(p.paid_cents)]));
@@ -222,6 +225,7 @@ async function run(action,feedback=cloudStatus){
  busy=true;
  asadaSelect.disabled=true;
  form.inert=true;
+ profileForm.inert=true;
  byId('billing-example').disabled=true;
  approveButton.disabled=true;
  const paymentButton=paymentForm.querySelector('button');
@@ -233,6 +237,7 @@ async function run(action,feedback=cloudStatus){
   busy=false;
   asadaSelect.disabled=false;
   form.inert=false;
+  profileForm.inert=false;
   byId('billing-example').disabled=false;
   approveButton.disabled=false;
   paymentButton.disabled=false;
@@ -255,12 +260,9 @@ asadaSelect.addEventListener('change',()=>{
  saved=null;
  example=false;
  form.elements.readings.value='';
- form.elements.fixed.value='';
- form.elements.overflow.value='';
  form.elements.due.value='';
- tiers.replaceChildren();
- add.disabled=false;
  clearAccounts();
+ refreshProfiles();
  invalidate();
  cloudStatus.textContent='Seleccione el mes y cargue un lote guardado o prepare un borrador.';
 });
@@ -268,9 +270,10 @@ byId('billing-load').onclick=()=>run(loadSaved);
 saveButton.onclick=()=>{
  if(!dirty||!preview||preview.issues.length||example)return;
  if(!form.elements.due.value){cloudStatus.textContent='Indique la fecha de vencimiento para guardar.';form.elements.due.focus();return;}
- const source=sourceFields(),due=form.elements.due.value,version=saved?.version;
+ const {readings,defaultCategory,due}=form.elements,version=saved?.version;
+ const source={readings:readings.value,defaultCategory:defaultCategory.value,due:due.value,profileIds:preview.profileIds};
  run(async request=>{
-  const {batch}=await api('save',{...request,...source,due,version});
+  const {batch}=await api('save',{...request,...source,version});
   preview=null;
   result.hidden=true;
   showSaved(batch);
@@ -293,6 +296,68 @@ paymentForm.addEventListener('submit',event=>{
  },feedback);
 });
 
+const resourceField=byId('billing-resource');
+function syncResource(){
+ resourceField.hidden=resourceField.disabled=!profileForm.elements.hasResource.checked;
+}
+function openProfile(){
+ const category=profileForm.elements.category.value;
+ const profile=profiles.find(p=>p.category===category);
+ const rate=profile?.rate;
+ profileForm.reset();
+ profileForm.elements.category.value=category;
+ profileForm.elements.from.value=form.elements.period.value;
+ for(const key of ['fixed','overflow','hydrants'])profileForm.elements[key].value=rate?.[key]??(key==='hydrants'?'0':'');
+ profileForm.elements.resolution.value=profile?.resolution||'';
+ profileForm.elements.resourceResolution.value=profile?.resourceResolution||'';
+ profileForm.elements.resourceOverflow.value=rate?.resource?.overflow||'';
+ profileForm.elements.hasResource.checked=Boolean(rate?.resource);
+ setTiers(rate?.tiers||[]);
+ setTiers(rate?.resource?.tiers||[],true);
+ syncResource();
+}
+async function refreshProfiles(){
+ const ticket=++profileRequest;
+ const selected=form.elements.defaultCategory.value;
+ if(asadaSelect.value&&validMonth(form.elements.period.value)){
+  try{const data=await api('tariffs');if(ticket!==profileRequest)return;profiles=data.profiles;}
+  catch(error){if(ticket!==profileRequest)return;profiles=[];profileStatus.textContent=error.message;}
+ }else profiles=[];
+ byId('billing-rate-summary').textContent=profiles.length?profiles.map(p=>categories[p.category]+' · '+p.resolution+' · desde '+p.from).join(' | '):'Todavía no hay tarifas configuradas para la ASADA y el mes seleccionado.';
+ form.elements.defaultCategory.replaceChildren(new Option('Usar la categoría del CSV',''),...profiles.map(p=>new Option(categories[p.category],p.category)));
+ if(profiles.some(p=>p.category===selected))form.elements.defaultCategory.value=selected;
+ else if(profiles.length===1)form.elements.defaultCategory.value=profiles[0].category;
+ openProfile();
+}
+profileForm.elements.category.replaceChildren(...Object.entries(categories).map(([key,name])=>new Option(name,key)));
+profileForm.elements.category.addEventListener('change',openProfile);
+profileForm.elements.hasResource.addEventListener('change',syncResource);
+add.onclick=()=>addTier()?.querySelector('input').focus();
+addResource.onclick=()=>addTier('','',true)?.querySelector('input').focus();
+const suggest=(limits,resource)=>{if(!(resource?resourceTiers:tiers).children.length)setTiers(limits.map(limit=>({limit,price:''})),resource);
+ else profileStatus.textContent='Quite los tramos existentes para cargar una sugerencia.';};
+byId('billing-residential-ranges').onclick=()=>suggest([15,30,60],false);
+byId('billing-resource-ranges').onclick=()=>{
+ const category=profileForm.elements.category.value;
+ if(category==='residencial')suggest([15,30,60],true);
+ else if(category==='comercio')suggest([20,65],true);
+ else profileStatus.textContent='Ingrese los límites que indica la resolución para esta categoría.';
+};
+profileForm.addEventListener('submit',event=>{
+ event.preventDefault();
+ const data=new FormData(profileForm);
+ run(async request=>{
+  const profile=normalizeTariff({category:data.get('category'),from:data.get('from'),resolution:data.get('resolution'),
+   resourceResolution:data.get('resourceResolution'),rate:{fixed:data.get('fixed'),overflow:data.get('overflow'),
+    hydrants:data.get('hydrants')||'0',tiers:profileTiers(tiers),
+    resource:data.has('hasResource')?{tiers:profileTiers(resourceTiers),overflow:data.get('resourceOverflow')}:null}});
+  await api('tariff-save',{...request,profile,confirm:data.has('confirm')});
+  invalidate();
+  await refreshProfiles();
+  profileStatus.textContent='Tarifa guardada para '+categories[profile.category]+' desde '+profile.from+'.';
+ },profileStatus);
+});
+
 (async()=>{
  try{
   const {asadas}=await api('asadas');
@@ -304,6 +369,7 @@ paymentForm.addEventListener('submit',event=>{
   asadaSelect.disabled=false;
   cloudStatus.textContent=asadas.length?'Seleccione el mes. Puede cargar un lote guardado o preparar uno nuevo.':'No hay ASADAS activas para su acceso.';
   buttons();
+  await refreshProfiles();
   if(inboundSubscriber&&asadaSelect.value)await run(loadSaved);
  }catch(error){cloudStatus.textContent=error.message;}
 })();

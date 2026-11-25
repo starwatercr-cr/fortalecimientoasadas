@@ -5,7 +5,7 @@
  <meta name="viewport" content="width=device-width,initial-scale=1">
  <title>Facturación de agua | Plataforma ASADAS</title>
  <link rel="stylesheet" href="/style.css">
- <script type="module" src="/facturacion.js?v=2"></script>
+ <script type="module" src="/facturacion.js?v=3"></script>
  <style>
   body{background:var(--pale)}
   .billing{max-width:960px;margin:0 auto;padding:32px 18px 56px}
@@ -24,6 +24,7 @@
   .billing th:first-child,.billing td:first-child{text-align:left}
   .billing th{background:var(--pale)}
   .billing .billing-focused{background:#e2f4f0;font-weight:600}
+  .billing .billing-check{display:flex;align-items:center;margin:10px 0}.billing .billing-check input{width:auto}.billing summary{cursor:pointer}.billing fieldset{min-width:0;border:1px solid var(--line);border-radius:8px}
   .billing [hidden]{display:none!important}
  </style>
 </head>
@@ -31,29 +32,63 @@
  <main class="billing">
   <a href="/herramientas.html?area=cobros">← Volver a Abonados y cobros</a>
   <h1>Facturación de agua</h1>
-  <p class="water-notice"><strong>Simulador de lote.</strong> Calcula cargo fijo y consumo por tramos. El resultado es un borrador sin impuestos ni otros cargos. Guarde el lote para revisarlo, aprobarlo internamente y registrar pagos verificados.</p>
+  <p class="water-notice"><strong>Simulador de lote.</strong> Calcula acueducto, hidrantes y recurso hídrico según la configuración de la ASADA. La vista previa presenta subtotales antes de IVA y otros servicios. Guarde el lote para revisarlo, aprobarlo internamente y registrar pagos verificados.</p>
   <section class="water-panel" aria-labelledby="billing-cloud-title">
    <h2 id="billing-cloud-title">Lote mensual</h2>
    <div class="fields"><label>ASADA<select id="billing-asada" disabled></select></label></div>
    <div class="actions">
     <button class="button outline" type="button" id="billing-load" disabled>Cargar mes seleccionado</button>
-    <button class="button outline" type="button" id="billing-example">Cargar ejemplo ficticio</button>
+    <button class="button outline" type="button" id="billing-example">Cargar ejemplo de 25 m³</button>
    </div>
    <p id="billing-cloud-status" role="status">Consultando acceso…</p>
    <button class="button primary" type="button" id="billing-approve" hidden>Confirmar puesta al cobro interna</button>
   </section>
+  <details class="water-panel" id="billing-rate-editor">
+   <summary><strong>Configurar tarifas de la ASADA</strong></summary>
+   <p>Consulte la resolución aplicable al operador y al mes de cobro. <a href="https://aresep.go.cr/agua-potable/calculadora-tarifaria/" target="_blank" rel="noopener noreferrer">Consultar en ARESEP</a></p>
+   <p id="billing-rate-summary"></p>
+   <form id="billing-profile">
+    <div class="fields">
+     <label>Categoría<select name="category" required></select></label>
+     <label>Aplica a partir de<input name="from" type="month" required></label>
+     <label>Resolución de acueducto<input name="resolution" maxlength="160" required></label>
+     <label>Cargo fijo de acueducto (₡)<input name="fixed" inputmode="decimal" required></label>
+     <label>Precio por m³ después del último tramo (₡)<input name="overflow" inputmode="decimal" required></label>
+     <label>Cargo fijo de hidrantes (₡)<input name="hydrants" inputmode="decimal" value="0"></label>
+    </div>
+    <h3>Tramos de acueducto</h3>
+    <div class="tiers" id="billing-tiers"></div>
+    <div class="actions">
+     <button class="button outline" type="button" id="billing-add-tier">Agregar tramo</button>
+     <button class="button outline" type="button" id="billing-residential-ranges">Referencia residencial: 15, 30 y 60 m³</button>
+    </div>
+    <label class="billing-check"><input name="hasResource" type="checkbox"> Aplicar protección del recurso hídrico</label>
+    <fieldset id="billing-resource" hidden disabled>
+     <legend>Protección del recurso hídrico</legend>
+     <div class="fields">
+      <label>Resolución de recurso hídrico<input name="resourceResolution" maxlength="160" required></label>
+      <label>Precio por m³ después del último tramo (₡)<input name="resourceOverflow" inputmode="decimal" required></label>
+     </div>
+     <div class="tiers" id="billing-resource-tiers"></div>
+     <div class="actions">
+      <button class="button outline" type="button" id="billing-add-resource">Agregar tramo</button>
+      <button class="button outline" type="button" id="billing-resource-ranges">Proponer límites según categoría</button>
+     </div>
+    </fieldset>
+    <p class="small">Los límites propuestos son una referencia de captura. Confirme tramos, montos y vigencia con la resolución de su ASADA.</p>
+    <label class="billing-check"><input name="confirm" type="checkbox" required> Verifiqué la resolución y los montos aplicables.</label>
+    <div class="actions"><button class="button primary" type="submit" id="billing-save-rate" disabled>Guardar tarifa</button></div>
+    <p role="status" id="billing-rate-status"></p>
+   </form>
+  </details>
   <form id="billing-form">
    <section class="water-panel">
-    <h2>Período y tarifa de cálculo</h2>
+    <h2>Período de facturación</h2>
     <div class="fields">
      <label>Mes de facturación<input name="period" type="month" required></label>
      <label>Vencimiento (para guardar)<input name="due" type="date"></label>
-     <label>Cargo fijo por abonado (₡)<input name="fixed" inputmode="decimal" required></label>
-     <label>Precio final por m³ (₡)<input name="overflow" inputmode="decimal" required aria-describedby="billing-tier-help"></label>
+     <label>Categoría para filas sin categoría<select name="defaultCategory"></select></label>
     </div>
-    <p id="billing-tier-help" class="small">El precio final se aplica al consumo que excede el último tramo. Si la tarifa es uniforme, déjelo como el único precio por m³.</p>
-    <div class="tiers" id="billing-tiers"></div>
-    <button class="button outline" type="button" id="billing-add-tier">Agregar tramo de consumo</button>
    </section>
    <section class="water-panel">
     <h2>Lecturas por abonado</h2>
@@ -62,7 +97,7 @@
      <button class="button outline" type="button" id="billing-template">Descargar plantilla CSV</button>
     </div>
     <label>Lecturas en formato CSV<textarea name="readings" rows="6" maxlength="400000" required spellcheck="false" placeholder="abonado;lectura_anterior;lectura_actual"></textarea></label>
-    <p class="small">Use el código del abonado y las lecturas del mismo medidor en m³. Para decimales con coma, separe las columnas con punto y coma.</p>
+    <p class="small">Use el código del abonado y las lecturas del mismo medidor en m³. En lotes mixtos, indique la categoría de cada abonado en la columna categoria. Para decimales con coma, separe las columnas con punto y coma.</p>
     <button type="submit" class="button primary" id="billing-calculate">Calcular borrador</button>
     <p role="status" id="billing-status"></p>
    </section>
@@ -73,7 +108,7 @@
    <details id="billing-review" class="issues" hidden open><summary>Lecturas por revisar</summary><ul id="billing-issues"></ul></details>
    <div class="table-scroll">
     <table aria-label="Recibos estimados">
-     <thead><tr><th scope="col">Abonado</th><th scope="col">Lectura anterior</th><th scope="col">Lectura actual</th><th scope="col">Consumo m³</th><th scope="col">Fijo ₡</th><th scope="col">Consumo ₡</th><th scope="col">Total estimado ₡</th></tr></thead>
+     <thead><tr><th scope="col">Abonado</th><th scope="col">Lectura anterior</th><th scope="col">Lectura actual</th><th scope="col">Consumo m³</th><th scope="col">Categoría</th><th scope="col">Fijo ₡</th><th scope="col">Consumo ₡</th><th scope="col">Hidrantes ₡</th><th scope="col">Recurso hídrico ₡</th><th scope="col">Subtotal ₡</th></tr></thead>
      <tbody id="billing-rows"></tbody>
     </table>
    </div>

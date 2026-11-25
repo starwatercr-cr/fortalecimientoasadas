@@ -49,10 +49,12 @@ test('el servidor recalcula el lote, respeta su versión y conserva el límite d
  const {billingAPI}=await import('../netlify/lib/billing.mjs');
  class PublicError extends Error { constructor(status,message){super(message);this.status=status;} }
  const tenant='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
- const base={asada:tenant,period,readings:header+'001;10;12',fixed:'1000',tiers:[],overflow:'100',due:'2026-12-15'};
+ const base={asada:tenant,period,readings:header+'001;10;12',defaultCategory:'residencial',profileIds:['r1'],due:'2026-12-15'};
  const who={role:'Administración',asada:{id:tenant},user:{id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'}};
  let saved;
+ let tariffId='r1';
  const db=async(path,options)=>{
+  if(path.endsWith('/rpc/billing_tariffs_for_month'))return [{id:tariffId,profile:{category:'residencial',rate:{fixed:'1000',tiers:[],overflow:'100'}}}];
   if(path.startsWith('/rest/v1/billing_batches?')&&!options){
    assert(path.includes('asada_id=eq.'+tenant));
    return saved?[saved]:[];
@@ -72,9 +74,28 @@ test('el servidor recalcula el lote, respeta su versión y conserva el límite d
  assert.equal(saved.report[0].totalCents,120000);
  await assert.rejects(call('billing-save',base),e=>e.status===409);
  await assert.rejects(call('billing-approve',{...base,version:2}),e=>e.status===409);
+ tariffId='r2';
+ await assert.rejects(call('billing-approve',{...base,version:1}),e=>e.status===409);
+ tariffId='r1';
  await call('billing-approve',{...base,version:1});
  assert.equal(saved.status,'approved');
  assert.equal(saved.version,2);
  assert.deepEqual(await call('billing-approve',{...base,version:1}),{ok:true});
  await assert.rejects(call('billing-save',{...base,version:2}),e=>e.status===409);
+});
+
+test('separa cargos por categoría y reproduce el total de referencia de 25 m³',()=>{
+ const profiles=[
+  {category:'residencial',rate:{fixed:'2800',hydrants:'650',tiers:[{limit:15,price:245},{limit:30,price:283},{limit:60,price:331}],overflow:'368',
+   resource:{tiers:[{limit:15,price:40},{limit:30,price:43},{limit:60,price:48}],overflow:'54'}}},
+  {category:'comercio',rate:{fixed:'1000',tiers:[],overflow:'100'}},
+ ];
+ const report=previewBills({period,readings:`abonado;lectura_anterior;lectura_actual;categoria
+A;640;665;Residencial
+B;0;25;Comercio y servicios
+C;0;2;Industrial`,profiles});
+ assert.deepEqual(report.bills.map(r=>[r.variableCents,r.resourceCents,r.hydrantsCents,r.totalCents]),[
+  [650500,103000,65000,1098500],[250000,0,0,350000],
+ ]);
+ assert.match(report.issues[0].reason,/industrial/);
 });
