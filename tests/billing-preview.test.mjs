@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {buildRate,previewBills,previewCsv} from '../private/facturacion-model.js';
-import {allowedTools} from '../public/tools-catalog.js';
+import {allowedTools,canOpenTool} from '../public/tools-catalog.js';
 
 const period='2026-11';
 const rate=buildRate({fixed:'2',tiers:[{limit:'10',price:'100'},{limit:'20',price:'150'}],overflow:'200'});
@@ -36,24 +36,28 @@ test('señala duplicados y lecturas descendentes y bloquea salidas parciales',()
  assert.throws(()=>buildRate({fixed:'0',overflow:'1',tiers:[{limit:10,price:1},{limit:9,price:1}]}),/límites deben aumentar/);
 });
 
-test('la facturación aparece únicamente para la administración y Star Water',()=>{
- const has=who=>allowedTools(who).some(t=>t.id==='facturacion');
- assert(has({role:'Administración'}));
- assert(has({admin:true}));
- assert(!has({role:'Junta Directiva'}));
- assert(!has({role:'Operación'}));
- assert(!has({external:true,role:'Administración',modules:['abonados']}));
+test('la tarjeta es visible internamente y solo se abre con el permiso de facturación',()=>{
+ const find=who=>allowedTools(who).find(t=>t.id==='facturacion');
+ for(const who of [{role:'Administración'},{role:'Junta Directiva'},{role:'Operación'},{admin:true}]){
+  const tool=find(who);
+  assert.equal(tool.status,'En construcción');
+  assert.equal(canOpenTool(tool,who),false);
+ }
+ const owner={admin:true,billingAccess:true};
+ assert.equal(canOpenTool(find(owner),owner),true);
+ assert.equal(find({external:true,modules:['abonados']}),undefined);
 });
 
 test('el servidor recalcula el lote, respeta su versión y conserva el límite de cada ASADA',async()=>{
- const {billingAPI}=await import('../netlify/lib/billing.mjs');
+ const {billingAPI,billingOwnerId}=await import('../netlify/lib/billing.mjs');
  class PublicError extends Error { constructor(status,message){super(message);this.status=status;} }
  const tenant='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
  const base={asada:tenant,period,readings:header+'001;10;12',defaultCategory:'residencial',profileIds:['r1'],due:'2026-12-15'};
- const who={role:'Administración',asada:{id:tenant},user:{id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'}};
+ const who={admin:true,user:{id:billingOwnerId}};
  let saved;
  let tariffId='r1';
  const db=async(path,options)=>{
+  if(path.startsWith('/rest/v1/asadas?'))return path.includes('id=eq.'+tenant+'&')?[{id:tenant}]:[];
   if(path.endsWith('/rpc/billing_tariffs_for_month'))return [{id:tariffId,profile:{category:'residencial',rate:{fixed:'1000',tiers:[],overflow:'100'}}}];
   if(path.startsWith('/rest/v1/billing_batches?')&&!options){
    assert(path.includes('asada_id=eq.'+tenant));

@@ -1,24 +1,23 @@
 import {categories, normalizeTariff, paymentCents, previewBills, validMonth} from '../../private/facturacion-model.js';
 
-export const canManageBilling=who=>who.admin||!who.external&&who.role==='Administración';
+// Keep the pilot restricted to the owner's verified platform account.
+export const billingOwnerId='55c49ed1-78ad-4169-915a-856cf6e9f45e';
+export const canManageBilling=who=>who.admin===true&&!who.external&&who.user?.id===billingOwnerId;
 
 export async function billingAPI(api,request,{who,sb,body,uuid,json,PublicError}){
  const fail=(message,status=400)=>{throw new PublicError(status,message);};
- if(!canManageBilling(who))fail('La facturación corresponde a la administración de la ASADA.',403);
+ if(!canManageBilling(who))fail('La facturación de agua está en construcción.',403);
  const url=new URL(request.url);
  const input=request.method==='POST'?await body(request):null;
  const method=request.method;
  if(method==='POST'&&(!input||typeof input!=='object'||Array.isArray(input)))fail('Revise la información enviada.');
  if(api==='billing-asadas'&&method==='GET'){
-  const asadas=who.admin?await sb('/rest/v1/asadas?active=eq.true&select=id,name&order=name.asc'):[who.asada];
+  const asadas=await sb('/rest/v1/asadas?active=eq.true&select=id,name&order=name.asc');
   return json({asadas});
  }
  const requested=input?.asada??url.searchParams.get('asada');
- let asada=who.asada;
- if(who.admin){
-  if(!uuid(requested))fail('Seleccione una ASADA.');
-  [asada]=await sb('/rest/v1/asadas?id=eq.'+requested+'&active=eq.true&select=id,name');
- }else if(requested&&requested!==asada.id)fail('No tiene acceso a esta ASADA.',403);
+ if(!uuid(requested))fail('Seleccione una ASADA.');
+ const [asada]=await sb('/rest/v1/asadas?id=eq.'+requested+'&active=eq.true&select=id,name');
  if(!asada)fail('ASADA no disponible.',403);
  const period=input?.period??url.searchParams.get('period');
  if(!validMonth(period))fail('Seleccione un mes válido.');

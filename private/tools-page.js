@@ -1,4 +1,4 @@
-import {filterTools,allowedTools,readPreferences,savePreferences,AREAS,toolHref} from '/tools-catalog.js?v=75';
+import {filterTools,allowedTools,readPreferences,savePreferences,AREAS,toolHref,canOpenTool} from '/tools-catalog.js?v=76';
 const root=document.getElementById('sw-tools'),$=id=>document.getElementById(id),safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const paths={pie:'M11 3a9 9 0 1 0 10 10H11V3Zm3 0v7h7a9 9 0 0 0-7-7Z',target:'M21 12a9 9 0 1 1-9-9m5 9a5 5 0 1 1-5-5m0 5 8-8m-1-2v3h3',flow:'M3 8h17m-4-4 4 4-4 4M21 16H4m4-4-4 4 4 4',wallet:'M20 8V5H5a2 2 0 0 0 0 4h16v11H5a2 2 0 0 1-2-2V7m18 5h-5a2 2 0 0 0 0 4h5',check:'M14 4H6v17h13v-9M9 12l3 3 8-8M9 18h5',calendar:'M4 6h16v15H4zM4 10h16M8 3v5m8-5v5m-8 6h3m3 3h3',clock:'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM12 7v5l3 2',compass:'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-6-3-2 4-4 2 2-4 4-2Z',chart:'M4 19h16M6 16v-5m6 5V7m6 9V4',water:'M12 3C9 7 5 11 5 15a7 7 0 0 0 14 0c0-4-4-8-7-12Z',box:'M3 7l9-4 9 4v10l-9 4-9-4ZM3 7l9 4 9-4M12 11v10',file:'M14 3H5v18h14V8ZM14 3v5h5M8 12h8M8 16h6',flask:'M9 3h6M10 3v7l-6 9v2h16v-2l-6-9V3M7 16h10',house:'M3 11l9-8 9 8M5 10v11h14V10M9 21v-7h6v7',list:'M9 6h12M9 12h12M9 18h12M3 6h1M3 12h1M3 18h1',users:'M15 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM5 21v-3a7 7 0 0 1 14 0v3M3 6v5M21 6v5',book:'M12 5C8 3 4 3 2 4v16c3-1 7-1 10 1 3-2 7-2 10-1V4c-2-1-6-1-10 1ZM12 5v16',map:'M3 5l6-2 6 2 6-2v16l-6 2-6-2-6 2ZM9 3v16M15 5v16'};
 const icon=name=>'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+(paths[name]||paths.file)+'"/></svg>';
@@ -15,21 +15,24 @@ function withReturnArea(href){
 }
 function card(tool) {
  const favorite=prefs.favorites.includes(tool.id);
+ const name=safe(tool.name);
+ const heading='<span class="sw-tool-icon" aria-hidden="true">'+icon(tool.icon)+'</span><h3>'+name+'</h3>';
+ const star='<button class="sw-star" type="button" data-star="'+tool.id+'" aria-label="'+(favorite?'Quitar de':'Agregar a')+
+  ' favoritas: '+name+'" aria-pressed="'+favorite+'">'+(favorite?'★':'☆')+'</button>';
+ const article='<article class="sw-tool" data-tone="'+tool.areas[0]+'">';
+ if(!canOpenTool(tool,who)){
+  return article+'<div class="sw-tool-title">'+heading+'</div>'+star+
+   '<span class="sw-open">'+safe(tool.status)+'</span></article>';
+ }
  const href=toolHref(tool);
  const destination=' data-visit="'+tool.id+'" href="'+safe(tool.external?href:withReturnArea(href))+'"'+
   (tool.external?' target="_blank" rel="noopener noreferrer"':'');
- const name=safe(tool.name);
  const externalLabel=tool.external?' (sitio externo, nueva pestaña)':'';
- const actionLabel=tool.status||(tool.external?'Consultar sitio externo':'Abrir herramienta');
- const linkLabel=tool.status?safe(tool.status)+' · '+name:'Abrir '+name+externalLabel;
- return '<article class="sw-tool" data-tone="'+tool.areas[0]+'">'+
-  '<a class="sw-tool-title"'+destination+(tool.external?' aria-label="'+name+externalLabel+'"':'')+'>'+
-   '<span class="sw-tool-icon" aria-hidden="true">'+icon(tool.icon)+'</span><h3>'+name+'</h3>'+
-  '</a>'+
-  '<button class="sw-star" type="button" data-star="'+tool.id+'" aria-label="'+(favorite?'Quitar de':'Agregar a')+
-   ' favoritas: '+name+'" aria-pressed="'+favorite+'">'+(favorite?'★':'☆')+'</button>'+
+ const actionLabel=tool.external?'Consultar sitio externo':'Abrir herramienta';
+ return article+
+  '<a class="sw-tool-title"'+destination+(tool.external?' aria-label="'+name+externalLabel+'"':'')+'>'+heading+'</a>'+star+
   '<p>'+safe(tool.desc)+'</p>'+
-  '<a class="sw-open"'+destination+' aria-label="'+linkLabel+'">'+
+  '<a class="sw-open"'+destination+' aria-label="Abrir '+name+externalLabel+'">'+
    safe(actionLabel)+'<span aria-hidden="true">↗</span></a>'+
   '</article>';
 }

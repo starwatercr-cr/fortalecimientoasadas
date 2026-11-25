@@ -2,21 +2,23 @@ import {test,afterEach} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import handler,{protectedFiles} from '../netlify/functions/gateway.mjs';
+import {billingOwnerId} from '../netlify/lib/billing.mjs';
 const originalFetch=globalThis.fetch;
 afterEach(()=>{globalThis.fetch=originalFetch;});
 process.env.SUPABASE_URL='https://example.supabase.co';process.env.SUPABASE_ANON_KEY='sb_publishable_test';process.env.SUPABASE_SERVICE_ROLE_KEY='sb_secret_test';
 const memberID='11111111-1111-4111-8111-111111111111';
 const cookie='__Host-asada-session=test-token';
 const req=(route,body,cookieValue=cookie)=>new Request('https://example.netlify.app/.netlify/functions/gateway?'+route,{method:body===undefined?'GET':'POST',headers:{cookie:cookieValue,origin:'https://example.netlify.app','content-type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
-function mock({admin=false,active=true,foreign=false,role='Administración'}={}){globalThis.fetch=async(url,options)=>{
+function mock({admin=false,active=true,foreign=false,role='Administración',userId=memberID}={}){globalThis.fetch=async(url,options)=>{
  const u=new URL(url);assert.equal(u.origin,'https://example.supabase.co');
  if(u.pathname.startsWith('/rest/')){assert.equal(options.headers.apikey,'sb_secret_test');assert.equal(options.headers.Authorization,undefined);}
  if(u.pathname==='/auth/v1/user'){assert.equal(options.headers.apikey,'sb_publishable_test');assert.equal(options.headers.Authorization,'Bearer test-token');}
  if(u.pathname==='/auth/v1/token'){assert.equal(options.headers.apikey,'sb_publishable_test');assert.equal(options.headers.Authorization,undefined);}
- if(u.pathname==='/auth/v1/user')return Response.json({id:memberID,email:'user@example.test'});
+ if(u.pathname==='/auth/v1/user')return Response.json({id:userId,email:'user@example.test'});
  if(u.pathname==='/auth/v1/token')return Response.json({access_token:'test-token',expires_in:3600});
- if(u.pathname==='/rest/v1/platform_admins')return Response.json(admin?[{user_id:memberID}]:[]);
- if(u.pathname==='/rest/v1/memberships'){assert(u.searchParams.get('user_id')==='eq.'+memberID);return Response.json(foreign?[]:[{user_id:memberID,role,asada_id:'asada-a',asadas:{id:'asada-a',name:'ASADA A',active}}]);}
+ if(u.pathname==='/rest/v1/platform_admins')return Response.json(admin?[{user_id:userId}]:[]);
+ if(u.pathname==='/rest/v1/asadas'&&admin)return Response.json([]);
+ if(u.pathname==='/rest/v1/memberships'){assert(u.searchParams.get('user_id')==='eq.'+userId);return Response.json(foreign?[]:[{user_id:userId,role,asada_id:'asada-a',asadas:{id:'asada-a',name:'ASADA A',active}}]);}
  throw new Error('Unexpected endpoint '+u.pathname);
 };}
 test('la página privada redirige sin sesión; scripts y PDF no se entregan',async()=>{for(const file of ['diagnostic.js','diagnostic-model.js','diagnostic-pdf.js','assets/jspdf.umd.min.js','assets/diagnostic-fonts.js','nuestra-asada.html','nuestra-asada.js','asada-profile-model.js','bodega.html','bodega.js','warehouse-model.js','warehouse-excel.js','assets/warehouse-template.xlsx','operacion.html','operacion.js','operation-excel.js','assets/operation-template.xlsx','equipo.html','equipo.js','herramientas.html','panel-gestion.html','panel-gestion.js','finanzas.js','assets/normativa/asadas.pdf']){const r=await handler(req('file='+file,undefined,''));assert.equal(r.status,file.endsWith('.html')?303:401);assert.equal(r.headers.get('cache-control'),'no-store, private');}});
@@ -141,19 +143,36 @@ test('ASADA Ejemplo se entrega a todas las pruebas activas aceptadas y a Star Wa
  assert.equal((await handler(req('file='+files[1]))).status,402);
 });
 
-test('el borrador de facturación y sus scripts se sirven solo a administración y Star Water',async()=>{
+test('solo la cuenta administradora propietaria puede abrir Facturación y sus operaciones',async()=>{
  const files=['facturacion.html','facturacion.js','facturacion-model.js'];
  for(const file of files){
   assert(protectedFiles.has(file));
   assert(!fs.existsSync('build/'+file));
   assert.equal((await handler(req('file='+file,undefined,''))).status,file.endsWith('.html')?303:401);
-  mock({role:'Administración'});
-  assert.equal((await handler(req('file='+file))).status,200);
-  mock({admin:true});
-  assert.equal((await handler(req('file='+file))).status,200);
-  for(const role of ['Junta Directiva','Operación']){
-   mock({role});
-   assert.equal((await handler(req('file='+file))).status,403);
+ }
+ for(const account of [{role:'Administración'},{role:'Operación'},{admin:true},{userId:billingOwnerId}]){
+  mock(account);
+  assert.equal((await (await handler(req('api=me'))).json()).billingAccess,false);
+  for(const file of files){
+   const response=await handler(req('file='+file));
+   assert.equal(response.status,403);
+   assert.match(await response.text(),/en construcción/i);
   }
+  for(const api of ['billing-asadas','billing-tariffs','billing-load']){
+   assert.equal((await handler(req('api='+api))).status,403);
+  }
+  for(const api of ['billing-save','billing-approve','billing-payment','billing-tariff-save']){
+   assert.equal((await handler(req('api='+api,{}))).status,403);
+  }
+  for(const file of ['abonados.html','morosidad.html']){
+   assert.doesNotMatch(await (await handler(req('file='+file))).text(),/id="billing-access"/);
+  }
+ }
+ mock({admin:true,userId:billingOwnerId});
+ assert.equal((await (await handler(req('api=me'))).json()).billingAccess,true);
+ assert.deepEqual(await (await handler(req('api=billing-asadas'))).json(),{asadas:[]});
+ for(const file of files)assert.equal((await handler(req('file='+file))).status,200);
+ for(const file of ['abonados.html','morosidad.html']){
+  assert.match(await (await handler(req('file='+file))).text(),/id="billing-access"/);
  }
 });
