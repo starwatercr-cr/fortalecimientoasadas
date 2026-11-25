@@ -308,101 +308,206 @@ try{
   clearEntry();$('workspace').hidden=false;show(canWrite?'entry':'diary');
 }catch(error){notice(error.message);}
 
-function downloadReports({name,period,detail,reports,filename,cover=false}) {
+async function downloadReports({name,period,detail,reports,filename,cover=false}) {
   const JsPDF=window.jspdf?.jsPDF;
   if(!JsPDF){notice('El generador PDF no está disponible. Recargue la página e inténtelo de nuevo.');return;}
-  const doc=new JsPDF({format:'a4',orientation:!cover&&reports[0].landscape?'landscape':'portrait'});
-  const left=13;
+  if(!window.AsadaDiagnosticFonts){
+    try{await import('./assets/diagnostic-fonts.js');}catch{/* Standard PDF fonts remain available. */}
+  }
+  const doc=new JsPDF({
+    format:'a4',
+    orientation:!cover&&reports[0].landscape?'landscape':'portrait',
+    putOnlyUsedFonts:true,
+    compress:true,
+  });
+  const fonts=window.AsadaDiagnosticFonts;
+  const family=fonts?'DejaVu Sans':'helvetica';
+  if(fonts){
+    for(const [style,key] of [['normal','regular'],['bold','bold']]){
+      const file='DejaVuSans-'+style+'.ttf';
+      doc.addFileToVFS(file,fonts[key]);
+      doc.addFont(file,family,style);
+    }
+  }
+  const margin=13;
+  const navy=[16,62,85], teal=[0,110,123], ink=[24,47,64], muted=[72,96,108];
+  const rule=[199,217,225], tint=[234,243,247], paper=[247,250,252];
   const clean=value=>String(value??'').replaceAll('₡','').replace(/[\u00a0\u202f]/g,' ');
   const index=[];
+  const font=(size,style='normal',color=ink)=>{
+    doc.setFont(family,style);
+    doc.setFontSize(size);
+    doc.setTextColor(...color);
+  };
+  const line=(x,y,x2,color=rule)=>{
+    doc.setDrawColor(...color);
+    doc.setLineWidth(.25);
+    doc.line(x,y,x2,y);
+  };
+  const pageWidth=()=>doc.internal.pageSize.getWidth();
+  const pageHeight=()=>doc.internal.pageSize.getHeight();
+  doc.setProperties({
+    title:cover?'Estados financieros - '+clean(name):reports[0].heading,
+    subject:clean(period),
+    author:'Star Water',
+  });
+
   if(cover){
-    doc.setFont('times','bold');
-    doc.setFontSize(28);
-    doc.text('Estados financieros',105,110,{align:'center'});
-    doc.setFontSize(17);
-    doc.text(name,105,127,{align:'center'});
-    doc.setFontSize(12);
-    doc.text(period,105,140,{align:'center'});
-    doc.text('Ejemplo con datos ficticios',105,151,{align:'center'});
+    doc.setFillColor(...navy);
+    doc.rect(0,0,pageWidth(),99,'F');
+    doc.setFillColor(...teal);
+    doc.rect(0,99,pageWidth(),2,'F');
+    font(11,'bold',[255,255,255]);
+    doc.text('STAR WATER  /  CONTABILIDAD REGULATORIA',margin,24);
+    font(31,'bold',[255,255,255]);
+    doc.text('Estados financieros',margin,55);
+    font(17,'normal',[229,241,247]);
+    doc.text(clean(name),margin,73);
+    font(10,'bold',teal);
+    doc.text('PERÍODOS COMPARATIVOS',margin,124);
+    font(16,'bold',navy);
+    doc.text(clean(period),margin,135);
+    font(10,'normal',muted);
+    doc.text('Montos expresados en colones costarricenses',margin,145);
+    line(margin,157,pageWidth()-margin);
+    font(12,'bold',navy);
+    doc.text('Ejemplo con datos ficticios',margin,170);
+    if(detail){
+      font(10,'normal',muted);
+      doc.text(doc.splitTextToSize(clean(detail),pageWidth()-2*margin),margin,180);
+    }
     doc.addPage();
   }
+
   reports.forEach(({heading,rows,columns,landscape=false,notes=[]},reportIndex)=>{
     const orientation=landscape?'landscape':'portrait';
     if(reportIndex||cover) doc.addPage('a4',orientation);
     index.push([heading,doc.getNumberOfPages()]);
-    const width=doc.internal.pageSize.getWidth()-2*left;
-    const bottom=doc.internal.pageSize.getHeight()-18;
-    const midpoint=left+width/2;
+    const width=pageWidth()-2*margin;
+    const bottom=pageHeight()-20;
+    const numericFrom=columns.length===9?5:columns.length===5?1:2;
     let y;
     function page(continued=false){
-      doc.setTextColor(24,47,64);
-      doc.setFont('times','bold');doc.setFontSize(14);
-      const nameLines=doc.splitTextToSize(clean(name),width);
-      doc.text(nameLines,midpoint,17,{align:'center'});
-      y=17+nameLines.length*5;
-      doc.text(heading,midpoint,y,{align:'center'});
-      doc.setFont('helvetica','normal');doc.setFontSize(9);
-      const description=doc.splitTextToSize(clean(period+' · Colones costarricenses'+(detail?' · '+detail:'')+(continued?' · Continuación':'')),width);
-      doc.text(description,midpoint,y+5,{align:'center'});
-      y+=9+description.length*4;
+      font(9,'bold',teal);
+      const entity=doc.splitTextToSize(clean(name),width);
+      doc.text(entity,margin,17);
+      y=17+entity.length*4.2+6;
+      font(19,'bold',navy);
+      const title=doc.splitTextToSize(heading,width);
+      doc.text(title,margin,y);
+      y+=title.length*7.6+1;
+      font(10,'normal',muted);
+      const description=doc.splitTextToSize(clean(period+' · Montos en colones'+(continued?' · Continuación':'')),width);
+      doc.text(description,margin,y);
+      y+=description.length*4.2;
+      if(detail||cover){
+        const scenario=doc.splitTextToSize(clean([cover?'Ejemplo con datos ficticios':'',detail].filter(Boolean).join(' · ')),width);
+        doc.text(scenario,margin,y);
+        y+=scenario.length*4.2;
+      }
+      line(margin,y+1,margin+width,teal);
+      y+=6;
     }
-    function row(values,header=false){
+    function row(values,position){
+      const header=position===0;
       const label=String(values[0]);
       const section=label.startsWith('§');
-      const emphasis=header||section||label.startsWith('Total')||label.startsWith('Excedente')||label.startsWith('Efectivo final');
-      doc.setFont('helvetica',emphasis?'bold':'normal');doc.setFontSize(8);
-      const numericFrom=columns.length===9?5:columns.length===5?1:2;
-      const wrapped=values.map((value,i)=>doc.splitTextToSize(clean(i===0&&section?label.slice(1):value),columns[i]-4));
-      const height=Math.max(1,...wrapped.map(cell=>cell.length))*3.8+3;
+      const total=/^(Total|Excedente|Efectivo final|Variación neta)/.test(label);
+      const emphasis=header||section||total;
+      const size=landscape?9.5:10;
+      const style=emphasis?'bold':'normal';
+      const color=header?[255,255,255]:emphasis?navy:ink;
+      font(size,style,color);
+      const cells=values.map((value,i)=>{
+        const text=clean(i===0&&section?label.slice(1):value);
+        const available=columns[i]-5;
+        if(!header&&i>=numericFrom&&text){
+          const fitted=Math.min(size,size*available/doc.getTextWidth(text));
+          return {lines:[text],size:fitted};
+        }
+        return {lines:doc.splitTextToSize(text,available),size};
+      });
+      const spacing=4.2;
+      const height=Math.max(1,...cells.map(cell=>cell.lines.length))*spacing+3.8;
       if(!header&&y+height>bottom){
-        doc.addPage('a4',orientation);page(true);row(rows[0],true);
-        doc.setFont('helvetica',emphasis?'bold':'normal');doc.setFontSize(8);
+        doc.addPage('a4',orientation);
+        page(true);
+        row(rows[0],0);
       }
-      if(header||section){doc.setFillColor(232,240,243);doc.rect(left,y,width,height,'F');}
-      if(emphasis&&!header&&!section){doc.setDrawColor(49,76,91);doc.line(left,y,left+width,y);}
-      let x=left;
-      wrapped.forEach((cell,i)=>{
+      if(header||section||total||position%2===0){
+        doc.setFillColor(...(header?navy:section||total?tint:paper));
+        doc.rect(margin,y,width,height,'F');
+      }
+      if(total)line(margin,y,margin+width);
+      let x=margin;
+      cells.forEach((cell,i)=>{
+        const centered=columns.length===4&&i===1;
         const right=i>=numericFrom;
-        doc.text(cell,x+(right?columns[i]-2:2),y+4,{align:right?'right':'left'});
+        const align=centered?'center':right?'right':'left';
+        const offset=centered?columns[i]/2:right?columns[i]-2.5:2.5;
+        font(cell.size,style,color);
+        doc.text(cell.lines,x+offset,y+5,{align,lineHeightFactor:spacing/(cell.size*.3527778)});
         x+=columns[i];
       });
       y+=height;
     }
     page();
-    rows.forEach((values,i)=>row(values,i===0));
+    rows.forEach(row);
     if(notes.length){
-      if(y+notes.length*7+34>bottom){doc.addPage('a4',orientation);page(true);}
-      y+=5;
-      doc.setFont('helvetica','normal');doc.setFontSize(8);
-      for(const line of notes){
-        const wrapped=doc.splitTextToSize(line,width);
-        doc.text(wrapped,left,y);
-        y+=wrapped.length*4+2;
+      font(9.5,'normal',muted);
+      const wrappedNotes=notes.map(note=>doc.splitTextToSize(clean(note),width));
+      const notesHeight=wrappedNotes.reduce((height,lines)=>height+lines.length*4+2,0);
+      if(y+notesHeight+49>bottom){doc.addPage('a4',orientation);page(true);}
+      y+=9;
+      font(10,'bold',navy);
+      doc.text('Notas explicativas',margin,y);
+      y+=6;
+      font(9.5,'normal',muted);
+      for(const lines of wrappedNotes){
+        doc.text(lines,margin,y,{lineHeightFactor:1.19});
+        y+=lines.length*4+2;
       }
-      y+=14;
-      ['Presidencia','Tesorería','Contaduría'].forEach((label,i)=>{
-        const x=left+(i+.5)*width/3;
-        doc.line(x-21,y,x+21,y);
-        doc.text(label,x,y+5,{align:'center'});
+      y+=9;
+      font(10,'bold',navy);
+      doc.text('Firmas',margin,y);
+      y+=17;
+      font(10,'normal',ink);
+      const third=width/3;
+      ['Presidencia','Tesorería','Contador(a)'].forEach((label,i)=>{
+        const x=margin+(i+.5)*third;
+        line(x-22,y,x+22,navy);
+        doc.text(label,x,y+5.5,{align:'center'});
       });
     }
   });
+
   if(cover){
     doc.setPage(2);
-    doc.setFont('times','bold');doc.setFontSize(19);
-    doc.text('Contenido',left,25);
-    doc.setFont('helvetica','normal');doc.setFontSize(11);
+    font(10,'bold',teal);
+    doc.text('ESTADOS FINANCIEROS',margin,23);
+    font(23,'bold',navy);
+    doc.text('Contenido',margin,36);
+    line(margin,43,pageWidth()-margin,teal);
     index.forEach(([heading,page],i)=>{
-      doc.text(heading,left,41+i*9);
-      doc.text(String(page),197,41+i*9,{align:'right'});
+      const top=51+i*13;
+      if(i%2===0){
+        doc.setFillColor(...paper);
+        doc.rect(margin,top-5.5,pageWidth()-2*margin,12,'F');
+      }
+      font(11,'normal',ink);
+      doc.text(heading,margin+3,top+2);
+      font(11,'bold',navy);
+      doc.text(String(page),pageWidth()-margin-3,top+2,{align:'right'});
     });
   }
   const pages=doc.getNumberOfPages();
   for(let n=1;n<=pages;n++){
-    doc.setPage(n);doc.setFont('helvetica','normal');doc.setFontSize(8);
-    const y=doc.internal.pageSize.getHeight()-8;
-    doc.text('Star Water · Contabilidad Regulatoria',left,y);
-    doc.text(n+' / '+pages,doc.internal.pageSize.getWidth()-left,y,{align:'right'});
+    doc.setPage(n);
+    const y=pageHeight()-13;
+    line(margin,y,pageWidth()-margin);
+    font(8.5,'normal',muted);
+    doc.text('Star Water · Contabilidad Regulatoria',margin,y+5);
+    doc.text(n+' / '+pages,pageWidth()-margin,y+5,{align:'right'});
   }
   doc.save(filename);
 }
