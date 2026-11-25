@@ -606,8 +606,8 @@
 
 [[redirects]]
   from = "/asada-ejemplo.html"
-  to = "/.netlify/functions/gateway?file=asada-ejemplo.html"
-  status = 200
+  to = "/herramientas.html"
+  status = 302
   force = true
 
 [[redirects]]
