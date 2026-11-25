@@ -1,3 +1,4 @@
+import {shopAPI} from '../lib/shop.mjs';
 import {clientRequests} from '../lib/client-requests.mjs';
 import {accountingAPI} from '../lib/cras.mjs';
 import {usageAPI} from '../lib/usage.mjs';
@@ -104,6 +105,7 @@ async function dispatch(request,authorized=authorizeToken){
   if(request.method!=='GET'&&request.method!=='POST')return json({error:'Método no permitido.'},405);
   if(request.method==='POST'&&request.headers.get('origin')!==url.origin)throw new PublicError(403,'Origen de la solicitud no autorizado.');
   if(api){
+   if(api.startsWith('shop-'))return await shopAPI(api,request,{sb,owner:()=>owner(request,authorized),body:r=>body(r,65000),json,PublicError,storage:(method,object)=>teamStorage(method,object,undefined,undefined,'starwater-shop')});
    if(api.startsWith('client-request-'))return await clientRequests(api,request,{sb,owner:()=>owner(request,authorized),body,uuid,json,PublicError});
    if(api.startsWith('usage-'))return await usageAPI(api,request,{sb,authorized,sessionToken,body,uuid,json,PublicError});
    const moduleAPI=/^(availability|plans|anc|abonados|profile|arrears|warehouse|flow|ops|team|assembly|panel|access)-/.test(api);
