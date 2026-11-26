@@ -633,3 +633,15 @@
   to = "/.netlify/functions/gateway?file=facturacion-model.js"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/billing-registry.js"
+  to = "/.netlify/functions/gateway?file=billing-registry.js"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/billing-registry-model.js"
+  to = "/.netlify/functions/gateway?file=billing-registry-model.js"
+  status = 200
+  force = true
