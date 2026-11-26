@@ -3,6 +3,12 @@ import {csv} from './morosidad-model.js';
 import {buildRate, categories, normalizeTariff, previewBills, previewCsv, readingHeaders, validMonth, summarizeBillingHistory, billingHistoryCsv} from './facturacion-model.js?v=4';
 
 const byId=id=>document.getElementById(id);
+const menu=byId('billing-menu');
+menu.addEventListener('click',()=>{
+ const open=menu.getAttribute('aria-expanded')!=='true';
+ menu.setAttribute('aria-expanded',String(open));
+ menu.closest('.sw-side').classList.toggle('sw-expanded',open);
+});
 const form=byId('billing-form');
 const tiers=byId('billing-tiers');
 const add=byId('billing-add-tier');
@@ -33,14 +39,22 @@ const historyStatus=byId('billing-history-status');
 let historyData=null,historyRows=[];
 let currentView='history';
 const registry=setupRegistry({asadaSelect,api,run,download});
-function selectView(view){
+function selectView(view,animate=false){
+ const changed=currentView!==view;
  currentView=view;
  for(const button of document.querySelectorAll('[data-billing-tab]'))button.setAttribute('aria-pressed',String(button.dataset.billingTab===view));
- for(const panel of document.querySelectorAll('[data-billing-view]'))panel.hidden=panel.dataset.billingView!==view;
+ for(const panel of document.querySelectorAll('[data-billing-view]')){
+  panel.hidden=panel.dataset.billingView!==view;
+  panel.classList.remove('sw-panel-enter');
+ }
+ if(animate&&changed){
+  const panel=document.querySelector('[data-billing-view="'+view+'"]');
+  if(panel)panel.classList.add('sw-panel-enter');
+ }
  if(view==='registry')registry.ensure();
  if(view==='history'&&asadaSelect.value&&!historyData)run(loadHistory,historyStatus);
 }
-for(const button of document.querySelectorAll('[data-billing-tab]'))button.onclick=()=>{if(!busy)selectView(button.dataset.billingTab);};
+for(const button of document.querySelectorAll('[data-billing-tab]'))button.onclick=event=>{if(!busy)selectView(button.dataset.billingTab,event.detail>0);};
 
 const context=()=>({asada:asadaSelect.value,period:form.elements.period.value});
 const buttons=()=>{

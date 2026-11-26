@@ -6,7 +6,7 @@
  <title>Facturación de agua | Plataforma ASADAS</title>
  <link rel="stylesheet" href="/style.css">
  <link rel="stylesheet" href="/tools-shell.css?v=57">
- <script type="module" src="/facturacion.js?v=5"></script>
+ <script type="module" src="/facturacion.js?v=6"></script>
  <style>
   body{background:var(--pale)}
   #sw-tools.billing-shell{border-radius:0;min-height:100vh;font-size:15px}
@@ -61,11 +61,12 @@
   .billing .billing-check{display:flex;align-items:center;margin:10px 0}.billing .billing-check input{width:auto}.billing summary{cursor:pointer}.billing fieldset{min-width:0;border:1px solid var(--line);border-radius:8px}
   .billing [hidden]{display:none!important}
  </style>
+ <link rel="stylesheet" href="/workspace-design.css?v=1">
 </head>
 <body class="sw-app">
- <div id="sw-tools" class="billing-shell"><div class="sw-shell">
- <aside class="sw-side"><div class="sw-brand"><a href="/herramientas.html"><img src="/assets/logo.png" alt="STAR WATER"></a></div>
-  <div class="sw-nav-section"><p class="sw-label">Mi espacio de trabajo</p><nav aria-label="Áreas de la plataforma">
+ <div id="sw-tools" class="billing-shell sw-refined"><div class="sw-shell">
+ <aside class="sw-side"><div class="sw-brand"><a href="/herramientas.html"><img src="/assets/logo.png" alt="STAR WATER"></a><button type="button" class="sw-mobile" id="billing-menu" aria-expanded="false" aria-controls="billing-nav">Áreas</button></div>
+  <div class="sw-nav-section" id="billing-nav"><p class="sw-label">Mi espacio de trabajo</p><nav aria-label="Áreas de la plataforma">
    <a class="sw-nav" href="/herramientas.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l9-4 9 4v10l-9 4-9-4ZM3 7l9 4 9-4M12 11v10"/></svg>Todas las herramientas</a>
    <a class="sw-nav" href="/herramientas.html?area=finanzas"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19h16M6 16v-5m6 5V7m6 9V4"/></svg>Finanzas</a>
    <a class="sw-nav" href="/herramientas.html?area=agua"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3C9 7 5 11 5 15a7 7 0 0 0 14 0c0-4-4-8-7-12Z"/></svg>Agua y operación</a>
@@ -76,7 +77,7 @@
  </aside>
  <div class="sw-main"><header class="sw-top"><div class="sw-identity"><div class="sw-asada-icon">SW</div><div><strong>Star Water · Administración</strong><small>Gestión comercial del acueducto</small></div></div><div class="sw-person"><a href="/herramientas.html?area=cobros">Volver a mis herramientas</a></div></header>
  <main class="sw-work billing">
-  <div class="sw-heading"><div><h1>Facturación de agua</h1><p class="sw-sub">Abonados, lecturas, tarifas y recaudación en un mismo lugar.</p></div><span class="sw-example">EN CONSTRUCCIÓN · ACCESO PRIVADO</span></div>
+  <div class="sw-heading"><div><h1>Facturación de agua</h1><p class="sw-sub">Abonados, lecturas, tarifas y recaudación en un mismo lugar.</p></div><span class="sw-example">En construcción · Acceso privado</span></div>
   <div class="billing-banner"><div><strong>Gestión comercial de la ASADA</strong><p>Seleccione el acueducto para administrar sus servicios y preparar el cobro mensual.</p></div><label>ASADA<select id="billing-asada" disabled></select></label></div>
   <nav class="billing-tabs" aria-label="Secciones de facturación">
    <button type="button" data-billing-tab="history" aria-pressed="true">Resumen y cartera</button>
