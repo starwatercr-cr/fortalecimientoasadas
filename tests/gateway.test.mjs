@@ -144,7 +144,7 @@ test('ASADA Ejemplo se entrega a todas las pruebas activas aceptadas y a Star Wa
 });
 
 test('solo la cuenta administradora propietaria puede abrir Facturación y sus operaciones',async()=>{
- const files=['facturacion.html','facturacion.js','facturacion-model.js'];
+ const files=['facturacion.html','facturacion.js','facturacion-model.js','billing-registry.js','billing-registry-model.js'];
  for(const file of files){
   assert(protectedFiles.has(file));
   assert(!fs.existsSync('build/'+file));
@@ -158,10 +158,10 @@ test('solo la cuenta administradora propietaria puede abrir Facturación y sus o
    assert.equal(response.status,403);
    assert.match(await response.text(),/en construcción/i);
   }
-  for(const api of ['billing-asadas','billing-tariffs','billing-load','billing-history']){
+  for(const api of ['billing-asadas','billing-tariffs','billing-load','billing-history','billing-registry','billing-reading-plan']){
    assert.equal((await handler(req('api='+api))).status,403);
   }
-  for(const api of ['billing-save','billing-approve','billing-payment','billing-tariff-save']){
+  for(const api of ['billing-save','billing-approve','billing-payment','billing-tariff-save','billing-registry-save','billing-registry-import']){
    assert.equal((await handler(req('api='+api,{}))).status,403);
   }
   for(const file of ['abonados.html','morosidad.html','panel-gestion.html']){

@@ -5,10 +5,40 @@
  <meta name="viewport" content="width=device-width,initial-scale=1">
  <title>Facturación de agua | Plataforma ASADAS</title>
  <link rel="stylesheet" href="/style.css">
- <script type="module" src="/facturacion.js?v=4"></script>
+ <link rel="stylesheet" href="/tools-shell.css?v=57">
+ <script type="module" src="/facturacion.js?v=5"></script>
  <style>
   body{background:var(--pale)}
-  .billing{max-width:960px;margin:0 auto;padding:32px 18px 56px}
+  #sw-tools.billing-shell{border-radius:0;min-height:100vh;font-size:15px}
+  #sw-tools.billing-shell .sw-shell{min-height:100vh}
+  #sw-tools.billing-shell .sw-nav{text-decoration:none;font-size:15px;width:100%}
+  #sw-tools.billing-shell .sw-nav svg{flex-shrink:0}
+  #sw-tools.billing-shell .sw-brand img{width:100%;max-width:185px;height:auto}
+  #sw-tools.billing-shell .sw-work{max-width:1440px;margin:auto;padding:30px clamp(16px,3vw,42px) 56px}
+  #sw-tools.billing-shell .sw-heading{margin:0 0 24px}
+  #sw-tools.billing-shell .sw-heading h1{font-size:clamp(1.75rem,3vw,2.35rem)}
+  #sw-tools.billing-shell .billing-banner{background:linear-gradient(112deg,#103e55,#126e74);color:#fff;border-radius:14px;padding:24px;margin:18px 0;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+  #sw-tools.billing-shell .billing-banner p{color:#d8eef0;max-width:680px}
+  #sw-tools.billing-shell .billing-banner strong{display:block;font-size:1.35rem;margin-bottom:5px}
+  #sw-tools.billing-shell .billing-banner label{min-width:min(100%,240px);font-size:14px;color:#fff}
+  #sw-tools.billing-shell .billing-tabs{display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--sw-line);margin-top:24px}
+  #sw-tools.billing-shell .billing-tabs button{padding:12px 16px;border:0;background:transparent;color:var(--sw-muted);border-bottom:3px solid transparent;font-weight:600;cursor:pointer}
+  #sw-tools.billing-shell .billing-tabs button[aria-pressed=true]{color:var(--sw-teal);border-color:var(--sw-teal)}
+  #sw-tools.billing-shell .billing p{margin:9px 0}
+  #sw-tools.billing-shell .billing .water-panel{border-radius:14px;border-color:var(--sw-line);box-shadow:0 5px 18px #103e5508}
+  #sw-tools.billing-shell .billing .button{font-size:14px;min-height:42px}
+  #sw-tools.billing-shell .billing .button.primary{background:#62d5ca;color:#103e55}
+  #sw-tools.billing-shell .billing .button.outline{border-color:#b6d2dc;color:#086f7b}
+  .registry-heading{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;margin-bottom:16px}
+  .registry-heading h2{margin:0!important}.registry-list td,.registry-list th{text-align:left!important}
+  .registry-list td{white-space:normal}
+  .registry-form{padding:18px;background:var(--pale);border-radius:10px;margin:18px 0}
+  .registry-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .registry-meta label{flex:1;min-width:180px}
+  .registry-kpi{font-weight:700;color:var(--teal)}
+  .registry-pages{display:flex;align-items:center;gap:12px;margin-top:14px}
+  @media(max-width:720px){#sw-tools.billing-shell .sw-shell{display:block}#sw-tools.billing-shell .sw-side{padding:15px}#sw-tools.billing-shell .sw-nav-section{display:block}#sw-tools.billing-shell .sw-side nav{display:flex;flex-wrap:wrap;gap:5px}#sw-tools.billing-shell .sw-side .sw-nav{width:auto}#sw-tools.billing-shell .sw-side .sw-help{display:none}}
+  .billing{min-width:0}
   .billing h1{font-size:clamp(1.8rem,4vw,2.8rem);margin:16px 0 4px}
   .billing h2{font-size:1.25rem;margin:0 0 12px}
   .billing .water-panel{margin:16px 0;padding:clamp(14px,3vw,24px);background:#fff}
@@ -32,14 +62,33 @@
   .billing [hidden]{display:none!important}
  </style>
 </head>
-<body>
- <main class="billing">
-  <a href="/herramientas.html?area=cobros">← Volver a Abonados y cobros</a>
-  <h1>Facturación de agua</h1>
-  <p class="water-notice"><strong>En construcción.</strong> La vista de prueba calcula acueducto, hidrantes y recurso hídrico según la configuración de la ASADA. El cálculo presenta subtotales antes de IVA y otros servicios. Guarde el lote para revisarlo, aprobarlo internamente y registrar pagos verificados.</p>
+<body class="sw-app">
+ <div id="sw-tools" class="billing-shell"><div class="sw-shell">
+ <aside class="sw-side"><div class="sw-brand"><a href="/herramientas.html"><img src="/assets/logo.png" alt="STAR WATER"></a></div>
+  <div class="sw-nav-section"><p class="sw-label">Mi espacio de trabajo</p><nav aria-label="Áreas de la plataforma">
+   <a class="sw-nav" href="/herramientas.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l9-4 9 4v10l-9 4-9-4ZM3 7l9 4 9-4M12 11v10"/></svg>Todas las herramientas</a>
+   <a class="sw-nav" href="/herramientas.html?area=finanzas"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19h16M6 16v-5m6 5V7m6 9V4"/></svg>Finanzas</a>
+   <a class="sw-nav" href="/herramientas.html?area=agua"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3C9 7 5 11 5 15a7 7 0 0 0 14 0c0-4-4-8-7-12Z"/></svg>Agua y operación</a>
+   <a class="sw-nav" href="/herramientas.html?area=cobros" aria-pressed="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM5 21v-3a7 7 0 0 1 14 0v3M3 6v5M21 6v5"/></svg>Abonados y cobros</a>
+   <a class="sw-nav" href="/herramientas.html?area=junta"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9m5 9a5 5 0 1 1-5-5m0 5 8-8m-1-2v3h3"/></svg>Junta Directiva y planificación</a>
+   <a class="sw-nav" href="/herramientas.html?area=consulta"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5C8 3 4 3 2 4v16c3-1 7-1 10 1 3-2 7-2 10-1V4c-2-1-6-1-10 1ZM12 5v16"/></svg>Organización y consultas</a>
+  </nav></div><div class="sw-help">STAR WATER · Plataforma para ASADAS</div>
+ </aside>
+ <div class="sw-main"><header class="sw-top"><div class="sw-identity"><div class="sw-asada-icon">SW</div><div><strong>Star Water · Administración</strong><small>Gestión comercial del acueducto</small></div></div><div class="sw-person"><a href="/herramientas.html?area=cobros">Volver a mis herramientas</a></div></header>
+ <main class="sw-work billing">
+  <div class="sw-heading"><div><h1>Facturación de agua</h1><p class="sw-sub">Abonados, lecturas, tarifas y recaudación en un mismo lugar.</p></div><span class="sw-example">EN CONSTRUCCIÓN · ACCESO PRIVADO</span></div>
+  <div class="billing-banner"><div><strong>Gestión comercial de la ASADA</strong><p>Seleccione el acueducto para administrar sus servicios y preparar el cobro mensual.</p></div><label>ASADA<select id="billing-asada" disabled></select></label></div>
+  <nav class="billing-tabs" aria-label="Secciones de facturación">
+   <button type="button" data-billing-tab="history" aria-pressed="true">Resumen y cartera</button>
+   <button type="button" data-billing-tab="registry" aria-pressed="false">Abonados y servicios</button>
+   <button type="button" data-billing-tab="migration" aria-pressed="false">Migración de datos</button>
+   <button type="button" data-billing-tab="monthly" aria-pressed="false">Facturación mensual</button>
+   <button type="button" data-billing-tab="tariffs" aria-pressed="false">Tarifas ARESEP</button>
+  </nav>
+  <div data-billing-view="monthly" hidden>
+  <p class="water-notice">Los cálculos son subtotales de prueba antes de IVA y otros servicios. Los lotes aprobados corresponden a cobros internos.</p>
   <section class="water-panel" aria-labelledby="billing-cloud-title">
    <h2 id="billing-cloud-title">Lote mensual</h2>
-   <div class="fields"><label>ASADA<select id="billing-asada" disabled></select></label></div>
    <div class="actions">
     <button class="button outline" type="button" id="billing-load" disabled>Cargar mes seleccionado</button>
     <button class="button outline" type="button" id="billing-example">Cargar ejemplo de 25 m³</button>
@@ -47,6 +96,8 @@
    <p id="billing-cloud-status" role="status">Consultando acceso…</p>
    <button class="button primary" type="button" id="billing-approve" hidden>Confirmar puesta al cobro interna</button>
   </section>
+  </div>
+  <div data-billing-view="history">
   <section class="water-panel" id="billing-history" aria-labelledby="billing-history-title">
    <h2 id="billing-history-title">Facturación, recaudación y cartera</h2>
    <div class="fields">
@@ -72,7 +123,35 @@
     <p class="small">Los pagos se agrupan por período del recibo. Para el flujo de efectivo se requiere la fecha efectiva del pago y su conciliación.</p>
    </div>
   </section>
-  <details class="water-panel" id="billing-rate-editor">
+  </div>
+  <section class="water-panel" data-billing-view="registry" hidden>
+   <div class="registry-heading"><div><h2>Padrón de abonados y servicios</h2><p class="sw-sub">Cada paja tiene su propio medidor, tarifa y estado.</p></div><button type="button" id="registry-add" class="button primary">＋ Nuevo abonado / servicio</button></div>
+   <div class="registry-meta"><label>Buscar por paja, nombre, cédula, medidor o sector<input id="registry-search" type="search" placeholder="Buscar servicio…"></label><span id="registry-count" class="registry-kpi"></span><button type="button" id="registry-refresh" class="button outline">Actualizar padrón</button></div>
+   <p id="registry-status" role="status">Seleccione una ASADA.</p>
+   <form id="registry-form" class="registry-form" hidden>
+    <h3 id="registry-form-title">Nuevo servicio</h3>
+    <div id="registry-fields" class="fields"></div>
+    <p class="small">Puede registrar varias pajas con la misma cédula. La lectura inicial corresponde al inicio del primer período que se cobrará en el sistema.</p>
+    <div class="actions"><button type="submit" class="button primary">Guardar servicio</button><button type="button" id="registry-cancel" class="button outline">Cancelar</button></div>
+   </form>
+   <div class="table-scroll registry-list"><table aria-label="Padrón de servicios"><thead><tr><th>Paja</th><th>Abonado / identificación</th><th>Medidor</th><th>Tarifa</th><th>Sector</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="registry-rows"></tbody></table></div>
+   <div class="registry-pages"><button id="registry-prev" type="button" class="button outline">Anterior</button><span id="registry-page"></span><button id="registry-next" type="button" class="button outline">Siguiente</button></div>
+  </section>
+  <section class="water-panel" data-billing-view="migration" hidden>
+   <h2>Migrar desde otro sistema de facturación</h2>
+   <p>Exporte el maestro de abonados y servicios del sistema actual en Excel o CSV. Conserve los números de paja, cédulas y medidores como texto para preservar los ceros iniciales.</p>
+   <div class="actions"><button type="button" id="registry-template" class="button outline">Descargar plantilla CSV</button><label>Archivo de servicios<input id="registry-file" type="file" accept=".xlsx,.csv"></label></div>
+   <div id="registry-import-config" hidden>
+    <div class="fields"><label>Hoja<select id="registry-sheet"></select></label><label>Fila de encabezados<input id="registry-header" type="number" min="1" max="100" value="1"></label><label>Bloque de importación (500 servicios)<select id="registry-block"></select></label></div>
+    <h3>Asignación de columnas</h3><div id="registry-mapping" class="fields"></div>
+    <div class="actions"><button type="button" id="registry-review" class="button primary">Revisar importación</button></div>
+   </div>
+   <p id="registry-import-status" role="status">Seleccione un bloque de hasta 500 servicios por vez. Puede repetir un bloque idéntico sin duplicar registros.</p>
+   <div id="registry-import-preview" hidden><h3>Resultado de la revisión</h3><ul id="registry-import-errors" class="issues"></ul><div class="table-scroll registry-list"><table><thead><tr><th>Fila</th><th>Paja</th><th>Nombre</th><th>Medidor</th><th>Tarifa</th><th>Acción</th></tr></thead><tbody id="registry-import-rows"></tbody></table></div><label class="billing-check"><input id="registry-import-confirm" type="checkbox"> Confirmo que los datos pertenecen a la ASADA seleccionada y revisé el corte de migración.</label><button type="button" id="registry-import-save" class="button primary" disabled>Importar servicios revisados</button></div>
+   <p class="small">Esta etapa importa el padrón y lecturas iniciales. Los saldos pendientes, facturas anteriores y pagos requieren conciliación de corte y una migración histórica específica antes de iniciar cobros reales.</p>
+  </section>
+  <div data-billing-view="tariffs" hidden>
+  <details class="water-panel" id="billing-rate-editor" open>
    <summary><strong>Configurar tarifas de la ASADA</strong></summary>
    <p>Consulte la resolución aplicable al operador y al mes de cobro. <a href="https://aresep.go.cr/agua-potable/calculadora-tarifaria/" target="_blank" rel="noopener noreferrer">Consultar en ARESEP</a></p>
    <p id="billing-rate-summary"></p>
@@ -110,6 +189,8 @@
     <p role="status" id="billing-rate-status"></p>
    </form>
   </details>
+  </div>
+  <div data-billing-view="monthly" hidden>
   <form id="billing-form">
    <section class="water-panel">
     <h2>Período de facturación</h2>
@@ -124,8 +205,13 @@
     <div class="actions">
      <label>Importar archivo CSV<input id="billing-file" type="file" accept=".csv,text/csv"></label>
      <button class="button outline" type="button" id="billing-template">Descargar plantilla CSV</button>
+     <button class="button primary" type="button" id="billing-reading-plan">Preparar lecturas del padrón</button>
     </div>
-    <label>Lecturas en formato CSV<textarea name="readings" rows="6" maxlength="400000" required spellcheck="false" placeholder="abonado;lectura_anterior;lectura_actual"></textarea></label>
+    <div id="billing-plan-grid" hidden>
+     <div class="registry-meta"><label>Buscar paja, abonado o sector<input id="billing-plan-search" type="search"></label><span id="billing-plan-count" class="registry-kpi"></span></div>
+     <div class="table-scroll registry-list"><table aria-label="Lecturas preparadas"><thead><tr><th>Paja / titular</th><th>Medidor</th><th>Sector</th><th>Lectura anterior</th><th>Lectura actual</th></tr></thead><tbody id="billing-plan-rows"></tbody></table></div>
+    </div>
+    <details id="billing-csv-editor" open><summary>Editar o pegar lecturas en CSV</summary><label>Lecturas en formato CSV<textarea name="readings" rows="6" maxlength="400000" required spellcheck="false" placeholder="abonado;lectura_anterior;lectura_actual"></textarea></label></details>
     <p class="small">Use el código del abonado y las lecturas del mismo medidor en m³. En lotes mixtos, indique la categoría de cada abonado en la columna categoria. Para decimales con coma, separe las columnas con punto y coma.</p>
     <button type="submit" class="button primary" id="billing-calculate">Calcular borrador</button>
     <p role="status" id="billing-status"></p>
@@ -166,6 +252,7 @@
     <p id="billing-payment-status" role="status"></p>
    </form>
   </section>
- </main>
+  </div>
+ </main></div></div></div>
 </body>
 </html>

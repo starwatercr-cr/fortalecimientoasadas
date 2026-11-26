@@ -1,4 +1,6 @@
-import {buildRate, categories, normalizeTariff, previewBills, previewCsv, readingHeaders, validMonth, summarizeBillingHistory, billingHistoryCsv} from './facturacion-model.js?v=3';
+import {setupRegistry} from './billing-registry.js';
+import {csv} from './morosidad-model.js';
+import {buildRate, categories, normalizeTariff, previewBills, previewCsv, readingHeaders, validMonth, summarizeBillingHistory, billingHistoryCsv} from './facturacion-model.js?v=4';
 
 const byId=id=>document.getElementById(id);
 const form=byId('billing-form');
@@ -22,12 +24,24 @@ const approveButton=byId('billing-approve');
 const money=new Intl.NumberFormat('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const volume=new Intl.NumberFormat('es-CR',{maximumFractionDigits:3});
 let preview=null, fileRead=0, saved=null, busy=false, example=false, dirty=false;
+let planRows=[];
 const inbound=new URLSearchParams(location.search);
 const inboundSubscriber=inbound.get('subscriber')||'';
 const historyYear=byId('billing-history-year');
 const historySubscriber=byId('billing-history-subscriber');
 const historyStatus=byId('billing-history-status');
 let historyData=null,historyRows=[];
+let currentView='history';
+const registry=setupRegistry({asadaSelect,api,run,download});
+function selectView(view){
+ currentView=view;
+ for(const button of document.querySelectorAll('[data-billing-tab]'))button.setAttribute('aria-pressed',String(button.dataset.billingTab===view));
+ for(const panel of document.querySelectorAll('[data-billing-view]'))panel.hidden=panel.dataset.billingView!==view;
+ if(view==='registry')registry.ensure();
+ if(view==='history'&&asadaSelect.value&&!historyData)run(loadHistory,historyStatus);
+}
+for(const button of document.querySelectorAll('[data-billing-tab]'))button.onclick=()=>{if(!busy)selectView(button.dataset.billingTab);};
+
 const context=()=>({asada:asadaSelect.value,period:form.elements.period.value});
 const buttons=()=>{
  saveButton.disabled=busy||!dirty||example||!asadaSelect.value||!preview?.bills.length||preview.issues.length>0||saved?.status==='approved';
@@ -35,6 +49,10 @@ const buttons=()=>{
  byId('billing-load').disabled=busy||!asadaSelect.value;
  profileSave.disabled=busy||!asadaSelect.value;
  byId('billing-history-load').disabled=busy||!asadaSelect.value;
+ byId('billing-reading-plan').disabled=busy||!asadaSelect.value||saved?.status==='approved';
+ byId('registry-add').disabled=busy||!asadaSelect.value;
+ byId('registry-refresh').disabled=busy||!asadaSelect.value;
+ byId('registry-file').disabled=busy||!asadaSelect.value;
  byId('billing-history-export').disabled=busy||!historyRows.length;
 };
 
@@ -88,7 +106,7 @@ function display(report){
  const table=document.createDocumentFragment();
  for(const bill of report.bills){
   const row=document.createElement('tr');
-  for(const value of [bill.subscriber,...[bill.previous,bill.current,bill.consumption].map(n=>volume.format(n)),
+  for(const value of [bill.subscriber+(bill.name?' · '+bill.name:''),...[bill.previous,bill.current,bill.consumption].map(n=>volume.format(n)),
    categories[bill.category]||'—',...[bill.fixedCents,bill.variableCents,bill.hydrantsCents||0,bill.resourceCents||0,bill.totalCents].map(n=>money.format(n/100))]){
    row.insertCell().textContent=value;
   }
@@ -113,7 +131,38 @@ form.elements.period.value=month;
 historyYear.value=/^20\d{2}$/.test(inbound.get('year')||'')?inbound.get('year'):
  validMonth(inbound.get('period'))?inbound.get('period').slice(0,4):month.slice(0,4);
 historySubscriber.value=inboundSubscriber;
+function clearPlan(){
+ planRows=[];
+ byId('billing-plan-grid').hidden=true;
+ byId('billing-csv-editor').open=true;
+}
+function refreshPlan(){
+ const query=byId('billing-plan-search').value.trim().toLocaleLowerCase('es');
+ const filtered=planRows.filter(r=>[r.subscriber,r.name,r.sector,r.meter].join(' ').toLocaleLowerCase('es').includes(query));
+ byId('billing-plan-count').textContent=filtered.length+' servicios · '+planRows.filter(r=>r.current.trim()).length+' lecturas ingresadas de '+planRows.length;
+ byId('billing-plan-rows').replaceChildren(...filtered.map(r=>{
+  const row=document.createElement('tr');
+  for(const value of [r.subscriber+' · '+r.name,r.meter||'—',r.sector||'—'])row.insertCell().textContent=value;
+  for(const [key,label] of [['previous','Lectura anterior'],['current','Lectura actual']]){
+   const input=document.createElement('input');
+   input.type='text';input.inputMode='decimal';input.value=r[key];input.setAttribute('aria-label',label+' · paja '+r.subscriber);
+   input.style.minWidth='105px';
+   input.oninput=()=>{
+    r[key]=input.value;syncPlan();
+    byId('billing-plan-count').textContent=filtered.length+' servicios · '+planRows.filter(r=>r.current.trim()).length+' lecturas ingresadas de '+planRows.length;
+   };
+   row.insertCell().append(input);
+  }
+  return row;
+ }));
+}
+function syncPlan(){
+ form.elements.readings.value=csv([[...readingHeaders,'categoria'],...planRows.map(r=>[r.subscriber,r.previous,r.current,r.category])]);
+ example=false;invalidate();
+}
+byId('billing-plan-search').oninput=refreshPlan;
 function resetPeriod(){
+ clearPlan();
  fileRead++;
  calculate.disabled=false;
  saved=null;example=false;
@@ -126,13 +175,14 @@ function resetPeriod(){
 }
 form.addEventListener('input',event=>{
  if(event.target===form.elements.period){resetPeriod();return;}
- if(event.target===form.elements.readings){fileRead++;calculate.disabled=false;example=false;}
+ if(event.target.closest('#billing-plan-grid'))return;
+ if(event.target===form.elements.readings){clearPlan();fileRead++;calculate.disabled=false;example=false;}
  invalidate();
 });
 const sampleBills=buildRate({fixed:'2800',tiers:[{limit:'15',price:'245'},{limit:'30',price:'283'},{limit:'60',price:'331'}],overflow:'368',
  hydrants:'650',resource:{tiers:[{limit:'15',price:'40'},{limit:'30',price:'43'},{limit:'60',price:'48'}],overflow:'54'}});
 byId('billing-example').onclick=()=>{
- fileRead++;
+ clearPlan();fileRead++;
  example=true;
  fileInput.value='';
  calculate.disabled=false;
@@ -146,7 +196,7 @@ fileInput.addEventListener('change',async()=>{
  const file=fileInput.files[0];
  fileInput.value='';
  if(!file)return;
- invalidate();
+ clearPlan();invalidate();
  form.elements.readings.value='';
  calculate.disabled=true;
  try{
@@ -226,6 +276,7 @@ function displayHistory(){
    if(busy||dirty&&form.elements.readings.value.trim()&&!window.confirm('¿Cambiar de período? Se descartará el borrador sin guardar.'))return;
    form.elements.period.value=item.period;
    resetPeriod();
+   selectView('monthly');
    run(loadSaved);
   };
   row.insertCell().append(button);
@@ -294,7 +345,7 @@ function showSaved(batch,paid=[]){
    const row=document.createElement('tr');
    if(bill.subscriber===inboundSubscriber)row.className='billing-focused';
    const state=balance===0?'Sin saldo':batch.due_date<today?'Vencido':applied>0?'Pago parcial':'Pendiente';
-   for(const value of [bill.subscriber,...[bill.totalCents,applied,balance].map(n=>money.format(n/100)),state]){
+   for(const value of [bill.subscriber+(bill.name?' · '+bill.name:''),...[bill.totalCents,applied,balance].map(n=>money.format(n/100)),state]){
     row.insertCell().textContent=value;
    }
    rows.append(row);
@@ -316,6 +367,7 @@ async function run(action,feedback=cloudStatus){
  const request=context();
  busy=true;
  asadaSelect.disabled=true;
+ for(const panel of document.querySelectorAll('[data-billing-view="registry"],[data-billing-view="migration"]'))panel.inert=true;
  form.inert=true;
  profileForm.inert=true;
  historyYear.disabled=historySubscriber.disabled=true;
@@ -329,6 +381,7 @@ async function run(action,feedback=cloudStatus){
  finally{
   busy=false;
   asadaSelect.disabled=false;
+  for(const panel of document.querySelectorAll('[data-billing-view="registry"],[data-billing-view="migration"]'))panel.inert=false;
   form.inert=false;
   profileForm.inert=false;
   historyYear.disabled=historySubscriber.disabled=false;
@@ -340,7 +393,7 @@ async function run(action,feedback=cloudStatus){
 }
 
 async function loadSaved(){
- await refreshProfiles();
+ clearPlan();await refreshProfiles();
  fileRead++;
  calculate.disabled=false;
  preview=null;
@@ -350,7 +403,7 @@ async function loadSaved(){
 }
 
 asadaSelect.addEventListener('change',()=>{
- fileRead++;
+ clearPlan();fileRead++;
  calculate.disabled=false;
  saved=null;
  example=false;
@@ -358,11 +411,26 @@ asadaSelect.addEventListener('change',()=>{
  form.elements.due.value='';
  clearAccounts();
  clearHistory();
+ registry.reset();
  refreshProfiles();
  invalidate();
  cloudStatus.textContent='Seleccione el mes y cargue un lote guardado o prepare un borrador.';
+ selectView(currentView);
 });
 byId('billing-load').onclick=()=>run(loadSaved);
+byId('billing-reading-plan').onclick=()=>run(async()=>{
+ if(form.elements.readings.value.trim()&&!window.confirm('¿Reemplazar las lecturas de trabajo con el padrón?'))return;
+ const {rows}=await api('reading-plan');
+ if(!rows.length)throw Error('Registre primero los servicios activos en el padrón.');
+ planRows=rows.map(r=>({...r,current:''}));
+ byId('billing-plan-search').value='';
+ syncPlan();refreshPlan();
+ byId('billing-plan-grid').hidden=false;
+ byId('billing-csv-editor').open=false;
+ const missing=rows.filter(r=>r.previous==='').length;
+ status.textContent=rows.length+' servicios activos preparados. Complete las lecturas actuales'+(missing?' y las '+missing+' lecturas anteriores sin respaldo.':'.');
+},status);
+
 saveButton.onclick=()=>{
  if(!dirty||!preview||preview.issues.length||example)return;
  if(!form.elements.due.value){cloudStatus.textContent='Indique la fecha de vencimiento para guardar.';form.elements.due.focus();return;}
@@ -467,9 +535,6 @@ profileForm.addEventListener('submit',event=>{
   cloudStatus.textContent=asadas.length?'Seleccione el mes. Puede cargar un lote guardado o preparar uno nuevo.':'No hay ASADAS activas para su acceso.';
   buttons();
   await refreshProfiles();
-  if(asadaSelect.value&&(inboundSubscriber||inbound.get('year'))){
-   await run(loadHistory,historyStatus);
-   byId('billing-history').scrollIntoView({block:'start'});
-  }
+  if(asadaSelect.value)await run(loadHistory,historyStatus);
  }catch(error){cloudStatus.textContent=error.message;}
 })();

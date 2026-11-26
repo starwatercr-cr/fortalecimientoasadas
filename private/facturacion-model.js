@@ -7,7 +7,7 @@ export const categories={
 };
 export const categoryKey=value=>String(value??'').trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'').replace(/^comercio_y_servicios$/,'comercio').replace(/^residencial_social$/,'social').replace(/^residencial_pobreza_extrema$/,'pobreza_extrema');
 export const validMonth=value=>typeof value==='string'&&/^20\d{2}-(0[1-9]|1[0-2])$/.test(value);
-const maximumRows=1000;
+const maximumRows=3000;
 const consumptionLimit=100000000; // Milli-cubic metres.
 const rateLimit=10000000; // Cents per cubic metre.
 
@@ -134,7 +134,7 @@ export function billingHistoryRows(batch,paid,today){
   const balanceCents=bill.totalCents-paidCents;
   if(!Number.isSafeInteger(paidCents)||paidCents<0||balanceCents<0)throw Error('Los pagos del lote requieren revisión.');
   return {subscriber:bill.subscriber,period:batch.period.slice(0,7),dueDate:batch.due_date,
-   category:bill.category||'',consumption:bill.consumption,totalCents:bill.totalCents,paidCents,balanceCents,
+   category:bill.category||'',name:bill.name||'',meter:bill.meter||'',consumption:bill.consumption,totalCents:bill.totalCents,paidCents,balanceCents,
    overdueCents:batch.due_date<today?balanceCents:0};
  });
 }

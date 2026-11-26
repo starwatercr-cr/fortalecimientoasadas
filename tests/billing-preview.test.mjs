@@ -58,6 +58,7 @@ test('el servidor recalcula el lote, respeta su versión y conserva el límite d
  let tariffId='r1';
  const db=async(path,options)=>{
   if(path.startsWith('/rest/v1/asadas?'))return path.includes('id=eq.'+tenant+'&')?[{id:tenant}]:[];
+  if(path.startsWith('/rest/v1/billing_services?'))return [];
   if(path.endsWith('/rpc/billing_tariffs_for_month'))return [{id:tariffId,profile:{category:'residencial',rate:{fixed:'1000',tiers:[],overflow:'100'}}}];
   if(path.startsWith('/rest/v1/billing_batches?')&&!options){
    assert(path.includes('asada_id=eq.'+tenant));
@@ -130,7 +131,7 @@ test('historial anual usa los mismos lotes aprobados y pagos para consumo y cart
    assert.deepEqual(q.getAll('period'),['gte.2025-01-01','lt.2026-01-01']);
    return batches;
   }
-  if(path.endsWith('/rpc/billing_paid_totals')){
+  if(path.startsWith('/rest/v1/rpc/billing_paid_totals?')){
    assert.equal(options.body.p_asada,tenant);
    return options.body.p_batch==='jan'?[{subscriber:'001',paid_cents:'500000'},{subscriber:'002',paid_cents:'345000'}]:[];
   }

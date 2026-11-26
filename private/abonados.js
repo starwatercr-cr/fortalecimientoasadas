@@ -35,7 +35,7 @@ async function openBilling(){
  if(!/^20\d{2}$/.test(year))throw Error('Seleccione un año entre 2000 y 2099.');
  const data=await api('billing-history?'+new URLSearchParams({asada:$('asada').value,year}));
  if(!data.rows.length)throw Error('No hay lotes aprobados para este año.');
- const rows=data.rows.map(r=>({subscriber:r.subscriber,name:'',meter:'',period:r.period,consumption:r.consumption,
+ const rows=data.rows.map(r=>({subscriber:r.subscriber,name:r.name||'',meter:r.meter||'',period:r.period,consumption:r.consumption,
   billed:r.totalCents/100,paid:r.paidCents/100,status:r.balanceCents===0?'Sin saldo':r.overdueCents>0?'Vencido':'Pendiente',
   category:r.category,invoice:'interno:'+r.period+':'+r.subscriber}));
  reset();
