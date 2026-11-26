@@ -125,3 +125,42 @@ export function previewCsv(report){
    (bill.fixedCents/100).toFixed(2),(bill.variableCents/100).toFixed(2),bill.category||'',((bill.hydrantsCents||0)/100).toFixed(2),((bill.resourceCents||0)/100).toFixed(2),(bill.totalCents/100).toFixed(2)]),
  ]);
 }
+
+// Approved internal charges and verified payments share a single source across views.
+export function billingHistoryRows(batch,paid,today){
+ const amounts=new Map(paid.map(p=>[p.subscriber,Number(p.paid_cents)]));
+ return batch.report.map(bill=>{
+  const paidCents=amounts.get(bill.subscriber)??0;
+  const balanceCents=bill.totalCents-paidCents;
+  if(!Number.isSafeInteger(paidCents)||paidCents<0||balanceCents<0)throw Error('Los pagos del lote requieren revisión.');
+  return {subscriber:bill.subscriber,period:batch.period.slice(0,7),dueDate:batch.due_date,
+   category:bill.category||'',consumption:bill.consumption,totalCents:bill.totalCents,paidCents,balanceCents,
+   overdueCents:batch.due_date<today?balanceCents:0};
+ });
+}
+
+export function summarizeBillingHistory(rows){
+ const empty=()=>({count:0,consumption:0,totalCents:0,paidCents:0,balanceCents:0,overdueCents:0});
+ const total=empty(),months=new Map();
+ for(const row of rows){
+  if(!months.has(row.period))months.set(row.period,empty());
+  for(const summary of [total,months.get(row.period)]){
+   summary.count++;
+   summary.consumption+=Math.round(row.consumption*1000);
+   for(const key of ['totalCents','paidCents','balanceCents','overdueCents']){
+    summary[key]+=row[key];
+    if(!Number.isSafeInteger(summary[key]))throw Error('El total supera el límite de cálculo. Consulte un período menor.');
+   }
+  }
+ }
+ const finish=summary=>({...summary,consumption:summary.consumption/1000});
+ return {total:finish(total),months:[...months].sort(([a],[b])=>a.localeCompare(b)).map(([period,summary])=>({period,...finish(summary)}))};
+}
+
+export function billingHistoryCsv(rows){
+ return csv([
+  ['tipo','periodo','abonado','categoria','consumo_m3','vencimiento','cargo_interno_crc','pago_aplicado_crc','saldo_crc','vencido_crc'],
+  ...rows.map(r=>['COBRO INTERNO',r.period,r.subscriber,categories[r.category]||r.category,r.consumption,r.dueDate,
+   ...[r.totalCents,r.paidCents,r.balanceCents,r.overdueCents].map(cents=>(cents/100).toFixed(2))]),
+ ]);
+}

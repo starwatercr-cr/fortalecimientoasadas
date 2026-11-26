@@ -158,13 +158,13 @@ test('solo la cuenta administradora propietaria puede abrir Facturación y sus o
    assert.equal(response.status,403);
    assert.match(await response.text(),/en construcción/i);
   }
-  for(const api of ['billing-asadas','billing-tariffs','billing-load']){
+  for(const api of ['billing-asadas','billing-tariffs','billing-load','billing-history']){
    assert.equal((await handler(req('api='+api))).status,403);
   }
   for(const api of ['billing-save','billing-approve','billing-payment','billing-tariff-save']){
    assert.equal((await handler(req('api='+api,{}))).status,403);
   }
-  for(const file of ['abonados.html','morosidad.html']){
+  for(const file of ['abonados.html','morosidad.html','panel-gestion.html']){
    assert.doesNotMatch(await (await handler(req('file='+file))).text(),/id="billing-access"/);
   }
  }
@@ -172,7 +172,7 @@ test('solo la cuenta administradora propietaria puede abrir Facturación y sus o
  assert.equal((await (await handler(req('api=me'))).json()).billingAccess,true);
  assert.deepEqual(await (await handler(req('api=billing-asadas'))).json(),{asadas:[]});
  for(const file of files)assert.equal((await handler(req('file='+file))).status,200);
- for(const file of ['abonados.html','morosidad.html']){
+ for(const file of ['abonados.html','morosidad.html','panel-gestion.html']){
   assert.match(await (await handler(req('file='+file))).text(),/id="billing-access"/);
  }
 });

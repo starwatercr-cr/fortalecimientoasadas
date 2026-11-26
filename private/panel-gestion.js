@@ -448,6 +448,7 @@ function practicalHome(){
 }
 function homeMonthDetail(index){const d=SWFinancialHome.build(records,year),x=d.monthly[index];if(x&&$('#sw-home-month-detail'))$('#sw-home-month-detail').textContent=months[index]+' · '+(x.count?'Entradas: '+money(x.income)+' · Pagos: '+money(x.expenses)+' · Diferencia de efectivo: '+money(x.income-x.expenses)+'. '+x.count+' movimientos registrados.':'Falta registrar movimientos. No se supone que el resultado sea cero.');}
 function draw(){
+ showBillingLink();
  $('#sw-title').textContent=modules.find(m=>m[0]===module)[1];
  $('.sw-sub').textContent=(asadas.find(a=>a.id===asada)?.name||'Información de su ASADA')+(module==='properties'?' · Consulta en el portal oficial':' · Año '+year+(['board','workplan','calendar','orders','outages','network','monthly','projects'].includes(module)?'':' · Montos en colones'));
  const yearLabel=module==='board'?'Año de trabajo':'Año';
@@ -641,6 +642,12 @@ async function compare(){
 }
 
 function lock(on){['#sw-year','#sw-asada','#sw-reload','#sw-export','#sw-pdf','#sw-history'].forEach(q=>$(q).disabled=on);}
+function showBillingLink(){
+ const entry=$('#sw-billing-entry'),link=$('#sw-billing-link');
+ if(!entry||!link)return;
+ entry.hidden=!document.getElementById('billing-access')||!asada||year<2000||year>2099||!['home','finance-summary','cash','budget','statements'].includes(module);
+ if(!entry.hidden)link.href='/facturacion.html?'+new URLSearchParams({asada,year});
+}
 async function load(){if(busy||loading)return;loading=true;boardSearch=null;boardQuery='';boardScope='current';lock(true);$('#sw-content').textContent='Cargando información guardada…';try{if(!asada){records=[];draw();return;}monthlyExtra=null;const d=await api(module==='projects'?'panel-projects?asada='+encodeURIComponent(asada):endpoint('panel-data'));records=d.records;canEdit=d.canEdit;canEditOperations=d.canEditOperations===true;canCompleteOrders=d.canCompleteOrders===true;canRestoreOutages=d.canRestoreOutages===true;$('.sw-sub').textContent=d.asada.name+(module==='projects'?' · Proyectos de todos los años':' · Año '+year+(['board','workplan','calendar','orders','outages','network','monthly'].includes(module)?'':' · Montos en colones'));close();draw();status('Información cargada desde la nube.');}catch(e){records=[];$('#sw-content').textContent='No se cargaron los datos. Pulse Actualizar para intentarlo de nuevo.';status(e.message);}finally{loading=false;lock(false);}}
 function close(){editing=null;$('#sw-editor').hidden=true;$('#sw-editor').innerHTML='';}
 const amount=(key,label,value=0)=>'<label>'+label+'<input name="'+key+'" type="number" min="0" max="1000000000000" step="0.01" value="'+esc(value)+'" required></label>';

@@ -1,4 +1,4 @@
-import {categories, normalizeTariff, paymentCents, previewBills, validMonth} from '../../private/facturacion-model.js';
+import {categories, normalizeTariff, paymentCents, previewBills, validMonth, billingHistoryRows} from '../../private/facturacion-model.js';
 
 // Keep the pilot restricted to the owner's verified platform account.
 export const billingOwnerId='55c49ed1-78ad-4169-915a-856cf6e9f45e';
@@ -19,6 +19,18 @@ export async function billingAPI(api,request,{who,sb,body,uuid,json,PublicError}
  if(!uuid(requested))fail('Seleccione una ASADA.');
  const [asada]=await sb('/rest/v1/asadas?id=eq.'+requested+'&active=eq.true&select=id,name');
  if(!asada)fail('ASADA no disponible.',403);
+ if(api==='billing-history'&&method==='GET'){
+  const year=url.searchParams.get('year');
+  if(!/^20\d{2}$/.test(year||''))fail('Seleccione un año válido.');
+  const batches=await sb('/rest/v1/billing_batches?asada_id=eq.'+asada.id+
+   '&status=eq.approved&period=gte.'+year+'-01-01&period=lt.'+(Number(year)+1)+'-01-01&select=id,period,due_date,report&order=period.asc&limit=12');
+  const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Costa_Rica'}).format(new Date());
+  const rows=(await Promise.all(batches.map(async batch=>{
+   const paid=await sb('/rest/v1/rpc/billing_paid_totals',{method:'POST',body:{p_asada:asada.id,p_batch:batch.id}});
+   return billingHistoryRows(batch,paid,today);
+  }))).flat();
+  return json({asada,year,today,rows});
+ }
  const period=input?.period??url.searchParams.get('period');
  if(!validMonth(period))fail('Seleccione un mes válido.');
  const tariffs=async()=>{

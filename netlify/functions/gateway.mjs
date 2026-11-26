@@ -260,7 +260,7 @@ if(api==='login'&&request.method==='POST'){
    if(!externalAllowed(who,file))throw new PublicError(403,'Esta herramienta no está autorizada para su acceso externo.');if(['accesos.html','accesos.js'].includes(file)&&!who.admin&&who.role!=='Administración')throw new PublicError(403,'Usuarios y permisos corresponde a la administración de la ASADA.');if(['equipo.html','equipo.js','evaluation-model.js','labor-model.js','labor-ui.js','labor-pdf.js'].includes(file)&&!canManageTeam(who))throw new PublicError(403,'Nuestro equipo está disponible para la administración de la ASADA.');}catch(e){if(e.status===402&&file.endsWith('.html'))return new Response(null,{status:303,headers:{...headers,Location:'/acceso.html?prueba=vencida'}});if(e.status===401&&file.endsWith('.html'))return new Response(null,{status:303,headers:{...headers,Location:'/acceso.html?return='+encodeURIComponent('/'+file)+(file==='solicitudes-clientes.html'&&uuid(url.searchParams.get('caso'))?'&caso='+url.searchParams.get('caso'):'')}});throw e;}
   if(file==='asada-ejemplo.html')return new Response(null,{status:303,headers:{...headers,Location:'/herramientas.html'}});
   const responseHeaders={...headers,'Content-Type':mime[path.extname(file)]||'application/octet-stream'};
-  const billingLink=['abonados.html','morosidad.html'].includes(file);
+  const billingLink=['abonados.html','morosidad.html','panel-gestion.html'].includes(file);
   if(exampleModules.has(file)||billingLink){
    const html=await readFile(path.join(root,file),'utf8');
    const eligible=canExploreExample(who),exploring=eligible&&url.searchParams.get('ejemplo')==='1';

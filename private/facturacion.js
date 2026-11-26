@@ -1,4 +1,4 @@
-import {buildRate, categories, normalizeTariff, previewBills, previewCsv, readingHeaders, validMonth} from './facturacion-model.js?v=2';
+import {buildRate, categories, normalizeTariff, previewBills, previewCsv, readingHeaders, validMonth, summarizeBillingHistory, billingHistoryCsv} from './facturacion-model.js?v=3';
 
 const byId=id=>document.getElementById(id);
 const form=byId('billing-form');
@@ -24,12 +24,18 @@ const volume=new Intl.NumberFormat('es-CR',{maximumFractionDigits:3});
 let preview=null, fileRead=0, saved=null, busy=false, example=false, dirty=false;
 const inbound=new URLSearchParams(location.search);
 const inboundSubscriber=inbound.get('subscriber')||'';
+const historyYear=byId('billing-history-year');
+const historySubscriber=byId('billing-history-subscriber');
+const historyStatus=byId('billing-history-status');
+let historyData=null,historyRows=[];
 const context=()=>({asada:asadaSelect.value,period:form.elements.period.value});
 const buttons=()=>{
  saveButton.disabled=busy||!dirty||example||!asadaSelect.value||!preview?.bills.length||preview.issues.length>0||saved?.status==='approved';
  approveButton.hidden=!saved||saved.status!=='draft'||dirty||!saved.source.profiles?.length;
  byId('billing-load').disabled=busy||!asadaSelect.value;
  profileSave.disabled=busy||!asadaSelect.value;
+ byId('billing-history-load').disabled=busy||!asadaSelect.value;
+ byId('billing-history-export').disabled=busy||!historyRows.length;
 };
 
 function invalidate(){
@@ -104,8 +110,22 @@ function display(report){
 
 const month=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Costa_Rica',year:'numeric',month:'2-digit'}).format(new Date());
 form.elements.period.value=month;
+historyYear.value=/^20\d{2}$/.test(inbound.get('year')||'')?inbound.get('year'):
+ validMonth(inbound.get('period'))?inbound.get('period').slice(0,4):month.slice(0,4);
+historySubscriber.value=inboundSubscriber;
+function resetPeriod(){
+ fileRead++;
+ calculate.disabled=false;
+ saved=null;example=false;
+ fileInput.value='';
+ form.elements.readings.value='';
+ form.elements.due.value='';
+ clearAccounts();
+ cloudStatus.textContent='Cargue el lote de este mes si ya lo guardó.';
+ refreshProfiles();invalidate();
+}
 form.addEventListener('input',event=>{
- if(event.target===form.elements.period){saved=null;clearAccounts();cloudStatus.textContent='Cargue el lote de este mes si ya lo guardó.';refreshProfiles();}
+ if(event.target===form.elements.period){resetPeriod();return;}
  if(event.target===form.elements.readings){fileRead++;calculate.disabled=false;example=false;}
  invalidate();
 });
@@ -173,6 +193,78 @@ async function api(name,input){
  return data;
 }
 
+function clearHistory(){
+ historyData=null;
+ historyRows=[];
+ byId('billing-history-results').hidden=true;
+ byId('billing-history-analysis').hidden=true;
+ byId('billing-history-finance').hidden=true;
+ historyStatus.textContent='Pulse Consultar historial para actualizar los datos.';
+ buttons();
+}
+function displayHistory(){
+ if(!historyData)return;
+ const code=historySubscriber.value.trim();
+ historyRows=code?historyData.rows.filter(row=>row.subscriber===code):historyData.rows;
+ const {total,months}=summarizeBillingHistory(historyRows);
+ const metrics=byId('billing-history-metrics');
+ metrics.replaceChildren(...[
+  ['Cargos internos','₡'+money.format(total.totalCents/100)],
+  ['Pagos aplicados','₡'+money.format(total.paidCents/100)],
+  ['Saldo pendiente','₡'+money.format(total.balanceCents/100)],
+  ['Saldo vencido','₡'+money.format(total.overdueCents/100)],
+  ['Consumo',volume.format(total.consumption)+' m³'],
+ ].map(([label,value])=>{
+  const item=document.createElement('div'),title=document.createElement('span'),amount=document.createElement('strong');
+  title.textContent=label;amount.textContent=value;item.append(title,amount);return item;
+ }));
+ const rows=document.createDocumentFragment();
+ for(const item of months){
+  const row=document.createElement('tr'),button=document.createElement('button');
+  button.type='button';button.className='button outline';button.textContent=item.period;
+  button.onclick=()=>{
+   if(busy||dirty&&form.elements.readings.value.trim()&&!window.confirm('¿Cambiar de período? Se descartará el borrador sin guardar.'))return;
+   form.elements.period.value=item.period;
+   resetPeriod();
+   run(loadSaved);
+  };
+  row.insertCell().append(button);
+  for(const value of [item.count,volume.format(item.consumption),
+   ...[item.totalCents,item.paidCents,item.balanceCents,item.overdueCents].map(c=>money.format(c/100))])row.insertCell().textContent=value;
+  rows.append(row);
+ }
+ byId('billing-history-months').replaceChildren(rows);
+ historyStatus.textContent=historyRows.length?historyData.asada.name+' · '+historyData.year+' · '+total.count+' recibos · Consultado '+historyData.today:
+  'No hay recibos aprobados para la selección.';
+ const analysis=byId('billing-history-analysis'),finance=byId('billing-history-finance');
+ analysis.href='/abonados.html?'+new URLSearchParams({asada:historyData.asada.id,year:historyData.year,source:'billing',subscriber:code});
+ finance.href='/panel-gestion.html?'+new URLSearchParams({asada:historyData.asada.id,year:historyData.year,module:'home'});
+ analysis.hidden=!historyRows.length;
+ finance.hidden=false;
+ byId('billing-history-results').hidden=!historyRows.length;
+ buttons();
+}
+async function loadHistory(){
+ const year=historyYear.value;
+ if(!/^20\d{2}$/.test(year))throw Error('Seleccione un año entre 2000 y 2099.');
+ clearHistory();
+ const res=await fetch('/api/billing-history?'+new URLSearchParams({asada:asadaSelect.value,year}),{credentials:'same-origin',cache:'no-store'});
+ const data=await res.json();
+ if(!res.ok)throw Error(data.error||'No fue posible consultar la facturación.');
+ historyData=data;
+ displayHistory();
+}
+async function refreshHistoryAfterWrite(){
+ if(!historyData)return;
+ try{await loadHistory();}catch(error){historyStatus.textContent=error.message;}
+}
+historyYear.addEventListener('input',clearHistory);
+historySubscriber.addEventListener('input',()=>{if(historyData)displayHistory();});
+byId('billing-history-load').onclick=()=>run(loadHistory,historyStatus);
+byId('billing-history-export').onclick=()=>{
+ if(historyRows.length)download(billingHistoryCsv(historyRows),'facturacion-interna-'+historyYear.value+'.csv');
+};
+
 function clearAccounts(){byId('billing-accounts').hidden=true;paymentForm.reset();}
 
 function showSaved(batch,paid=[]){
@@ -226,6 +318,7 @@ async function run(action,feedback=cloudStatus){
  asadaSelect.disabled=true;
  form.inert=true;
  profileForm.inert=true;
+ historyYear.disabled=historySubscriber.disabled=true;
  byId('billing-example').disabled=true;
  approveButton.disabled=true;
  const paymentButton=paymentForm.querySelector('button');
@@ -238,6 +331,7 @@ async function run(action,feedback=cloudStatus){
   asadaSelect.disabled=false;
   form.inert=false;
   profileForm.inert=false;
+  historyYear.disabled=historySubscriber.disabled=false;
   byId('billing-example').disabled=false;
   approveButton.disabled=false;
   paymentButton.disabled=false;
@@ -246,6 +340,7 @@ async function run(action,feedback=cloudStatus){
 }
 
 async function loadSaved(){
+ await refreshProfiles();
  fileRead++;
  calculate.disabled=false;
  preview=null;
@@ -262,6 +357,7 @@ asadaSelect.addEventListener('change',()=>{
  form.elements.readings.value='';
  form.elements.due.value='';
  clearAccounts();
+ clearHistory();
  refreshProfiles();
  invalidate();
  cloudStatus.textContent='Seleccione el mes y cargue un lote guardado o prepare un borrador.';
@@ -283,7 +379,7 @@ approveButton.onclick=()=>{
  if(!saved||saved.status!=='draft'||dirty)return;
  if(!window.confirm('¿Poner al cobro interno '+saved.report.length+' recibos por ₡'+money.format(preview.totalCents/100)+'? Los montos quedarán fijos.'))return;
  const version=saved.version;
- run(async request=>{await api('approve',{...request,version});await loadSaved();});
+ run(async request=>{await api('approve',{...request,version});await loadSaved();await refreshHistoryAfterWrite();});
 };
 paymentForm.addEventListener('submit',event=>{
  event.preventDefault();
@@ -293,6 +389,7 @@ paymentForm.addEventListener('submit',event=>{
   await api('payment',{...request,...fields});
   await loadSaved();
   cloudStatus.textContent+=' Pago aplicado.';
+  await refreshHistoryAfterWrite();
  },feedback);
 });
 
@@ -370,6 +467,9 @@ profileForm.addEventListener('submit',event=>{
   cloudStatus.textContent=asadas.length?'Seleccione el mes. Puede cargar un lote guardado o preparar uno nuevo.':'No hay ASADAS activas para su acceso.';
   buttons();
   await refreshProfiles();
-  if(inboundSubscriber&&asadaSelect.value)await run(loadSaved);
+  if(asadaSelect.value&&(inboundSubscriber||inbound.get('year'))){
+   await run(loadHistory,historyStatus);
+   byId('billing-history').scrollIntoView({block:'start'});
+  }
  }catch(error){cloudStatus.textContent=error.message;}
 })();

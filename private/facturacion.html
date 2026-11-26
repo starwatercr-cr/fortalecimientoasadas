@@ -5,7 +5,7 @@
  <meta name="viewport" content="width=device-width,initial-scale=1">
  <title>Facturación de agua | Plataforma ASADAS</title>
  <link rel="stylesheet" href="/style.css">
- <script type="module" src="/facturacion.js?v=3"></script>
+ <script type="module" src="/facturacion.js?v=4"></script>
  <style>
   body{background:var(--pale)}
   .billing{max-width:960px;margin:0 auto;padding:32px 18px 56px}
@@ -23,6 +23,10 @@
   .billing th,.billing td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
   .billing th:first-child,.billing td:first-child{text-align:left}
   .billing th{background:var(--pale)}
+  .billing .history-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:10px;margin:16px 0}
+  .billing .history-metrics>div{background:var(--pale);border-radius:8px;padding:14px;min-width:0}
+  .billing .history-metrics strong{display:block;font-size:1.25rem;overflow-wrap:anywhere}
+  .billing .history-metrics span{font-size:.9rem}
   .billing .billing-focused{background:#e2f4f0;font-weight:600}
   .billing .billing-check{display:flex;align-items:center;margin:10px 0}.billing .billing-check input{width:auto}.billing summary{cursor:pointer}.billing fieldset{min-width:0;border:1px solid var(--line);border-radius:8px}
   .billing [hidden]{display:none!important}
@@ -42,6 +46,31 @@
    </div>
    <p id="billing-cloud-status" role="status">Consultando acceso…</p>
    <button class="button primary" type="button" id="billing-approve" hidden>Confirmar puesta al cobro interna</button>
+  </section>
+  <section class="water-panel" id="billing-history" aria-labelledby="billing-history-title">
+   <h2 id="billing-history-title">Facturación, recaudación y cartera</h2>
+   <div class="fields">
+    <label>Año del consumo<input id="billing-history-year" type="number" min="2000" max="2099" required></label>
+    <label>Código de abonado (opcional)<input id="billing-history-subscriber" maxlength="80" placeholder="Todos los abonados"></label>
+   </div>
+   <div class="actions">
+    <button class="button primary" id="billing-history-load" type="button" disabled>Consultar historial</button>
+    <a id="billing-history-analysis" class="button outline" hidden>Analizar consumos</a>
+    <a id="billing-history-finance" class="button outline" hidden>Consultar finanzas</a>
+    <button class="button outline" id="billing-history-export" type="button" disabled>Descargar detalle CSV</button>
+   </div>
+   <p class="small">Incluye lotes aprobados y pagos verificados aplicados a esos períodos, con los saldos y vencimientos a la fecha de consulta. Los cargos internos son subtotales de prueba, antes de IVA y otros servicios.</p>
+   <p id="billing-history-status" role="status">Seleccione una ASADA.</p>
+   <div id="billing-history-results" hidden>
+    <div id="billing-history-metrics" class="history-metrics"></div>
+    <div class="table-scroll">
+     <table aria-label="Resumen mensual de lotes aprobados">
+      <thead><tr><th>Período</th><th>Recibos</th><th>Consumo m³</th><th>Cargos ₡</th><th>Pagos aplicados ₡</th><th>Saldo ₡</th><th>Vencido ₡</th></tr></thead>
+      <tbody id="billing-history-months"></tbody>
+     </table>
+    </div>
+    <p class="small">Los pagos se agrupan por período del recibo. Para el flujo de efectivo se requiere la fecha efectiva del pago y su conciliación.</p>
+   </div>
   </section>
   <details class="water-panel" id="billing-rate-editor">
    <summary><strong>Configurar tarifas de la ASADA</strong></summary>

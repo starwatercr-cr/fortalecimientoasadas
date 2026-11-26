@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildRate,previewBills,previewCsv} from '../private/facturacion-model.js';
+import {buildRate,previewBills,previewCsv,billingHistoryRows,summarizeBillingHistory,billingHistoryCsv} from '../private/facturacion-model.js';
 import {allowedTools,canOpenTool} from '../public/tools-catalog.js';
 
 const period='2026-11';
@@ -102,4 +102,56 @@ C;0;2;Industrial`,profiles});
   [650500,103000,65000,1098500],[250000,0,0,350000],
  ]);
  assert.match(report.issues[0].reason,/industrial/);
+});
+
+
+test('historial anual usa los mismos lotes aprobados y pagos para consumo y cartera',async()=>{
+ const {billingAPI,billingOwnerId}=await import('../netlify/lib/billing.mjs');
+ class PublicError extends Error {constructor(status,message){super(message);this.status=status;}}
+ const tenant='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+ const owner={admin:true,user:{id:billingOwnerId}};
+ const batches=[
+  {id:'jan',period:'2025-01-01',due_date:'2025-02-15',report:[
+   {subscriber:'001',category:'residencial',consumption:25.125,totalCents:1098500},
+   {subscriber:'002',category:'residencial',consumption:0,totalCents:345000},
+  ]},
+  {id:'feb',period:'2025-02-01',due_date:'2099-12-31',report:[
+   {subscriber:'001',category:'residencial',consumption:10.001,totalCents:600000},
+  ]},
+ ];
+ const paths=[];
+ const sb=async(path,options)=>{
+  paths.push(path);
+  if(path.startsWith('/rest/v1/asadas?'))return path.includes(tenant)?[{id:tenant,name:'ASADA A'}]:[];
+  if(path.startsWith('/rest/v1/billing_batches?')){
+   const q=new URLSearchParams(path.split('?')[1]);
+   assert.equal(q.get('asada_id'),'eq.'+tenant);
+   assert.equal(q.get('status'),'eq.approved');
+   assert.deepEqual(q.getAll('period'),['gte.2025-01-01','lt.2026-01-01']);
+   return batches;
+  }
+  if(path.endsWith('/rpc/billing_paid_totals')){
+   assert.equal(options.body.p_asada,tenant);
+   return options.body.p_batch==='jan'?[{subscriber:'001',paid_cents:'500000'},{subscriber:'002',paid_cents:'345000'}]:[];
+  }
+  throw Error(path);
+ };
+ const call=(year,who=owner,asada=tenant)=>billingAPI('billing-history',
+  new Request('https://example.test/api/billing-history?'+new URLSearchParams({asada,year})),
+  {who,sb,uuid:()=>true,json:data=>data,PublicError});
+ await assert.rejects(call('2025',{admin:true,user:{id:'otra'}}),e=>e.status===403);
+ assert.equal(paths.length,0);
+ await assert.rejects(call('2025',owner,'otra'),e=>e.status===403);
+ await assert.rejects(call('2025-01'),e=>e.status===400);
+ const data=await call('2025'),summary=summarizeBillingHistory(data.rows);
+ assert.equal(data.rows.length,3);
+ assert.deepEqual(summary.total,{count:3,consumption:35.126,totalCents:2043500,paidCents:845000,balanceCents:1198500,overdueCents:598500});
+ assert.equal(summary.months[0].paidCents,845000);
+ assert.equal(summary.months[1].overdueCents,0);
+ const personal=summarizeBillingHistory(data.rows.filter(r=>r.subscriber==='001'));
+ assert.equal(personal.total.balanceCents,1198500);
+ assert.equal(personal.total.paidCents,500000);
+ assert.match(billingHistoryCsv(data.rows),/"COBRO INTERNO";"2025-01";"001"/);
+ assert.deepEqual(summarizeBillingHistory([]).months,[]);
+ assert.throws(()=>billingHistoryRows(batches[0],[{subscriber:'001',paid_cents:1098501}],'2025-03-01'),/requieren revisión/);
 });
