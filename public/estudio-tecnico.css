@@ -35,3 +35,50 @@
 .study-dl dd{margin:5px 0 0;white-space:pre-wrap}
 .study-honeypot{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}
 @media(max-width:640px){.study-grid,.study-dl{grid-template-columns:1fr}.study-wrap{width:calc(100% - 26px)}.study-row{align-items:stretch}.study-row button{width:auto}}
+
+/* Internal workspace: same shell, typography and controls as Portafolio de proyectos.
+   The invitation form retains its separate public-facing layout. */
+.study-internal .study-return{margin:20px 0}
+#study-workspace{
+ --study-bg:#f4f7fa;--study-panel:#fff;--study-text:#182d40;--study-muted:#5d7182;--study-line:#e1e9ef;--study-brand:#086f87;--study-soft:#e5f4f6;
+ font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:15px;line-height:1.55;color:var(--study-text);background:var(--study-bg);border-radius:16px;overflow:hidden;color-scheme:light;
+}
+#study-workspace *{box-sizing:border-box}
+#study-workspace .study-workspace-top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 28px;background:var(--study-panel);border-bottom:1px solid var(--study-line)}
+#study-workspace .study-workspace-logo{display:flex;gap:12px;align-items:center}
+#study-workspace .study-workspace-logo b{font-size:19px;font-weight:500}
+#study-workspace .study-workspace-logo small{display:block;color:var(--study-muted)}
+#study-workspace .study-workspace-emblem{padding:8px 10px;border-radius:12px;background:var(--study-soft);color:var(--study-brand);font-weight:500}
+#study-workspace .study-workspace-badge{font-size:12px;background:var(--study-soft);color:var(--study-brand);padding:4px 10px;border-radius:20px;white-space:nowrap}
+#study-workspace .study-workspace-main{padding:26px;min-width:0}
+#study-workspace .study-workspace-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:18px;margin-bottom:10px}
+#study-workspace .study-workspace-title{min-width:0}
+#study-workspace h1{font-size:25px;font-weight:500;line-height:1.3;margin:0}
+#study-workspace .study-workspace-title p{color:var(--study-muted);font-size:12px;margin:5px 0 0}
+#study-workspace .study-workspace-actions{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap}
+#study-workspace .study-workspace-actions label{display:grid;gap:4px;font-size:12px;color:var(--study-muted);min-width:160px}
+#study-workspace .study-workspace-actions select{max-width:300px;min-height:38px;font:inherit;color:var(--study-text);border:1px solid var(--study-line);border-radius:8px;background:var(--study-panel);padding:8px 10px}
+#study-workspace .study-workspace-lead{margin:8px 0 16px;color:var(--study-muted);max-width:85ch}
+#study-workspace .study-status{font-size:13px;color:var(--study-brand);margin:0 0 16px;min-height:1.5em;font-weight:500}
+#study-workspace .study-card{padding:20px;border:1px solid var(--study-line);border-radius:12px;margin:16px 0;background:var(--study-panel)}
+#study-workspace .study-card h2{font-size:17px;font-weight:500;letter-spacing:normal;margin:0 0 10px}
+#study-workspace .study-card h3{font-size:16px;font-weight:600}
+#study-workspace .study-card p{color:var(--study-muted);font-size:14px}
+#study-workspace .study-card label{font-size:14px;font-weight:500}
+#study-workspace .study-card :is(input,textarea,select){border-color:var(--study-line);padding:9px 12px;font:inherit;color:inherit;min-height:40px}
+#study-workspace :is(.study-button,.study-card button){font:inherit;font-weight:500;padding:9px 12px;border-radius:8px;min-height:42px;background:var(--study-brand);border:1px solid var(--study-brand);color:white}
+#study-workspace :is(.study-button.secondary,.study-card button.secondary){background:var(--study-panel);border-color:var(--study-line);color:var(--study-text)}
+#study-workspace :is(a,button,input,select,textarea,summary):focus-visible{outline:2px solid var(--study-brand);outline-offset:3px}
+#study-workspace :is(.study-button.secondary,.study-card button.secondary):hover{border-color:#94b3c0;background:#f5f9fb}
+#study-workspace .study-tag{background:var(--study-soft);color:var(--study-brand);font-size:12px}
+#study-workspace .study-record{border-color:var(--study-line)}
+#study-workspace #quotes>h2:not(:first-of-type){border-top:1px solid var(--study-line);padding-top:22px;margin-top:24px}
+@media(max-width:700px){
+ #study-workspace .study-workspace-top{padding:18px;align-items:flex-start;flex-wrap:wrap}
+ #study-workspace .study-workspace-badge{white-space:normal}
+ #study-workspace .study-workspace-main{padding:18px}
+ #study-workspace .study-workspace-actions{width:100%}
+ #study-workspace .study-workspace-actions label{flex:1 1 100%;min-width:0}
+ #study-workspace .study-workspace-actions select{max-width:none;width:100%}
+ #study-workspace .study-card{padding:16px}
+}
