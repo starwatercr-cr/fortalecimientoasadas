@@ -1,13 +1,101 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><title>Solicitud de estudio técnico · STAR WATER</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/estudio-tecnico.css"><script defer src="/solicitar-estudio-tecnico.js"></script></head>
-<body class="study-page"><main class="study-wrap"><div class="study-top"><img src="/assets/logo.png" alt="Star Water"></div><section class="study-hero"><p class="study-kicker">STAR WATER INGENIERÍA · SOLICITUD DE COTIZACIÓN</p><h1>Estudio técnico para su ASADA</h1><p>Esta información nos permitirá conocer su acueducto, dimensionar el trabajo y preparar una propuesta de estudio acorde con sus necesidades. No representa una contratación ni un cobro.</p></section><p class="study-status" id="status" role="status">Verificando enlace…</p><form id="request" hidden>
-<section class="study-card"><h2>1. Información general</h2><div class="study-grid">
-<label>Nombre de la ASADA<input name="asadaName" maxlength="160" required></label><label>Ubicación (provincia, cantón y distrito)<input name="location" maxlength="250" required></label><label>Cédula jurídica (si la conoce)<input name="taxId" maxlength="40"></label><label>Persona de contacto<input name="contact" maxlength="160" required></label><label>Correo electrónico<input type="email" name="email" maxlength="254"></label><label>Teléfono o WhatsApp<input type="tel" name="phone" maxlength="40"></label>
-</div><p>Indique al menos un medio de contacto.</p></section>
-<section class="study-card"><h2>2. Infraestructura y tamaño del acueducto</h2><p>Use cantidades aproximadas si no dispone de datos exactos. Deje en blanco lo que no conoce; escriba 0 únicamente cuando no existe.</p><div class="study-grid">
-<label>Usuarios o número de pajas<input type="number" name="users" min="0" max="100000000" step="1"></label><label>Kilómetros de tubería de conducción<input type="number" name="conductionKm" min="0" max="100000000" step="0.01"></label><label>Kilómetros de tubería de distribución<input type="number" name="distributionKm" min="0" max="100000000" step="0.01"></label><label>Cantidad de tanques de almacenamiento<input type="number" name="tanks" min="0" max="100000000" step="1"></label><label>Cantidad de fuentes<input type="number" name="sources" min="0" max="100000000" step="1"></label><label>Cantidad de hidrantes<input type="number" name="hydrants" min="0" max="100000000" step="1"></label>
-</div></section>
-<section class="study-card"><h2>3. Medición y calidad del agua</h2><div class="study-grid">
-<label>¿Cuentan con aforos?<select name="aforos" required></select></label><label>¿Cuentan con análisis de agua?<select name="analysis" required></select></label><label>¿Tienen 100 % de micromedición?<select name="micro" required></select></label><label>Porcentaje aproximado de micromedición (opcional)<input name="microPercent" type="number" min="0" max="100" step="0.01"></label><label>¿Cuentan con macromedidores?<select name="macro" required></select></label><label>Cantidad de macromedidores (si la conoce)<input name="macroCount" type="number" min="0" max="100000000" step="1"></label>
-</div></section>
-<section class="study-card"><h2>4. ¿Para qué necesitan el estudio técnico?</h2><p>Por ejemplo: evaluar disponibilidad de agua, mejorar redes y almacenamiento, planificar inversiones, modelar el acueducto o analizar necesidades de ampliación.</p><label>Explique la situación y el objetivo del estudio<textarea name="purpose" required maxlength="3000"></textarea></label><label>Observaciones adicionales (opcional)<textarea name="observations" maxlength="1500"></textarea></label></section>
-<section class="study-card"><h2>5. Datos para la cotización</h2><p>Adjunte la personería jurídica o, si no la tiene a mano, una imagen que muestre la información general de la ASADA. PDF, JPG o PNG de hasta 2 MB.</p><label>Documento o imagen<input name="file" type="file" accept="application/pdf,image/jpeg,image/png" required></label><div class="study-honeypot" aria-hidden="true"><label>Sitio web<input name="website" tabindex="-1" autocomplete="off"></label></div><p><label class="study-check"><input type="checkbox" name="accept" required> Autorizo a STAR WATER a revisar los datos y el documento exclusivamente para preparar y dar seguimiento a la cotización.</label></p><button type="submit">Enviar solicitud de cotización</button></section></form><section class="study-card" id="success" hidden><h2>¡Recibimos su solicitud!</h2><p>STAR WATER revisará la información y se pondrá en contacto con la ASADA. Conserve su referencia: <strong id="reference"></strong>.</p></section></main></body></html>
+<!doctype html>
+<html lang="es-CR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Solicitud de estudio técnico · STAR WATER</title>
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/solicitar-estudio-tecnico.css?v=2">
+<script defer src="/solicitar-estudio-tecnico.js?v=2"></script>
+</head>
+<body class="quote-page">
+<header class="quote-header">
+ <div class="quote-width quote-header-content">
+  <img src="/assets/logo.png" alt="STAR WATER Soluciones Innovadoras" width="452" height="128">
+  <span class="quote-header-label">Ingeniería y consultoría para ASADAS</span>
+ </div>
+</header>
+<main class="quote-width quote-main">
+ <section class="quote-intro" aria-labelledby="quote-title">
+  <p class="quote-eyebrow">SOLICITUD DE COTIZACIÓN <span aria-hidden="true">/</span> ESTUDIOS TÉCNICOS</p>
+  <h1 id="quote-title">Estudio técnico para su ASADA</h1>
+  <p>Cuéntenos cómo funciona su acueducto y qué necesitan resolver. Con esta información podremos dimensionar el trabajo y preparar una propuesta acorde con sus necesidades.</p>
+  <div class="quote-intro-note"><span class="quote-note-dot" aria-hidden="true"></span> Solicitar una cotización no representa una contratación ni un cobro.</div>
+ </section>
+ <p id="status" class="quote-status" role="status" aria-live="polite" data-state="loading">Verificando enlace…</p>
+ <noscript><p>Active JavaScript para verificar el enlace y completar la solicitud.</p></noscript>
+ <form id="request" hidden>
+  <div class="quote-layout">
+   <aside class="quote-guide" aria-label="Guía del formulario">
+    <p class="quote-guide-title">Su solicitud</p>
+    <p class="quote-guide-text">Complete las cinco secciones. Puede desplazarse entre ellas sin perder los datos ingresados.</p>
+    <ol class="quote-steps">
+      <li><button type="button" data-section="general"><span>01</span> Información general</button></li>
+      <li><button type="button" data-section="infraestructura"><span>02</span> Infraestructura</button></li>
+      <li><button type="button" data-section="medicion"><span>03</span> Medición y calidad</button></li>
+      <li><button type="button" data-section="objetivo"><span>04</span> Objetivo del estudio</button></li>
+      <li><button type="button" data-section="documento"><span>05</span> Documentación</button></li>
+    </ol>
+    <div class="quote-guide-note"><strong>Antes de comenzar</strong><p>Tenga a mano la personería jurídica o una imagen con los datos de su ASADA.</p><p>Las cantidades pueden ser aproximadas. Si no conoce un dato, déjelo en blanco.</p></div>
+   </aside>
+   <div class="quote-sections">
+    <section class="quote-card" id="general" aria-labelledby="general-title">
+     <div class="quote-section-head"><span class="quote-number" aria-hidden="true">01</span><div><h2 id="general-title">Información general</h2><p>Datos de la ASADA y de la persona con quien coordinaremos la cotización.</p></div></div>
+     <div class="quote-grid">
+      <label><span>Nombre de la ASADA <b aria-hidden="true">*</b></span><input name="asadaName" maxlength="160" placeholder="Nombre oficial de la ASADA" required></label>
+      <label><span>Ubicación <b aria-hidden="true">*</b></span><input name="location" maxlength="250" placeholder="Provincia, cantón y distrito" required></label>
+      <label><span>Cédula jurídica <small>(si la conoce)</small></span><input name="taxId" maxlength="40" placeholder="Ej. 3-002-000000"></label>
+      <label><span>Persona de contacto <b aria-hidden="true">*</b></span><input name="contact" maxlength="160" autocomplete="name" placeholder="Nombre completo" required></label>
+      <label><span>Correo electrónico</span><input type="email" name="email" maxlength="254" autocomplete="email" placeholder="correo@ejemplo.com"></label>
+      <label><span>Teléfono o WhatsApp</span><input type="tel" name="phone" maxlength="40" autocomplete="tel" placeholder="Ej. 8888-8888"></label>
+     </div>
+     <p class="quote-help">Indique al menos un medio de contacto. Los campos marcados con * son obligatorios.</p>
+    </section>
+    <section class="quote-card" id="infraestructura" aria-labelledby="infra-title">
+     <div class="quote-section-head"><span class="quote-number" aria-hidden="true">02</span><div><h2 id="infra-title">Infraestructura del acueducto</h2><p>Indique cantidades aproximadas. Escriba 0 únicamente cuando no existe el elemento.</p></div></div>
+     <div class="quote-grid">
+      <label><span>Usuarios o número de pajas</span><input type="number" name="users" min="0" max="100000000" step="1" placeholder="Cantidad"></label>
+      <label><span>Tanques de almacenamiento</span><input type="number" name="tanks" min="0" max="100000000" step="1" placeholder="Cantidad"></label>
+      <label><span>Tubería de conducción</span><span class="quote-input-unit"><input type="number" name="conductionKm" min="0" max="100000000" step="0.01" placeholder="Longitud aproximada" aria-label="Kilómetros de tubería de conducción"><span aria-hidden="true">km</span></span></label>
+      <label><span>Tubería de distribución</span><span class="quote-input-unit"><input type="number" name="distributionKm" min="0" max="100000000" step="0.01" placeholder="Longitud aproximada" aria-label="Kilómetros de tubería de distribución"><span aria-hidden="true">km</span></span></label>
+      <label><span>Cantidad de fuentes</span><input type="number" name="sources" min="0" max="100000000" step="1" placeholder="Cantidad"></label>
+      <label><span>Cantidad de hidrantes</span><input type="number" name="hydrants" min="0" max="100000000" step="1" placeholder="Cantidad"></label>
+     </div>
+    </section>
+    <section class="quote-card" id="medicion" aria-labelledby="measure-title">
+     <div class="quote-section-head"><span class="quote-number" aria-hidden="true">03</span><div><h2 id="measure-title">Medición y calidad del agua</h2><p>Conozcamos la información técnica disponible para el estudio.</p></div></div>
+     <div class="quote-grid">
+      <label><span>¿Cuentan con aforos? <b aria-hidden="true">*</b></span><select name="aforos" required></select></label>
+      <label><span>¿Cuentan con análisis de agua? <b aria-hidden="true">*</b></span><select name="analysis" required></select></label>
+      <label><span>¿Tienen 100 % de micromedición? <b aria-hidden="true">*</b></span><select name="micro" required></select></label>
+      <label><span>Micromedición aproximada <small>(opcional)</small></span><span class="quote-input-unit"><input name="microPercent" type="number" min="0" max="100" step="0.01" placeholder="Porcentaje" aria-label="Porcentaje aproximado de micromedición"><span aria-hidden="true">%</span></span></label>
+      <label><span>¿Cuentan con macromedidores? <b aria-hidden="true">*</b></span><select name="macro" required></select></label>
+      <label><span>Cantidad de macromedidores <small>(si la conoce)</small></span><input name="macroCount" type="number" min="0" max="100000000" step="1" placeholder="Cantidad"></label>
+     </div>
+    </section>
+    <section class="quote-card" id="objetivo" aria-labelledby="purpose-title">
+     <div class="quote-section-head"><span class="quote-number" aria-hidden="true">04</span><div><h2 id="purpose-title">¿Para qué necesitan el estudio?</h2><p>Explíquenos la situación del acueducto y lo que esperan obtener del estudio técnico.</p></div></div>
+     <div class="quote-examples">Por ejemplo: disponibilidad de agua, mejoras en redes o almacenamiento, planificación de inversiones, modelación hidráulica o ampliación del acueducto.</div>
+     <div class="quote-fields">
+      <label><span>Situación y objetivo del estudio <b aria-hidden="true">*</b></span><textarea name="purpose" required maxlength="3000" rows="5" placeholder="Describa aquí qué necesitan evaluar o resolver…"></textarea></label>
+      <label><span>Observaciones adicionales <small>(opcional)</small></span><textarea name="observations" maxlength="1500" rows="3" placeholder="Agregue cualquier información que considere importante."></textarea></label>
+     </div>
+    </section>
+    <section class="quote-card" id="documento" aria-labelledby="document-title">
+     <div class="quote-section-head"><span class="quote-number" aria-hidden="true">05</span><div><h2 id="document-title">Documentación para cotizar</h2><p>Adjunte la personería jurídica o una imagen con la información general de la ASADA.</p></div></div>
+     <label class="quote-upload"><span class="quote-file-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 17v-6m-3 3 3-3 3 3"/></svg></span><span>Documento o imagen <b aria-hidden="true">*</b><small>PDF, JPG o PNG · máximo 2 MB</small></span><input name="file" type="file" accept="application/pdf,image/jpeg,image/png" required></label>
+     <div class="quote-honeypot" aria-hidden="true"><label>Sitio web<input name="website" tabindex="-1" autocomplete="off"></label></div>
+     <label class="quote-consent"><input type="checkbox" name="accept" required><span>Autorizo a STAR WATER a revisar los datos y el documento exclusivamente para preparar y dar seguimiento a la cotización. <b aria-hidden="true">*</b></span></label>
+     <div class="quote-submit"><div><strong>¿Todo listo?</strong><p>Revise los datos antes de enviar. El enlace admite una sola solicitud.</p></div><button type="submit" class="quote-send">Enviar solicitud de cotización <span aria-hidden="true">→</span></button></div>
+     <p id="form-message" class="quote-form-message" role="status" aria-live="polite"></p>
+    </section>
+   </div>
+  </div>
+ </form>
+ <section class="quote-card quote-success" id="success" hidden><span class="quote-success-icon" aria-hidden="true">✓</span><h2>¡Recibimos su solicitud!</h2><p>STAR WATER revisará la información y se pondrá en contacto con la ASADA.</p><div class="quote-reference"><small>Referencia de solicitud</small><strong id="reference"></strong></div></section>
+ <footer class="quote-footer"><strong>STAR WATER Ingeniería</strong><span>Soluciones para la gestión del agua · Costa Rica</span></footer>
+</main>
+</body>
+</html>
