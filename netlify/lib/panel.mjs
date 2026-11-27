@@ -42,7 +42,8 @@ export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid
   const record=(await sb('/rest/v1/panel_records?asada_id=eq.'+asada.id+'&id=eq.'+id+'&kind=eq.project&deleted=eq.false&select=payload'))?.[0];
   if(!record||!record.payload?.documents?.some(d=>d.id===documentId))fail('El documento no pertenece a este proyecto.',404);
   const doc=(await sb('/rest/v1/asada_documents?asada_id=eq.'+asada.id+'&id=eq.'+documentId+'&select=*'))?.[0];
-  if(!doc||doc.category!=='Otro documento'||!doc.path.startsWith(asada.id+'/'))fail('Documento no disponible.',404);
+  if(!doc||!['Otro documento','Estudio técnico'].includes(doc.category)||!doc.path.startsWith(asada.id+'/'))fail('Documento no disponible.',404);
+  if(doc.category==='Estudio técnico'||doc.size>5*1024*1024){const signed=await profileStorage('SIGN_DOWNLOAD',doc.path);const target=new URL(signed.url);target.searchParams.set('download',doc.filename);return new Response(null,{status:302,headers:{Location:target.toString(),'Cache-Control':'no-store, private','Referrer-Policy':'no-referrer'}});}
   return new Response(await profileStorage('GET',doc.path),{headers:{'Content-Type':doc.type,'Content-Disposition':"attachment; filename*=UTF-8''"+encodeURIComponent(doc.filename),'Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY'}});
  }
  if(api==='panel-agreements'&&request.method==='GET'){
@@ -198,7 +199,7 @@ export async function panelAPI(api,request,{sb,authorized,sessionToken,body,uuid
  if(!input.archive&&input.kind==='project'){
   for(const docRef of payload.documents){
    if(!uuid(docRef.id))fail('Adjunto de proyecto inválido.');
-   const doc=(await sb('/rest/v1/asada_documents?asada_id=eq.'+asada.id+'&id=eq.'+docRef.id+'&category=eq.'+encodeURIComponent('Otro documento')+'&select=id,type,filename'))?.[0];
+   const doc=(await sb('/rest/v1/asada_documents?asada_id=eq.'+asada.id+'&id=eq.'+docRef.id+'&category=in.('+encodeURIComponent('Otro documento')+','+encodeURIComponent('Estudio técnico')+')&select=id,type,filename'))?.[0];
    if(!doc||doc.filename!==docRef.name||doc.type!==docRef.type)fail('El adjunto no pertenece a esta ASADA.',403);
   }
  }
@@ -294,7 +295,7 @@ function validate(kind,p,y,fail){
   const budget=num('budget'),secured=num('secured');if(secured>budget)fail('El financiamiento confirmado supera el presupuesto.');
   if(!Array.isArray(p.documents)||p.documents.length>12)fail('Adjunte hasta 12 documentos por proyecto.');
   const documents=p.documents.map(d=>{
-   if(!d||typeof d.id!=='string'||!/^[-0-9a-f]{36}$/i.test(d.id)||typeof d.name!=='string'||!d.name.trim()||d.name.length>160||!['application/pdf','image/jpeg','image/png'].includes(d.type)||!['Estudio técnico','Presupuesto','Acuerdo de Junta','Permiso','Fotografía','Otro respaldo'].includes(d.category))fail('Revise los documentos adjuntos.');
+   if(!d||typeof d.id!=='string'||!/^[-0-9a-f]{36}$/i.test(d.id)||typeof d.name!=='string'||!d.name.trim()||d.name.length>180||!['application/pdf','image/jpeg','image/png'].includes(d.type)||!['Estudio técnico','Presupuesto','Acuerdo de Junta','Permiso','Fotografía','Otro respaldo'].includes(d.category))fail('Revise los documentos adjuntos.');
    return {id:d.id,name:d.name.trim(),type:d.type,category:d.category};
   });
   if(new Set(documents.map(d=>d.id)).size!==documents.length)fail('Un documento está repetido.');

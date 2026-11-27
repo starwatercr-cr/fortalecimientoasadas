@@ -8,6 +8,7 @@ export const TOOLS=[
 {id:'caja',name:'Caja chica',desc:'Registre gastos menores y controle el fondo.',href:'panel-gestion.html',view:'petty',icon:'wallet',areas:['finanzas'],module:'panel'},
 {id:'activos',name:'Auxiliar de activos',desc:'Consulte el registro de activos.',href:'panel-gestion.html',view:'assets',icon:'box',areas:['finanzas'],module:'panel'},
 {id:'agua',name:'Nuestra agua',desc:'Revise aforos, oferta, demanda y medición.',href:'nuestra-agua.html',icon:'water',areas:['agua'],module:'agua'},
+{id:'study',name:'Estudio técnico',desc:'Guarde estudios y vincule sus recomendaciones al portafolio de proyectos.',href:'estudio-tecnico.html',icon:'file',areas:['agua']},
 {id:'calidad',name:'Calidad de nuestra agua',desc:'Interprete resultados y dé seguimiento.',href:'calidad.html',icon:'flask',areas:['agua'],module:'calidad'},
 {id:'operacion',name:'Bitácora de operación',desc:'Registre labores, mediciones y pendientes.',href:'operacion.html',icon:'check',areas:['agua'],module:'operacion'},
 {id:'bodega',name:'Proveeduría',desc:'Controle materiales, existencias y proveedores.',href:'bodega.html',icon:'box',areas:['agua'],module:'bodega'},

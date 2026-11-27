@@ -645,3 +645,15 @@
   to = "/.netlify/functions/gateway?file=billing-registry-model.js"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/estudio-tecnico.html"
+  to = "/.netlify/functions/gateway?file=estudio-tecnico.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/estudio-tecnico.js"
+  to = "/.netlify/functions/gateway?file=estudio-tecnico.js"
+  status = 200
+  force = true
