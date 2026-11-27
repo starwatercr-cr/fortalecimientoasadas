@@ -27,4 +27,19 @@ async function updateProgramMenu(dir){
  }
 }
 await updateProgramMenu('build');
+// Measure public commercial pages only; never embed the tag in private tools,
+// login, or the personal-data intake form. The consent UI loads Google only after acceptance.
+const commercialPages=new Set(['/', '/programa', '/deteccion-de-fugas', '/plataforma',
+  '/servicios-generales', '/tienda', '/tienda/filtros-de-agua',
+  '/como-detectar-fuga-de-agua', '/como-elegir-equipos-de-agua', '/gestion-de-asadas']);
+const publicSitemap=await readFile('build/sitemap.xml','utf8');
+for (const match of publicSitemap.matchAll(/<loc>(https:\/\/solucionesstarwater\.com[^<]*)<\/loc>/g)) {
+  const page=new URL(match[1]).pathname;
+  if (!commercialPages.has(page) && !/^\/tienda\/[a-z0-9-]+\.html$/.test(page)) continue;
+  const file=path.join('build',page==='/'?'index.html':page.slice(1)+(page.endsWith('.html')?'':'.html'));
+  const html=await readFile(file,'utf8');
+  if (!html.includes('</head>')) throw new Error('No head found for public analytics: '+file);
+  const snippet='<link rel="stylesheet" href="/analytics-public.css"><script defer src="/analytics-public.js" data-page="'+page+'"></script>';
+  await writeFile(file,html.replace('</head>',snippet+'</head>'));
+}
 console.log('Archivos públicos preparados. Las herramientas se sirven con autorización.');

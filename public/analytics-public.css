@@ -1,0 +1,13 @@
+/* Optional public-site analytics controls, never used in the private portal. */
+.sw-analytics-consent{position:fixed;z-index:100;left:clamp(12px,2.5vw,28px);bottom:max(16px,env(safe-area-inset-bottom));width:min(360px,calc(100% - 90px));max-height:calc(100dvh - 32px);overflow:auto;padding:18px 19px;background:#fff;color:#153747;border:1px solid #cadee3;border-radius:14px;box-shadow:0 10px 36px #15374728;font:inherit;font-size:.88rem;line-height:1.5;text-align:left}
+.sw-analytics-consent[hidden]{display:none!important}
+.sw-analytics-consent p{margin:0 0 10px}
+.sw-analytics-consent .sw-consent-heading{font-weight:750;font-size:1rem}
+.sw-consent-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.sw-consent-actions button{flex:1;min-width:115px;border:1px solid #176c76;background:#fff;color:#105661;font:inherit;font-weight:650;cursor:pointer;padding:10px;border-radius:8px}
+.sw-consent-actions button:hover,.sw-consent-actions button:focus-visible{background:#e8f5f5}
+.sw-consent-actions button:disabled{cursor:not-allowed;opacity:.5}
+.sw-analytics-consent a{color:#006e78;text-decoration:underline;font-size:.8rem}
+.sw-analytics-settings{display:inline-block;width:fit-content;background:none;border:0;color:inherit;font:inherit;font-size:.78rem;text-decoration:underline;text-underline-offset:.2em;cursor:pointer;padding:5px 0;text-align:left}
+.sw-analytics-settings:focus-visible{outline:2px solid #59cacc;outline-offset:3px}
+@media(max-width:400px){.sw-analytics-consent{padding:13px;min-width:200px}.sw-consent-actions{flex-direction:column}}
